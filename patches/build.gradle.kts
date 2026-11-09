@@ -19,6 +19,7 @@ val patchListGeneratorClasspath = configurations.create("patchListGeneratorClass
 dependencies {
     compileOnly(libs.gson)
     patchListGeneratorClasspath(libs.gson)
+    testImplementation(kotlin("test-junit5"))
 }
 
 val runtimeDir = rootProject.layout.projectDirectory.dir("runtime")
@@ -48,6 +49,13 @@ val buildRuntime by tasks.registering(Exec::class) {
 sourceSets["main"].resources.srcDir(buildRuntime)
 
 tasks {
+    test {
+        useJUnitPlatform()
+        // Tests that need local tools (the Hermes VM, a Discord bundle) look for them here and skip without them.
+        systemProperty("disk.root", rootProject.projectDir.absolutePath)
+        testLogging { events("passed", "skipped", "failed"); showStandardStreams = true }
+    }
+
     register<JavaExec>("generatePatchesList") {
         description = "Build patch with patch list"
 
