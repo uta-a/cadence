@@ -40,6 +40,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew :patches:generatePatchesList :patches:buildAndroid --no-daemon
 
+      - name: Test analysis tools
+        env:
+          HERMESC: ${{ github.workspace }}/runtime/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
+        run: python3 -I -m unittest discover -s tools/tests -v
+
       - name: Check the bundle has DEX
         run: unzip -l patches/build/libs/patches-*[0-9].mpp | grep -q classes.dex
 
