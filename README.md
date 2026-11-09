@@ -2,9 +2,22 @@
 
 Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator、プライバシー保護をオフラインで追加する。
 
-> 開発中（Phase 0）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
+> 開発中（**Phase 2: ランタイム注入**）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
 
-**対応:** Discord **352.17 - Stable**（APKM）
+**開発対象:** Discord **352.17 - Stable**（APKM）。Fake Nitro・Platform Indicator・Privacy 本体はまだ未実装です。
+
+## 現在の状態
+
+| 項目 | 状態 | 根拠 |
+| --- | --- | --- |
+| HBC prelude 注入（`disk`） | ローカル検証済み | `:patches:test`。`hermesc` で作ったバンドルと Hermes VM で、prelude が元コードより先に走ること、例外時のフェイルオープン、`SwitchImm` テーブルの再配置、二重注入の拒否、実 352.17 バンドルへの注入を確認 |
+| OTA バンドル固定（`bundle pin`） | ローカル検証済み・**実機未検証** | 352.17 の実 DEX で、`i()` の全命令（invoke active count を含む）・全4呼び出し元＋manifest null 消費側の全命令/フレーム/access/try を固定。旧ウィンドウ外のフィールド変更や null 分岐の mutation を拒否し、debug 削除後の `return null` を DEX 書き出し・再読込で確認（DESIGN §4.4） |
+| 実機での起動 | **未実施** | パッチ済み APK のインストールと `adb logcat` の `[disk] loaded` はまだ確認していない |
+| 起動時 OTA チェックの停止 | 未実装（意図的） | OTA のダウンロードは続くが、読み込まれるのは常に APK 同梱バンドル。呼び出し元の意味論を実機で確認してから止める（DESIGN §4.4） |
+
+**実機で確認できるまでは「Discord が起動する」とは主張しない。** `bundle pin` は OTA がコミット済みの
+端末でも APK 同梱バンドルを読む想定だが、これも実機未検証。ガードは対象メソッドの固定であり、
+APK 全体や追加 callsite・外部 helper の任意の改変を検証するものではない。対象メソッドを変更する他パッチは拒否する。
 
 ## ビルド
 
@@ -18,11 +31,47 @@ GITHUB_ACTOR=<user> GITHUB_TOKEN=$(gh auth token) \
 
 `buildAndroid` は Morphe Manager が必要とする `classes.dex` を追加する。`build` や `generatePatchesList` は DEX なしで `.mpp` を書き直すので、`buildAndroid` を最後に実行する。
 
+Morphe Manager で選ぶパッチは `disk`（`bundle pin` は依存として自動で入る）。
+
 ランタイムだけをビルドする場合:
 
 ```bash
 cd runtime && npm ci && node build.mjs   # 型チェック + HBC98 へのコンパイル確認
 ```
+
+## テスト
+
+```bash
+GITHUB_ACTOR=<user> GITHUB_TOKEN=$(gh auth token) ./gradlew :patches:test
+```
+
+ローカルの Discord 352.17 を使うテストがあり、次のどちらかがあると実行される（APK はコミットしない）:
+
+- `work/352.17/dex/classes*.dex`
+- `work/352.17/apks/base.apk`（読み取りのみ。dex は一時ディレクトリに展開）
+
+無い場合は理由付きで skip される。実バンドル／実 DEX を使うテストは、この環境では通っている。
+HBC の実行テストには `work/hermes/hermes`、実バンドルの検証には
+`work/352.17/assets/index.android.bundle` も必要。
+
+解析ツールの使い方・制約は [tools/README.md](tools/README.md) を参照。
+
+```bash
+python3 -I -m unittest discover -s tools/tests -v
+```
+
+ローカル検証結果: Kotlin **35件成功（skipなし）**、解析ツール **16件成功（skipなし）**。
+解析ツールの全件実行には `HERMESC`・`HERMES_SOURCE`・`DISK_BUNDLE` の指定が必要（tools の README を参照）。
+機能別モジュール ID は候補段階で、確定表の作成は Phase 3 の前に残っている。
+
+## 実機で確認すること（未実施）
+
+1. 352.17 の APKM に `disk` を適用し、端末に入れる
+2. `adb logcat` に `[disk] loaded` が出ること
+3. OTA がコミット済みの状態（設定 → 開発者向けの OTA 表示、または一度 OTA を取得した端末）でも起動し、
+   同梱バンドルが読まれること
+4. ランタイムが例外を投げても Discord が通常起動すること（フェイルオープン）
+5. 起動時 OTA チェックの停止を入れるか判断するための、`onResume` 時の blocking check の挙動確認
 
 ## ライセンス
 

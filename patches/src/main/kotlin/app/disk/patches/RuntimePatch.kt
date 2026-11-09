@@ -6,14 +6,18 @@ import app.disk.patches.hbc.HbcInjector
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
-/** Inject the bundled, local-only runtime before the pinned HBC global code. OTA pinning is not yet implemented. */
+/**
+ * Inject the bundled, local-only runtime before the pinned HBC global code. [bundlePin] must run first:
+ * Discord would otherwise load a downloaded OTA bundle, which never contains the injected prelude.
+ */
 @Suppress("unused")
 val diskRuntime = rawResourcePatch(
     name = "disk",
-    description = "Inject the disk runtime into the APK bundle (experimental; OTA pinning not yet implemented).",
+    description = "Inject the disk runtime into the APK bundle (experimental; not yet verified on a device).",
     default = true,
 ) {
     compatibleWith(discord)
+    dependsOn(bundlePin)
 
     execute {
         val runtime = object {}.javaClass.getResourceAsStream("/disk/runtime.js")?.use { it.readBytes() }

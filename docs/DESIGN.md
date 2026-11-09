@@ -104,6 +104,125 @@ prelude が使う定数（global #0 のオフセット、サイズ、ハッシ�
 - ランタイムは「すぐ実行するヘッダ」と「機能本体」に分ける。機能本体は文字列のまま持ち、使うときに初めて `eval` する
 - `__d` ラッパーは全モジュール分呼ばれるので、判定は `Uint8Array` の添字参照 1 回だけにする
 
+### 4.4 OTA バンドルの固定（`BundlePinPatch.kt` / `dex/BundlePin.kt`）
+
+注入した prelude は **APK 同梱の `assets/index.android.bundle`** にしか入っていない。しかし Discord は
+OTA バンドルをダウンロードして SharedPreferences に記録し、起動時にそちらを読み込むことがある。
+そのままだと、OTA がコミット済みの端末では disk が読み込まれない。`bundle pin` パッチは
+バンドル選択を APK 同梱側に固定する。`disk` パッチは `bundle pin` に依存する。
+
+#### 352.17 で確認した実装（DEX 実測）
+
+| 要素 | 内容 |
+| --- | --- |
+| 選択関数 | `Lw6/z;->i()Lw6/v;`。`key_android_js_bundle` / `key_android_js_bundle_release_name` / `ota_version` を SharedPreferences から読み、有効な OTA バンドル（`Lw6/v;` = `File` + releaseName）または `null` を返す |
+| 呼び出し元 | `Ld6/a;->invoke()`（Bridgeless の `ReactHostImpl` 生成）、`Ldl/o;->a()`（旧 `ReactInstanceManager` のビルダー）、`Lu5/b;->call()`（Sentry の release 名）、`Lw6/z;->j()`（manifest 情報） |
+| ローダ選択 | `Ld6/a` は OTA バンドルが `null` のとき `JSBundleLoader.createAssetLoader(context, "assets://index.android.bundle", true)`、非 `null` のとき `createFileLoader(path)`。`Ldl/o` も `null` のとき `assets://index.android.bundle` を使う |
+| null の扱い | 4 つの呼び出し元すべてが `null` を許容する。`z.j()` の `null` は `BundleUpdaterManager.getManifestInfo` が同梱 manifest を読む経路、`u5/b` は Sentry の既定 release 名にフォールバックする |
+
+#### パッチ内容
+
+`Lw6/z;->i()` の本体を `const/4 v0, 0` + `return-object v0` に置き換える。フレームは 7 レジスタのまま
+変えない（この本体置換ではフレームを変える必要がない）。元コードの debug items は全 location
+（末尾 sentinel を含む）から削除し、短縮した本体に古い行番号やローカル変数情報を残さない。これで両方のホストビルダーが
+「OTA バンドル無し」の分岐に入り、APK 同梱バンドルを読む。
+
+#### ガード（`BundlePin.verify`）
+
+すべて `PatchException` で失敗し、**メソッドを書き換える前に**停止する（`verify` は読み取りのみ）。
+
+1. クラス/フィールド: `Lw6/z;` の superclass と `a` / `c` / `q` の型・修飾子
+2. メソッド: `i()Lw6/v;` が public final、7 レジスタ、例外ハンドラ無し
+3. 命令列: `i()` の全命令をシグネチャ（opcode・レジスタ・**invoke の active registerCount**・
+   リテラル・参照・分岐先）で完全一致。35c は C〜G の全スロットに加えて active count を比較する。
+   既にパッチ済みの 2 命令も受理するので、パッチ済み DEX への再実行は no-op になる
+4. 呼び出し元: 下表の **5 メソッド全体**を semantic SHA-256 で完全一致。旧ウィンドウの前後を含み、
+   access flags・レジスタ数・全命令・switch payload の key/相対 offset・try 範囲・catch の型と順序と
+   handler address を固定する。`i()` の実際の全 4 呼び出し元に加え、`j()` の null を消費する
+   `getManifestInfo(Promise)` も対象とする
+
+| メソッド | registers / code end（code units） | null 経路（元 DEX の PC） |
+| --- | --- | --- |
+| `Ld6/a;->invoke()Object` | 13 / 366 | 初期 v1=null (2)、`i()` (174)、null 分岐 (178→186)、同梱アセット生成 (223〜229)、delegate にローダを渡す (245) |
+| `Ldl/o;->a()V` | 14 / 349 | `i()` (82)、null 分岐 (87→96)、同梱パスを `n.b` に設定 (129〜137)、**`n.b` を取得 (246)**、asset loader 生成 (291) |
+| `Lu5/b;->call()Object` | 12 / 602 | `i()` (20)、null 分岐 (24→33)、既定 release `discord_android@352.17.0-0+352017` (33) |
+| `Lw6/z;->j()String` | 19 / 223 | `i()` (0)、v1=null (4)、null 分岐 (5→220)、v1 を返す (222) |
+| `BundleUpdaterManager.getManifestInfo(Promise)V` | 9 / 161 | `j()` (11)、null 分岐 (16→48→49→61)、AssetManager から同梱 manifest を読む (61〜63) |
+
+#### 固定値の出所と再計算
+
+元の **352.17 - Stable** の `work/352.17/apks/base.apk` を読み取り専用で調べた値のみを使用する。
+他のパッチの実装や正規表現による推測からは生成していない。
+
+- base.apk SHA-256: `852c6adead130fc7965c7014b07201f3cd5c25c2c5061635025bd7c34f4b40da`
+- その `classes.dex` SHA-256: `3efc30958ce4de776f1240448e3ee7c99061928b70b2ed158c8eb04f9b0458be`
+  （ローカルの抽出済み `classes.dex` も同値）
+- 全 DEX の method reference を調べ、`Lw6/z;->i()Lw6/v;` への実呼び出しが上記 4 メソッドにあることを確認。
+  PC・active count・debug を含む調査出力はローカルの `/tmp/disk-dex-evidence.txt`、
+  canonical 出力は `/tmp/disk-bundle-pin-snapshots.txt`（調査用。テストやビルドはこれらに依存しない）。
+
+`BundlePin.semanticSnapshot(method)` の文字列を UTF-8 にして SHA-256 を計算したものが
+`semanticDigest` / `CALLERS` の値になる。スナップショットは LF 区切り、最後にも LF がある。
+先頭は `class->name(parameterTypes)ReturnType`、次は `access=N registers=N`。
+各命令は `PC/codeUnits signature`、末尾は `end=N`、続いて DEX 順の `try=start/count` と
+`catch=type->address`（catch-all は `*`）。signature は `signatures` と共通で、参照は pool index ではなく
+型・名前・引数型、分岐は絶対 PC、switch payload は `cases=key:relativeOffset,...` とする。
+デバッグ行番号・source file・pool 順序は意味論ではないためハッシュに含めない。
+
+| メソッド | semantic SHA-256 |
+| --- | --- |
+| `Ld6/a;->invoke` | `5edcb77dd3bb8af517a24b595f671dcb3fb98d2e17b85c7f5709230dda7fafc2` |
+| `Ldl/o;->a` | `5205f1722374917bc80c778970856f2fdeaa02a0e3c54c47eed317ad6cc97715` |
+| `Lu5/b;->call` | `f034e603d4e6d7a038f1a6b1b4e2179dc7b908f349875c4d1cc4e0e81be7b4c7` |
+| `Lw6/z;->j` | `07613a503beeb4501a6317e7b4614c4a83fe09e8b22ea6c47e60bed06169fd29` |
+| `BundleUpdaterManager.getManifestInfo` | `0b69d0e33bb209997a16794238a4e40e04d303ccb641ece749d8a419cfe3612c` |
+
+元 DEX を置き、次のテストを実行すると全 5 個の実測 digest が標準出力に出る（不一致でも値は
+例外メッセージに出る）。`i()` のリストは `BundlePin.signatures(implementation)` の出力と照合する。
+バージョン更新時はハッシュの置換だけで済ませず、全命令と null 経路を再レビューする。
+`tools/` の移植ツールには依存しない。
+
+```bash
+GITHUB_ACTOR=<user> GITHUB_TOKEN=$(gh auth token) ./gradlew :patches:test \
+  --tests 'app.disk.patches.BundlePinTest.guards accept the packaged Discord layout' --rerun-tasks
+```
+
+#### debug items の短縮・書き出し検証
+
+実測（dexlib2 `4220ae75f7`、address は code units）。古い「命令だけ削除」方式は debug を削除した
+命令の location から末尾へ集約する。DexPool が一部を落としても、残った行番号は新しい本体の意味と
+対応しないため、writer による補正には依存せず、置換前に明示的にすべて削除する。
+
+| 状態 | debug 件数 | min / max / code end |
+| --- | --- | --- |
+| 元 `i()` | 63 | 0 / 62 / 63 |
+| 旧方式の短縮直後 | 63 | 0 / 2 / 2（末尾は命令外） |
+| 旧方式の DexPool 再読込後 | 4 | 0 / 1 / 2（範囲内だが古い行番号） |
+| 修正後の短縮直後 | 0 | なし / なし / 2 |
+| 修正後の DexPool 再読込後 | 0 | なし / なし / 2 |
+
+`BundlePinTest` は元の min/max/end と、修正後・DexPool 再読込後の debug が空かつ命令範囲外の
+address がないことを確認する。末尾 sentinel に debug を加えたケースも検証する。
+
+#### 既知の制約・未対応
+
+- このガードは対象メソッドと明記したフィールドの固定であり、APK 全体の真正性検証ではない。
+  新たに追加された別の callsite や呼び出す helper/loader 自体の改変まで全 DEX を走査して検証しない。
+  同じバージョン名でも対象メソッドを改変する他パッチとは併用できない（共有 lambda の別 case の変更も拒否）。
+- 起動時の OTA チェックは**止めていない**。`Lsf/b;->h()`（"Checking for blocking OTA update" を出して
+  `Lw6/z;->b()` の結果を同期的に待つ静的メソッド。呼び出し元は共有ラムダ `Lnf/c` の case で、どの
+  画面遷移から呼ばれるかは未特定）、`Lsf/b;->i()`（`Ldl/g;->onCreate` から呼ばれ、10 秒後に遅延チェックを
+  投入する）、JS からの `BundleUpdaterManager.checkForUpdateAndReload` は今もダウンロードを試みる。
+  ただし読み込まれるのは常に APK 同梱バンドルで、ダウンロード済み OTA は使われない。停止するなら
+  `Lw6/z;->b()` を潰すのではなく各呼び出し箇所を個別に無効化する。`b()` を潰すと
+  `checkForUpdateAndReload` のスピナー解除と reload がコールバック側にあるため UI が止まる。
+  なお、`checkForUpdateAndReload` の再読み込みは `ProcessPhoenix` によるプロセス再起動で、再起動後も
+  `i()` は null を返すため、この経路でも同梱バンドルが読まれる。判断は実機で呼び出し元の意味論を
+  確認してから行う。
+- `i()` が SharedPreferences を読まなくなるため、OTA の状態表示（manifest 情報）は常に APK 同梱側を指す。
+- **実機未検証**。パッチ済み APK の起動と `adb logcat` の `[disk] loaded` は Phase 2 の完了条件として残る。
+- Discord が更新されたら、まず `BundlePinTest` を実行してガードの失敗箇所を確認する。
+
 ---
 
 ## 5. disk ランタイム（JS）
@@ -226,7 +345,8 @@ disk/
 │     ├─ hbc/HbcInjector.kt     prelude の生成と注入
 │     ├─ hbc/HbcTarget.kt       バージョン固定の定数（ツールで生成）
 │     ├─ RuntimePatch.kt        ランタイム注入 + 機能フラグ埋め込み
-│     ├─ BundlePinPatch.kt      OTA 無効化
+│     ├─ BundlePinPatch.kt      OTA 無効化（起動は dex/BundlePin.kt が選択関数を書き換える）
+│     ├─ dex/BundlePin.kt       OTA バンドル選択の検証（クラス・命令列・ローダ選択）と書き換え
 │     ├─ FeaturePatches.kt      Fake Nitro / Platform Indicator など
 │     └─ PrivacyPatches.kt
 ├─ extensions/                  Kotlin: APK に追加するネイティブコード（任意）
@@ -276,6 +396,7 @@ disk/
 | ランタイム ユニット | Fake Nitro の変換、設定の保存と検証など純粋なロジック | Node（CI） |
 | HBC 構文 | ビルドしたランタイムが `hermesc` で HBC98 にコンパイルできる | CI |
 | 注入 | 実バンドルに注入 → HBC として正しいか検証。Hermes VM で global #0 を実行し、prelude が動くか確認 | ローカル（APK はコミットしない） |
+| DEX ガード | `bundle pin` の対象クラス・命令列・ローダ選択の検証、`return null` への書き換え、DEX への書き出しと再読込 | `:patches:test`（実 DEX が無ければ skip） |
 | 実機 | パッチ → インストール → 各機能の確認 | 手動 |
 
 ---
@@ -320,12 +441,15 @@ Phase 0 準備 ─→ Phase 1 解析 ─→ Phase 2 注入 ─→ Phase 3 core �
 | 2-1 | `HbcFile.kt`: HBC98 の読み込みと検証（version、関数数、global #0 のハッシュ） |
 | 2-2 | `HbcInjector.kt`: 既存の文字列を貪欲法で組み合わせてランタイム文字列を作る prelude を生成する |
 | 2-3 | `HbcInjector.kt`: prelude と元の global #0 を再配置し、関数ヘッダ・例外テーブル・ファイル長・SHA-1 フッタを更新する |
-| 2-4 | `BundlePinPatch.kt`: OTA バンドルを無効にし、APK 同梱のバンドルに固定する |
+| 2-4 | `BundlePinPatch.kt`: OTA バンドルを無効にし、APK 同梱のバンドルに固定する（実装済み。`Lw6/z;->i()` を null 固定。§4.4） |
 | 2-5 | `console.log("[disk] loaded")` だけのランタイムで、注入済みバンドルを Hermes VM で実行して確かめる |
 | 2-6 | 実機でパッチ → インストール → `adb logcat` でログを確認する |
 | 2-7 | わざと例外を出すランタイムで、Discord が普通に起動すること（フェイルオープン）を確かめる |
 
 **完了条件:** 実機の起動ログに `[disk] loaded` が出る。ランタイムが例外を出しても Discord は起動する。
+
+**現状:** 2-1〜2-5 はローカル検証済み（`:patches:test`、実バンドル・実 DEX）。2-4 は `bundle pin` として
+実装したが、起動時 OTA チェックの停止は未実装で、実機確認（2-6 / 2-7）も未実施。
 
 ### Phase 3: core
 | タスク | 内容 |

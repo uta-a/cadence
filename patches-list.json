@@ -3,8 +3,35 @@
   "version": "0.0.1",
   "patches": [
     {
+      "name": "bundle pin",
+      "description": "Always load the bundle packaged in the APK instead of a downloaded or cached OTA bundle.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "disk",
-      "description": "Inject the disk runtime into the APK bundle (experimental; OTA pinning not yet implemented).",
+      "description": "Inject the disk runtime into the APK bundle (experimental; not yet verified on a device).",
       "default": true,
       "category": null,
       "compatiblePackages": [
