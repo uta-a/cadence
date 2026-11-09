@@ -1,0 +1,459 @@
+{
+  "_meta": {
+    "discordVersion": "352.17 - Stable",
+    "bytecodeVersion": 98,
+    "bundleSha256": "09dcdd872df4fb7aa84b2a5ecc62946735de7a63447b848d549bd99d6f4505ee",
+    "evidenceMode": "static-disassembly-only",
+    "runtimeChecked": false,
+    "shapeNotation": "Dot-separated paths relative to require(id), proposed checks only; not a runtime-validated schema. confidence rates static identity, not operational safety.",
+    "offsetUnit": "decimal byte offset within function; registration offsets are within global function 0"
+  },
+  "React": {
+    "id": 19,
+    "factory": 20,
+    "shape": [
+      "createElement",
+      "useState",
+      "useMemo",
+      "version"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 1980,
+        "detail": "module 19 -> factory 20; deps[0] = 20"
+      },
+      {
+        "kind": "export",
+        "function": 20,
+        "offset": 20,
+        "detail": "Assign require(deps[0]) to module.exports; public React entry reexports implementation 20"
+      },
+      {
+        "kind": "export",
+        "function": 21,
+        "offset": 820,
+        "detail": "Implementation 20 / factory 21 writes createElement to Metro exports; useState at 1081, useMemo at 1037, version 19.2.3 at 1115"
+      },
+      {
+        "kind": "consumer",
+        "function": 16140,
+        "offset": 66,
+        "detail": "module 16139 deps[0]=19 imported via importAll, stored in environment slot 2 at 71"
+      },
+      {
+        "kind": "consumer",
+        "function": 73207,
+        "offset": 45,
+        "detail": "Reads useMemo from that namespace and calls it at 65"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "ReactNative": {
+    "id": 17,
+    "factory": 18,
+    "shape": [
+      "View",
+      "StyleSheet",
+      "AppRegistry",
+      "TurboModuleRegistry"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 1922,
+        "detail": "module 17 -> factory 18"
+      },
+      {
+        "kind": "export",
+        "function": 18,
+        "offset": 477,
+        "detail": "Defines View getter (closure 19748); StyleSheet getter at 1338; AppRegistry getter at 735; assigns object to module.exports at 1567"
+      },
+      {
+        "kind": "consumer",
+        "function": 16140,
+        "offset": 79,
+        "detail": "deps[1]=17 required, View read at 84 and stored at 89"
+      },
+      {
+        "kind": "consumer",
+        "function": 73207,
+        "offset": 132,
+        "detail": "Uses environment slot 3 (View) as JSX component"
+      },
+      {
+        "kind": "consumer",
+        "function": 1,
+        "offset": 182,
+        "detail": "module 0 reads AppRegistry from require(deps[8]=17), then registerComponent at 188"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "RNInit": {
+    "id": 244,
+    "factory": 245,
+    "shape": [
+      "AppRegistry",
+      "AppRegistry.registerComponent",
+      "AppRegistry.runApplication"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 8265,
+        "detail": "module 244 -> factory 245; deps[0]=245, deps[1]=236"
+      },
+      {
+        "kind": "initialization",
+        "function": 245,
+        "offset": 72,
+        "detail": "Calls implementation 245 registerComponent(LogBox, closure 20631)"
+      },
+      {
+        "kind": "initialization",
+        "function": 245,
+        "offset": 87,
+        "detail": "Assigns implementation to global RN$AppRegistry; sets RN$SurfaceRegistry at 143; registers AppRegistry through dependency 236 at 176"
+      },
+      {
+        "kind": "export",
+        "function": 245,
+        "offset": 191,
+        "detail": "Writes require(deps[0]=245) to exports.AppRegistry"
+      },
+      {
+        "kind": "consumer",
+        "function": 19764,
+        "offset": 17,
+        "detail": "RN module 17 AppRegistry getter requires deps[46]=244 and reads AppRegistry at 22"
+      },
+      {
+        "kind": "consumer",
+        "function": 1,
+        "offset": 205,
+        "detail": "App entry module 0 calls registerComponent(Discord, closure 19570) after RN AppRegistry lookup; Share at 260"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "SettingsRegistry": {
+    "id": 15865,
+    "factory": 15866,
+    "shape": [
+      "SETTING_RENDERER_CONFIG"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 520814,
+        "detail": "module 15865 -> factory 15866"
+      },
+      {
+        "kind": "construction",
+        "function": 15866,
+        "offset": 75,
+        "detail": "Builds computed-key mapping from MobileUserSettings to importDefault(setting modules); ACCOUNT deps[2]=16003 at 97..112"
+      },
+      {
+        "kind": "construction",
+        "function": 15866,
+        "offset": 5829,
+        "detail": "Object.freeze(config), after adding notification config at 5825"
+      },
+      {
+        "kind": "export",
+        "function": 15866,
+        "offset": 5865,
+        "detail": "Writes frozen object to exports.SETTING_RENDERER_CONFIG"
+      },
+      {
+        "kind": "consumer",
+        "function": 72421,
+        "offset": 113,
+        "detail": "module 15863 deps[6]=15865: reads registry, Object.entries at 119; iterates predicates/titles/search terms"
+      },
+      {
+        "kind": "consumer",
+        "function": 72851,
+        "offset": 72,
+        "detail": "module 16016 deps[10]=15865: Object.entries registry -> getSettingScreens route collection"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "SettingsScreens": {
+    "id": 16016,
+    "factory": 16017,
+    "shape": [
+      "getSettingScreens",
+      "toSettingListItems"
+    ],
+    "evidence": [
+      {
+        "kind": "export",
+        "function": 16017,
+        "offset": 213,
+        "detail": "Exports closure 72851 as getSettingScreens; toSettingListItems at 239"
+      },
+      {
+        "kind": "construction",
+        "function": 125376,
+        "offset": 66,
+        "detail": "getSettingScreens callback filters type ROUTE; emits [settingKey, screen] at 129..147, deduplicates screen.route"
+      },
+      {
+        "kind": "consumer",
+        "function": 135527,
+        "offset": 22,
+        "detail": "module 18396 deps[22]=16016: reads getSettingScreens and calls at 28"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "FileModule": {
+    "id": 1164,
+    "factory": 1165,
+    "shape": [
+      "default",
+      "default.readFile",
+      "default.writeFile"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 37116,
+        "detail": "module 1164 -> factory 1165"
+      },
+      {
+        "kind": "construction",
+        "function": 1165,
+        "offset": 72,
+        "detail": "TurboModuleRegistry.getEnforcing(NativeFileModule); actual native method object not constructed in JS"
+      },
+      {
+        "kind": "export",
+        "function": 1165,
+        "offset": 102,
+        "detail": "Writes native object to exports.default"
+      },
+      {
+        "kind": "consumer",
+        "function": 48350,
+        "offset": 22,
+        "detail": "module 8728 deps[2]=1164 imported through importDefault at 17; calls writeFile with 4 forwarded arguments at 43"
+      },
+      {
+        "kind": "consumer",
+        "function": 145829,
+        "offset": 328,
+        "detail": "module 8728 readFile generator: same deps[2] native import, calls readFile(path, encoding) at 354"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "FileStorageUtils": {
+    "id": 8728,
+    "factory": 8729,
+    "shape": [
+      "readFile",
+      "writeFile"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 282714,
+        "detail": "module 8728 -> factory 8729"
+      },
+      {
+        "kind": "export",
+        "function": 8729,
+        "offset": 149,
+        "detail": "Exports closure 48350 as writeFile; readFile closure 48354 at 193"
+      },
+      {
+        "kind": "construction",
+        "function": 48354,
+        "offset": 8,
+        "detail": "readFile delegates through lazy async wrapper 48349 -> 101511 -> generator 145829; not a synchronous API"
+      },
+      {
+        "kind": "consumer",
+        "function": 145826,
+        "offset": 223,
+        "detail": "module 8726 deps[4]=8728: reads helper readFile, calls at 277 with documents, computed path and utf8"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "PresenceStore": {
+    "id": 5744,
+    "factory": 5745,
+    "shape": [
+      "default",
+      "default.getClientStatus",
+      "default.getStatus"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 184292,
+        "detail": "module 5744 -> factory 5745"
+      },
+      {
+        "kind": "construction",
+        "function": 5745,
+        "offset": 298,
+        "detail": "CreateDerivedClass from dependency 504 Store; prototype returned in r3 then copied to r10"
+      },
+      {
+        "kind": "construction",
+        "function": 5745,
+        "offset": 521,
+        "detail": "Defines getClientStatus closure 35468 on prototype; displayName PresenceStore at 550; constructs store at 688"
+      },
+      {
+        "kind": "export",
+        "function": 5745,
+        "offset": 717,
+        "detail": "Exports constructed instance as default"
+      },
+      {
+        "kind": "implementation",
+        "function": 35468,
+        "offset": 10,
+        "detail": "getClientStatus(userId) returns environment slot 15 indexed by userId; no fallback shown"
+      },
+      {
+        "kind": "consumer",
+        "function": 9182,
+        "offset": 110,
+        "detail": "module 9181 deps[2]=5744 imported via importDefault and stored in environment slot 5 at 115"
+      },
+      {
+        "kind": "consumer",
+        "function": 102879,
+        "offset": 66,
+        "detail": "Consumer reads getStatus on same instance and calls at 78; no direct getClientStatus consumer found in index"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "EmojiStore": {
+    "id": 6757,
+    "factory": 6758,
+    "shape": [
+      "default",
+      "default.getCustomEmojiById",
+      "default.getUsableGuildEmoji"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 217360,
+        "detail": "module 6757 -> factory 6758"
+      },
+      {
+        "kind": "construction",
+        "function": 6758,
+        "offset": 1806,
+        "detail": "Prototype method getUsableGuildEmoji = closure 38746; getCustomEmojiById = 38752 at 1890"
+      },
+      {
+        "kind": "construction",
+        "function": 6758,
+        "offset": 1981,
+        "detail": "Class displayName EmojiStore; persistKey EmojiStoreV2 at 1993; constructs store at 2187"
+      },
+      {
+        "kind": "export",
+        "function": 6758,
+        "offset": 2216,
+        "detail": "Exports constructed instance as default"
+      },
+      {
+        "kind": "consumer",
+        "function": 7487,
+        "offset": 67,
+        "detail": "module 7486 deps[0]=6757 imported through importDefault; stored environment slot 3 at 72"
+      },
+      {
+        "kind": "consumer",
+        "function": 42529,
+        "offset": 27,
+        "detail": "Reads getCustomEmojiById on that instance and calls with emojiId at 39"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "MessageActions": {
+    "id": 7598,
+    "factory": 7599,
+    "shape": [
+      "default",
+      "default.sendMessage"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 245178,
+        "detail": "module 7598 -> factory 7599"
+      },
+      {
+        "kind": "construction",
+        "function": 7599,
+        "offset": 1262,
+        "detail": "NewObjectWithBufferLong shape 2197: sendMessage is key/slot 18 (zero-based), literal value offset 1192902"
+      },
+      {
+        "kind": "construction",
+        "function": 7599,
+        "offset": 1439,
+        "detail": "Slot 18 receives closure 43054, created at 1434"
+      },
+      {
+        "kind": "export",
+        "function": 7599,
+        "offset": 1683,
+        "detail": "Exports same object as default; source literal actions/MessageActionCreators.tsx at 1672"
+      },
+      {
+        "kind": "consumer",
+        "function": 145757,
+        "offset": 143,
+        "detail": "module 8483 deps[6]=7598 imported through importDefault at 138; reads sendMessage and invokes at 230"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "_missing": {
+    "runtimeVerification": "All verified=false. No Hermes VM, bundle require, native methods, phone, or network operations executed. Runtime shape/type/identity checks remain mandatory.",
+    "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",
+    "settingsSectionInsertion": "15865 is a frozen page/renderer mapping, not a mutable section array. 16016 consumes routes; 15863 consumes predicates/titles. Top-level category order, visibility and insertion seam still need tracing. 1087.UserSettingsSections is an enum, NOT a UI registry.",
+    "fileStorageContract": "NativeFileModule existence/method use is static only. No native signature, sandbox root, permissions, atomicity, encoding/error behavior or disk settings persistence validated. readAsset from DESIGN is not corroborated here; do not assume it exists.",
+    "presenceReturnShape": "No direct getClientStatus consumer found by exact indexed search. It is a prototype method of default store, not a named export; desktop/mobile/web/embedded keys and subscription API are not runtime checked.",
+    "sendMessageContract": "Export and external consumer traced; full async implementation, argument contract and send semantics not audited. Do not call during research.",
+    "deferred": "Fake Nitro, platform UI, analytics and other feature hooks intentionally outside this prerequisite research."
+  }
+}
