@@ -1,0 +1,40 @@
+# Signing key for the patches file
+morphe-signing.key
+
+# Gradle / IDE
+.gradle
+**/build/
+!src/**/build/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+.idea/
+.vscode/
+*.iml
+local.properties
+out/
+
+# Build outputs
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.mpp
+*.log
+hs_err_pid*
+
+# Node
+node_modules/
+
+# Discord APKs and everything extracted from them (copyrighted, never commit)
+work/
+*.apk
+*.apkm
+*.apks
+*.xapk
+*.hbc
+*.bundle
+
+.DS_Store
+
+# Runtime build output (Gradle packages its own copy)
+runtime/dist/

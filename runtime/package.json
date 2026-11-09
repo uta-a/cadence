@@ -1,0 +1,14 @@
+{
+  "name": "disk-runtime",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "hermes-compiler": "250829098.0.19",
+    "typescript": "7.0.2"
+  }
+}
