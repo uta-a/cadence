@@ -4,7 +4,7 @@ Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator�
 
 > 開発中（Phase 0）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
 
-**対応:** Discord **351.11 - Stable**（APKM）
+**対応:** Discord **352.17 - Stable**（APKM）
 
 ## ビルド
 

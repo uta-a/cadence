@@ -230,7 +230,7 @@ disk/
 ├─ runtime/                     TypeScript: disk ランタイム
 │  ├─ src/core/{loader,modules,settings,ui,log}.ts
 │  ├─ src/features/{fakeNitro,platformIndicator,privacy}.ts
-│  ├─ modules/351.11.json       モジュール ID 表
+│  ├─ modules/352.17.json       モジュール ID 表
 │  └─ test/                     Node 上のユニットテスト（モジュールはモック）
 ├─ tools/                       開発・移植用ツール（Python）
 │  ├─ extract.py                APKM → base.apk / index.android.bundle
@@ -260,7 +260,9 @@ disk/
 4. DEX フックはクラス名とシグネチャで指定（Morphe の Fingerprint）。変わっていればパッチ時にエラーで止まる
 5. 実機で全機能を確認する
 
-**最初の対応バージョンは Venus と同じ 351.11 にする。** 公開されているモジュール ID と照らし合わせて、自作ツールの結果を検証できるため。動くようになってから最新版へ移植する。
+**最初の対応バージョンは 352.17（2026-11 時点の Play ストア最新版）にする。** Venus（351.11）の ID とは照合できないので、ツールの結果はモジュールの exports の形と、実機で `require` した結果で検証する。
+
+開発用の APK は端末の Play ストア版から `adb pull` する（`work/352.17/apks/`）。Morphe Manager でのパッチには APKM が必要なので、配布時は APKMirror の 352.17 APKM を使う。
 
 ---
 
@@ -300,14 +302,14 @@ Phase 0 準備 ─→ Phase 1 解析 ─→ Phase 2 注入 ─→ Phase 3 core �
 ### Phase 1: 解析ツール
 | タスク | 内容 |
 | --- | --- |
-| 1-1 | Discord 351.11 の APKM を用意し、`tools/extract.py` で `work/351.11/` に展開する |
+| 1-1 | 端末から Discord 352.17 を `adb pull` し、`tools/extract.py` で `work/352.17/` に展開する |
 | 1-2 | `tools/hbc_inspect.py`: HBC98 のヘッダ、関数表、文字列表、global #0 を読む |
 | 1-3 | `tools/hbc_inspect.py`: `__d` の呼び出しからモジュール ID と factory 関数を対応づける |
 | 1-4 | `tools/find_module.py`: 文字列リテラルや export 名からモジュールを探す |
 | 1-5 | `tools/gen_target.py`: `HbcTarget.kt` の定数（global #0 のオフセット・サイズ・ハッシュ、`join`/`eval` の文字列 ID）を出力する |
-| 1-6 | Venus の公開 ID（EmojiStore=6243、PresenceStore 系など）と照合して、ツールの結果が正しいか確かめる |
+| 1-6 | 候補モジュールの exports の形を確かめ、ツールの結果が正しいか検証する（実機での確認は Phase 3） |
 
-**完了条件:** v0.1 で使うモジュールの ID をすべて自作ツールで特定し、`runtime/modules/351.11.json` に書けている。
+**完了条件:** v0.1 で使うモジュールの ID をすべて自作ツールで特定し、`runtime/modules/352.17.json` に書けている。
 
 ### Phase 2: ランタイム注入（山場）
 | タスク | 内容 |

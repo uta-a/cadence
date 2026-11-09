@@ -5,7 +5,7 @@ import app.morphe.patcher.patch.AppTarget
 import app.morphe.patcher.patch.Compatibility
 
 /** The one Discord build disk is pinned to. Every HBC constant and module ID is for this build. */
-internal const val DISCORD_VERSION = "351.11 - Stable"
+internal const val DISCORD_VERSION = "352.17 - Stable"
 
 internal val discord = Compatibility(
     name = "Discord",
