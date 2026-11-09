@@ -249,26 +249,28 @@ function wrap(define) {
   };
 }
 ```
-- RN の初期化モジュールが終わるまでは差し替えを保留し、終わってから順に適用する
+- 初期化の安全な境界が確認できるまでは差し替えを保留する。244 の factory 完了だけで一括適用する設計は未検証
 - 機能ごとのフックは try/catch で囲む。1 つ失敗しても、その機能が無効になるだけで済むようにする
 
-**Phase 3 実装状況:** `runtime/src/core/loader.ts` に ID 未接続のローダー基盤を実装した。Node で遅延 `__d`、factory の戻り値と `this`、元の例外の伝播、hook の例外分離、RN 初期化ゲートを検証した。352.17 の ID と exports の実機確認が済むまで `runtime/src/index.ts` からは使用せず、Discord の起動に影響を与えない。
+**Phase 3 実装状況:** `runtime/src/core/loader.ts` に ID 未接続のローダー基盤を実装した。Node で遅延 `__d`、factory の戻り値と `this`、元の例外の伝播、hook の例外分離、関数型 RN 初期化ゲートを検証した。352.17 の AppRegistry 初期化候補 module 244 は `AppRegistry` の named export であり **関数型 default export ではない**。このゲートをそのまま接続してはいけない。初期化完了の境界と exports の実機確認が済むまで `runtime/src/index.ts` からはローダーを使用せず、Discord の起動に影響を与えない。
 
 ### 5.3 モジュール ID 表（`core/modules`）
-- ID はビルドごとに変わるので、**`modules/<discord-version>.json` に名前 → ID の表を持つ**
+- ID はビルドごとに変わる。`runtime/modules/352.17.json` は静的候補と証拠の台帳で、**全件 `verified: false`**。実装用の承認済み ID 表ではない
   ```json
-  { "EmojiStore": { "id": 6243, "shape": ["getCustomEmojiById", "getUsableGuildEmoji"] } }
+  { "EmojiStore": { "id": 6757, "shape": ["default.getCustomEmojiById"], "verified": false } }
   ```
-- `shape` は差し替え前に確認する exports のプロパティ名。合わなければその機能を無効にし、ログに残す
+- `shape` は `require(id)` 基準の**検証予定パス**。getter / prototype の違いと起動順を確認するまで実際のモジュールを差し替えない
 - 実行時に全モジュールを走査して探すことはしない（起動が遅くなるため）。探索は開発時のツールで行う（§9）
 
 ### 5.4 設定（`core/settings`）
-- `{ features: { fakeNitro: { enabled, ...options } }, ... }` の JSON 1 ファイルを、Discord が持っているファイル系ネイティブモジュールで読み書きする
+- v1 は `{ version: 1, features: { fakeNitro: false, platformIndicator: false } }` の JSON 1 ファイルを想定する。保存先・Discord のネイティブ契約は未検証で、永続化アダプターは接続しない。機能オプションを追加する場合はスキーマを明示的に更新する
 - 変更は購読者（React フック `useSetting`）に通知する。再起動が必要な機能だけ再起動を促す
 - パッチ時に組み込まれた機能（`/*__DISK_FEATURES__*/` に Kotlin 側が埋め込む）以外は、設定画面に表示しない
 
+**設定コアの進捗:** `runtime/src/core/settings.ts` で既知機能だけの allowlist と初期オフ、連続トグルの保存順序・失敗後の再試行を単体テスト済み。保存先と native method 署名は未確定で、I/O アダプターは未接続。ストアは Discord のアカウント情報を読まない。
+
 ### 5.5 設定 UI（`core/ui`）
-- Discord の設定画面のセクション定義モジュールをフックし、「disk」セクションを追加する
+- Discord の設定画面に「disk」セクションを追加したいが、category の挿入箇所は未特定。15865 の renderer registry は freeze されており、単純な追記では実現しない
 - 画面は Discord 自身のコンポーネント（TableRow、Switch など）を使い、見た目を揃える
 - 構成: 機能一覧 → 各機能の詳細オプション → 情報（バージョン、ログ表示）
 
@@ -322,21 +324,14 @@ JS 層の方法はランタイムが動いていることが前提なので、Mo
 
 ## 7. JS ↔ ネイティブ通信（`NativeBridge`）
 
-新しい TurboModule を追加するのは難しいので、**Discord の既存ネイティブメソッドの先頭に分岐を入れて**通信路にする。
+**未設計・未実装。** 静的調査で module 1164 の `default` が `NativeFileModule`、helper 8728 が `readFile` / `writeFile` を使うことだけ確認した。ネイティブ署名、保存可能な root、専用 path、エラー時の動作は未確認。`FileModule.readAsset` は根拠がなく、実装の前提にしない。
 
-```
-JS:  FileModule.readAsset("disk-v1:settings/read", "utf8")
-DEX: readAsset の先頭 → 引数が "disk-v1:" で始まる？
-        Yes → app.disk.Bridge.handle(...) で処理して Promise を resolve
-        No  → 元の処理
-```
-
-- プレフィックスはバージョン付き（`disk-v1:`）。1 メソッドにつき disk の分岐は 1 つまで
-- v0.1 で使う用途: 設定ファイルの読み書き（Discord の既存 API で足りれば不要）
+- v0.1 の設定保存は既存 API で安全な専用 path を確保できるか先に調べる
+- 既存 API で足りない場合に限り、DEX に分岐を加える方式と失敗時の安全性を再設計する
 
 ---
 
-## 8. リポジトリ構成
+## 8. リポジトリ構成（予定のファイルを含む）
 
 ```
 disk/
@@ -347,7 +342,7 @@ disk/
 │     ├─ hbc/HbcInjector.kt     prelude の生成と注入
 │     ├─ hbc/HbcTarget.kt       バージョン固定の定数（ツールで生成）
 │     ├─ RuntimePatch.kt        ランタイム注入 + 機能フラグ埋め込み
-│     ├─ BundlePinPatch.kt      OTA 無効化（起動は dex/BundlePin.kt が選択関数を書き換える）
+│     ├─ BundlePinPatch.kt      OTA の読み込み先を同梱バンドルに固定（更新チェック自体は止めない）
 │     ├─ dex/BundlePin.kt       OTA バンドル選択の検証（クラス・命令列・ローダ選択）と書き換え
 │     ├─ FeaturePatches.kt      Fake Nitro / Platform Indicator など
 │     └─ PrivacyPatches.kt
@@ -361,7 +356,7 @@ disk/
 │  ├─ extract.py                APKM → base.apk / index.android.bundle
 │  ├─ hbc_inspect.py            HBC の解析（関数、文字列、モジュール定義の一覧）
 │  ├─ find_module.py            文字列リテラルや export 名からモジュール ID を探す
-│  └─ gen_target.py             HbcTarget.kt と modules/<ver>.json を生成
+│  └─ gen_target.py             HbcTarget.kt の定数を生成
 ├─ docs/DESIGN.md
 ├─ work/                        APK などの作業ファイル（.gitignore で除外）
 ├─ build.gradle.kts / settings.gradle.kts
