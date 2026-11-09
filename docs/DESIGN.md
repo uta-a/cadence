@@ -252,6 +252,8 @@ function wrap(define) {
 - RN の初期化モジュールが終わるまでは差し替えを保留し、終わってから順に適用する
 - 機能ごとのフックは try/catch で囲む。1 つ失敗しても、その機能が無効になるだけで済むようにする
 
+**Phase 3 実装状況:** `runtime/src/core/loader.ts` に ID 未接続のローダー基盤を実装した。Node で遅延 `__d`、factory の戻り値と `this`、元の例外の伝播、hook の例外分離、RN 初期化ゲートを検証した。352.17 の ID と exports の実機確認が済むまで `runtime/src/index.ts` からは使用せず、Discord の起動に影響を与えない。
+
 ### 5.3 モジュール ID 表（`core/modules`）
 - ID はビルドごとに変わるので、**`modules/<discord-version>.json` に名前 → ID の表を持つ**
   ```json

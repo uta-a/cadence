@@ -2,7 +2,7 @@
 
 Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator、プライバシー保護をオフラインで追加する。
 
-> 開発中（**Phase 2: ランタイム注入**）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
+> 開発中（**Phase 3: core 準備中**）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
 
 **開発対象:** Discord **352.17 - Stable**（APKM）。Fake Nitro・Platform Indicator・Privacy 本体はまだ未実装です。
 
@@ -13,7 +13,8 @@ Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator�
 | HBC prelude 注入（`disk`） | ローカル検証済み | `:patches:test`。`hermesc` で作ったバンドルと Hermes VM で、prelude が元コードより先に走ること、例外時のフェイルオープン、`SwitchImm` テーブルの再配置、二重注入の拒否、実 352.17 バンドルへの注入を確認 |
 | OTA バンドル固定（`bundle pin`） | ローカル検証済み・**実機未検証** | 352.17 の実 DEX で、`i()` の全命令（invoke active count を含む）・全4呼び出し元＋manifest null 消費側の全命令/フレーム/access/try を固定。旧ウィンドウ外のフィールド変更や null 分岐の mutation を拒否し、debug 削除後の `return null` を DEX 書き出し・再読込で確認（DESIGN §4.4） |
 | 実機での起動 | **未実施** | パッチ済み APK のインストールと `adb logcat` の `[disk] loaded` はまだ確認していない |
-| 起動時 OTA チェックの停止 | 未実装（意図的） | OTA のダウンロードは続くが、読み込まれるのは常に APK 同梱バンドル。呼び出し元の意味論を実機で確認してから止める（DESIGN §4.4） |
+| 起動時 OTA チェックの停止 | 未実装（意図的） | OTA のダウンロードは続くが、読み込まれるのは APK 同梱バンドルの想定。実機では未確認（DESIGN §4.4） |
+| Metro ローダー基盤 | 単体テストのみ | `runtime/src/core/loader.ts` の遅延 `__d`、init gate、hook 分離を Node でテスト。対象 ID と exports の実機確認が済むまではランタイムに接続しない |
 
 **実機で確認できるまでは「Discord が起動する」とは主張しない。** `bundle pin` は OTA がコミット済みの
 端末でも APK 同梱バンドルを読む想定だが、これも実機未検証。ガードは対象メソッドの固定であり、
@@ -60,7 +61,7 @@ HBC の実行テストには `work/hermes/hermes`、実バンドルの検証に�
 python3 -I -m unittest discover -s tools/tests -v
 ```
 
-ローカル検証結果: Kotlin **35件成功（skipなし）**、解析ツール **16件成功（skipなし）**。
+ローカル検証結果: Kotlin **35件成功（skipなし）**、解析ツール **16件成功（入力を指定した場合）**、Metro ローダー **11件成功**。
 解析ツールの全件実行には `HERMESC`・`HERMES_SOURCE`・`DISK_BUNDLE` の指定が必要（tools の README を参照）。
 機能別モジュール ID は候補段階で、確定表の作成は Phase 3 の前に残っている。
 

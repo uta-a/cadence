@@ -33,6 +33,14 @@ val installRuntimeDeps by tasks.registering(Exec::class) {
     commandLine("npm", "ci", "--no-audit", "--no-fund")
 }
 
+val testRuntime by tasks.registering(Exec::class) {
+    description = "Run isolated Metro loader tests against the TypeScript source."
+    group = "verification"
+    workingDir = runtimeDir.asFile
+    dependsOn(installRuntimeDeps)
+    commandLine("npm", "test")
+}
+
 // runtime/ (TypeScript) -> build/generated/runtime/disk/runtime.js, packaged as a resource.
 val buildRuntime by tasks.registering(Exec::class) {
     description = "Build the disk JS runtime and check that it compiles to HBC98."
@@ -41,7 +49,7 @@ val buildRuntime by tasks.registering(Exec::class) {
     inputs.dir(runtimeDir.dir("src"))
     inputs.files(runtimeDir.file("package.json"), runtimeDir.file("build.mjs"), runtimeDir.file("tsconfig.json"))
     outputs.dir(runtimeOut)
-    dependsOn(installRuntimeDeps)
+    dependsOn(testRuntime)
     commandLine("node", "build.mjs", "--out", runtimeOut.get().file("disk/runtime.js").asFile.absolutePath)
 }
 
