@@ -3,12 +3,28 @@
     "discordVersion": "352.17 - Stable",
     "bytecodeVersion": 98,
     "bundleSha256": "09dcdd872df4fb7aa84b2a5ecc62946735de7a63447b848d549bd99d6f4505ee",
-    "evidenceMode": "static-disassembly-only",
-    "runtimeChecked": false,
-    "runtimeObservationCount": 8,
+    "evidenceMode": "static-disassembly-with-scoped-device-receipt",
+    "runtimeChecked": true,
+    "runtimeCheckedScope": "Descriptor identities only; verified=false still means unimplemented feature hooks are NOT approved. Core capabilities use dependency-specific guards and the observation receipt.",
+    "runtimeObservationCount": 14,
     "runtimeObservationReceipt": "352.17-observed.json",
-    "shapeNotation": "Dot-separated paths relative to require(id). Partial descriptor-only observations are recorded separately; this is NOT an operationally approved schema. confidence rates static identity, not method contracts or hook safety.",
+    "shapeNotation": "Dot-separated paths relative to require(id). All descriptor observations are recorded separately; this is NOT blanket approval of method contracts or feature hooks. confidence rates static identity, not method contracts or hook safety.",
     "offsetUnit": "decimal byte offset within function; registration offsets are within global function 0"
+  },
+  "RootNavigation": {
+    "id": 5183, "factory": 5184, "shape": ["getRootNavigationRef"],
+    "evidence": [
+      { "kind": "registration", "function": 0, "offset": 165802, "detail": "module5183 -> factory5184" },
+      { "kind": "export", "function": 5184, "offset": 101, "detail": "Named getRootNavigationRef; settings navigator checks ref.isReady before navigating" }
+    ], "confidence": "high", "verified": false
+  },
+  "SettingsNavigation": {
+    "id": 7522, "factory": 7523, "shape": ["openUserSettings"],
+    "evidence": [
+      { "kind": "registration", "function": 0, "offset": 242632, "detail": "module7522 -> factory7523" },
+      { "kind": "export", "function": 7523, "offset": 121, "detail": "openUserSettings closure42554" },
+      { "kind": "implementation", "function": 42554, "offset": 68, "detail": "Checks root navigation ref.isReady; default section OVERVIEW at119; navigate settings at167" }
+    ], "confidence": "high", "verified": false
   },
   "React": {
     "id": 19,
@@ -478,10 +494,10 @@
     "verified": false
   },
   "_missing": {
-    "runtimeVerification": "All verified=false. Eight candidates have descriptor-only device observations in 352.17-observed.json; four settings UI candidates were not naturally loaded. No store/send calls or accessor evaluation. Read-only native settings bootstrap reported ready, but native write/durability, full method contracts, hook safety and remaining shapes are unverified.",
+    "runtimeVerification": "All14 descriptor identities have device observations. verified=false reserves full feature-hook approval; core Overview UI and owned settings write/readback/restart have separate capability evidence. Probes never evaluated accessors; UI lazy getters were evaluated only after navigation readiness. No store/send methods were called; unimplemented feature contracts and fault durability remain unverified.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",
-    "settingsSectionInsertion": "Top-level sections are built by private closure 80703 in module 18400. Candidate props boundary is module16013.SearchableSettingsList, a React.memo export, NOT assumed callable. See docs/SETTINGS-UI-RESEARCH.md. Frozen registry replacement, top-level-only guard, first mount timing, hook ordering and route registration remain unverified.",
-    "fileStorageContract": "DEX static contract now traced: documents=getFilesDir, readFile(absolutePath,encoding), writeFile(storageDir,relativePath,data,encoding); readAsset exists in native spec but is not used for settings. See docs/STORAGE-RESEARCH.md. Native rename result is discarded; readback establishes only final content. fileExists false may also mean inaccessible. Native method descriptor kinds were observed and the read-only settings bootstrap reached ready on the device. This establishes constants/root validation and fileExists handling, not readFile/writeFile execution, failure behavior or durability. Writes remain disconnected.",
+    "settingsSectionInsertion": "Core UI instead wraps only18400.default before its consumer, preserving the original element and presenting a native Modal. No frozen registry replacement/shared memo invocation/new route. UI display, original retention/back and compact persistence were device-tested. Direct registry extension remains unverified and is not required by this implementation.",
+    "fileStorageContract": "DEX static contract now traced: documents=getFilesDir, readFile(absolutePath,encoding), writeFile(storageDir,relativePath,data,encoding); readAsset exists in native spec but is not used for settings. See docs/STORAGE-RESEARCH.md. Native rename result is discarded; readback establishes only final content. fileExists false may also mean inaccessible. Native descriptors, private root, schema2 write/readback and cold-restart restoration were verified for the owned settings path on the test device. Native disk-full/power-loss behavior, multiwriter safety and durability are not guaranteed. Load/save failures have isolated unit-test coverage.",
     "presenceReturnShape": "No direct getClientStatus consumer found by exact indexed search. It is a prototype method of default store, not a named export; desktop/mobile/web/embedded keys and subscription API are not runtime checked.",
     "sendMessageContract": "Export and external consumer traced; full async implementation, argument contract and send semantics not audited. Do not call during research.",
     "deferred": "Fake Nitro, platform UI, analytics and other feature hooks intentionally outside this prerequisite research."

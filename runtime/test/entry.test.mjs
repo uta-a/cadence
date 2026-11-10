@@ -56,7 +56,7 @@ test("native logger is preferred without touching a potentially broken console g
     assert.equal(calls, 2);
 });
 
-test("entry captures only the natural FileModule and defers a read-only disk settings load", async () => {
+test("entry captures the natural FileModule and defers disk settings loading without boot writes", async () => {
     const logs = [], calls = [], registered = new Map();
     const host = context({ nativeLoggingHook(message) { logs.push(message); },
         __d(factory, id) { registered.set(id, factory); } });
@@ -74,11 +74,11 @@ test("entry captures only the natural FileModule and defers a read-only disk set
     assert.deepEqual(calls, []);
     await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(calls, ["constants", "exists"]);
-    assert.ok(logs.includes("[disk] settings read-only ready (native)"));
+    assert.ok(logs.includes("[disk] settings ready (native)"));
     assert.equal(logs.some(line => line.includes("/data/")), false);
 });
 
-test("an accessor native export reports settings unavailable without evaluating it or changing factory return", () => {
+test("an accessor native export reports settings unavailable without evaluating it or changing factory return", async () => {
     const logs = [], registered = new Map();
     const host = context({ nativeLoggingHook(message) { logs.push(message); },
         __d(factory, id) { registered.set(id, factory); } });
@@ -89,7 +89,8 @@ test("an accessor native export reports settings unavailable without evaluating 
     host.__d(() => 77, 1164, []);
     assert.equal(registered.get(1164)(null, null, null, null, { exports }), 77);
     assert.equal(getterCalls, 0);
-    assert.ok(logs.includes("[disk] settings read-only unavailable (native)"));
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(logs.includes("[disk] settings load-error (native)"));
 });
 
 test("a throwing native getter is isolated and existing disk markers are preserved", () => {

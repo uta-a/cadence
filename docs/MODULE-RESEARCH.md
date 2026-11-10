@@ -2,10 +2,9 @@
 
 ## 結論・適用範囲
 
-`runtime/modules/352.17.json` は**静的調査の台帳**。実装用の承認済み ID 表ではない。
-全エントリ `verified: false`、全件承認を示す `runtimeChecked` も false。
-後続の実機観測で8候補のdescriptorを確認したが、機能フックは未承認。
-部分観測の詳細は [診断記録](DIAGNOSTICS.md) と `runtime/modules/352.17-observed.json` に分離している。
+`runtime/modules/352.17.json`は静的根拠と実機descriptor照合の一覧。`runtimeChecked: true`は14件の同定・descriptor照合だけを示す。全エントリの`verified: false`は、未実装の機能フックまで一括承認しないために維持している。
+core UIと設定のwrite/read-back・cold restart復元は別途実機で確認した。core接続は`modules.ts`の依存別チェックに限定し、244を単一gateには使わない。
+実行範囲は[Phase 3記録](PHASE3.md)と`runtime/modules/352.17-observed.json`に分離している。
 下表の「未確認」は初回静的調査時点の状態。`confidence: high` は
 export の構築と利用側から見た**静的な同定の確度**であり、起動安全性やネイティブ API の保証ではない。
 `shape` は `require(id)` からのドット区切りプロパティパス（確認予定項目）で、既存ランタイム用 schema を新設したものではない。

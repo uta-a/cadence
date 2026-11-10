@@ -1,6 +1,10 @@
-# 受動Metro観測と読み取り専用設定の実機検証
+# Metro観測と設定coreの実機検証
 
-## 現在の到達点（2026-11-10）
+## 後続のPhase 3検証
+
+全14候補のdescriptorを観測し、Overview入口・Modal・設定保存/read-back・再起動復元を確認した。observerのdescriptor検査自体はgetterを評価しない。core UIだけがnavigation readiness後にRN getterを利用する。smoke版の7522 importもreadiness後に限定する。全件`verified: false`は、未実装の機能フックの一括承認を避けるために維持する。[最新の検証範囲と残作業](PHASE3.md)・[receipt](../runtime/modules/352.17-observed.json)を参照。
+
+## 読み取り専用段階の記録（2026-11-10）
 
 Android 13 / pipa、Discord 352.17 - Stableで、同署名のデータ保持更新後に次を確認した。
 

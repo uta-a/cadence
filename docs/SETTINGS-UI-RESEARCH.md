@@ -2,11 +2,11 @@
 
 ## 状態と入力
 
-静的調査のみ。すべて `verified: false` / `runtimeChecked: false`。
+以下は初回の静的調査。後続のPhase 3でUI4候補のdescriptorを実機観測し、Overview18400.defaultだけを初回consumer前にwrapした。元画面を保持したModalでdisk画面の表示・保存・再起動復元・戻りを検証済み。registryや共通memo rendererを変更する案は採用していない。機能フックの一括承認を示す`verified`は全件falseを維持する。[現在の検証範囲](PHASE3.md)を参照。
 対象は `work/352.17/assets/index.android.bundle`、SHA-256
 `09dcdd872df4fb7aa84b2a5ecc62946735de7a63447b848d549bd99d6f4505ee`。
 以下の `function:offset` は HBC 関数内の十進**バイト** offset。
-バンドル実行・native require・端末・通信操作はしていない。
+この静的調査段階ではバンドル実行・native require・端末・通信操作はしていない。後続のsmoke版だけは自然captureしたnavigation readiness後に7522をimportして設定を開く。通常版は自動遷移しない。
 
 ## 接続候補の追跡
 

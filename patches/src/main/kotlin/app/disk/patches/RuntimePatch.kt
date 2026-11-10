@@ -27,7 +27,9 @@ val diskRuntime = rawResourcePatch(
         val temporary = Files.createTempFile(bundle.parentFile.toPath(), "disk-hbc-", ".bundle")
         try {
             Files.copy(bundle.toPath(), temporary, StandardCopyOption.REPLACE_EXISTING)
-            HbcInjector.inject(temporary.toFile(), runtime.toString(Charsets.UTF_8))
+            // Phase 3 has no selectable feature patches yet, so the actual selected set is empty.
+            // Phase 4 feature selection can supply IDs to this per-APK renderer without global state.
+            HbcInjector.inject(temporary.toFile(), BuildFeatures.render(runtime.toString(Charsets.UTF_8)))
             Files.move(temporary, bundle.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
         } finally {
             Files.deleteIfExists(temporary)

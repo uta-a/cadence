@@ -1,5 +1,7 @@
 # 初回実機導入（2026-11-10）
 
+最新のcore検証は[Phase 3記録](PHASE3.md)を参照。設定画面の表示、コンパクト表示の保存/read-back、cold restart後の復元、オフへの復帰と再起動、戻る操作を確認済み。追加ログ画面・空の機能表も実機確認し、最新通常版へ同署名更新済み。通常cold startでsettings ready、自動遷移なし、fatal/JS型エラーマーカーなしを確認した。以下は初回導入・読み取り専用段階の履歴であり、当時の未接続状態を記録している。
+
 ## 結果
 
 - 対象: Android 13、pipa / model 23043RP34G。Discord 352.17 - Stable、com.discord。

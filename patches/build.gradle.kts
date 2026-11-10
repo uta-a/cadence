@@ -47,6 +47,7 @@ val buildRuntime by tasks.registering(Exec::class) {
     group = "build"
     workingDir = runtimeDir.asFile
     inputs.dir(runtimeDir.dir("src"))
+    inputs.property("uiSmoke", providers.environmentVariable("DISK_UI_SMOKE").orElse("0"))
     inputs.files(runtimeDir.file("package.json"), runtimeDir.file("build.mjs"), runtimeDir.file("tsconfig.json"))
     outputs.dir(runtimeOut)
     dependsOn(testRuntime)

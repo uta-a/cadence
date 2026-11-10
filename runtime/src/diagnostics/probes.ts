@@ -3,6 +3,8 @@ import type { ModuleProbe } from "./observer";
 // Observation candidates only, kept in sync with the static evidence catalog by a test.
 // IDs are NOT permission to replace exports or call these methods.
 export const MODULE_PROBES: readonly ModuleProbe[] = [
+    { name: "RootNavigation", id: 5183, paths: ["getRootNavigationRef"] },
+    { name: "SettingsNavigation", id: 7522, paths: ["openUserSettings"] },
     { name: "React", id: 19, paths: ["createElement", "useState", "useMemo", "version"] },
     { name: "ReactNative", id: 17, paths: ["View", "StyleSheet", "AppRegistry", "TurboModuleRegistry"] },
     { name: "RNInit", id: 244, paths: ["AppRegistry", "AppRegistry.registerComponent", "AppRegistry.runApplication"] },

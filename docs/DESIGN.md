@@ -252,10 +252,10 @@ function wrap(define) {
 - 初期化の安全な境界が確認できるまでは差し替えを保留する。244 の factory 完了だけで一括適用する設計は未検証
 - 機能ごとのフックは try/catch で囲む。1 つ失敗しても、その機能が無効になるだけで済むようにする
 
-**Phase 3 実装状況:** `runtime/src/core/loader.ts` に ID 未接続のローダー基盤を実装した。Node で遅延 `__d`、factory の戻り値と `this`、元の例外の伝播、hook の例外分離、関数型 RN 初期化ゲートを検証した。352.17 の AppRegistry 初期化候補 module 244 は `AppRegistry` の named export であり **関数型 default export ではない**。このゲートをそのまま接続してはいけない。初期化完了の境界が確認できるまでactive loaderは接続しない。代わりに受動observerを接続し、実機で8候補のdescriptorを観測した。getter評価・先行require・exports差替えはしない。詳細は [診断記録](DIAGNOSTICS.md)。
+**Phase 3 実装状況:** 関数型gateを想定した`loader.ts`は未接続。244はAppRegistryのnamed exportであり、一括初期化gateに使わない。実際のentryはobserverと`core/modules.ts`を接続し、React・RN・RootNavigation・FileModule・Overviewの条件を個別に確認する。全14候補のdescriptorを実機観測済み。Overviewは最初のconsumer前にwrapし、RNのUI getterはnavigation readiness後の実renderまで遅延する。既存Overviewを常時保持したModal、コンパクト表示の保存・再起動復元・戻るを実機確認済み。機能フックは未実装のまま。追加ログ画面と空の機能表も実機確認し、最新通常版へデータ保持更新済み。[Phase 3記録](PHASE3.md)を参照。
 
 ### 5.3 モジュール ID 表（`core/modules`）
-- ID はビルドごとに変わる。`runtime/modules/352.17.json` は静的候補と証拠の台帳で、**全件 `verified: false`**。実装用の承認済み ID 表ではない
+- ID はビルドごとに変わる。`runtime/modules/352.17.json`は静的根拠とdescriptor照合の一覧。全件`verified: false`は未実装の機能フックの一括承認を避けるために維持する。coreは`modules.ts`の実行時チェックと別receiptで限定的に接続する
   ```json
   { "EmojiStore": { "id": 6757, "shape": ["default.getCustomEmojiById"], "verified": false } }
   ```
@@ -455,13 +455,15 @@ Phase 0 準備 ─→ Phase 1 解析 ─→ Phase 2 注入 ─→ Phase 3 core �
 | タスク | 内容 |
 | --- | --- |
 | 3-1 | `core/loader`: `__d` のラップ、RN 初期化までの保留、機能ごとの try/catch |
-| 3-2 | `core/modules`: ID 表の読み込みと `shape` チェック |
-| 3-3 | `core/log`: ログをメモリに保持し、設定画面から見られるようにする |
-| 3-4 | `core/settings`: 保存先を決め（§13）、読み込み・保存・`useSetting` を実装する |
+| 3-2 | `core/modules`: 固定IDのcaptureと依存別shapeチェック。対応表と静的/実機根拠はJSONに記録する |
+| 3-3 | `core/log`: 固定診断ログを80件・各1024文字までメモリに保持し、設定画面から表示する |
+| 3-4 | `core/settings`: privateな固定パスへschema2を保存し、controllerとReact購読で読み込み・変更・保存失敗の表示/再試行を扱う |
 | 3-5 | `core/ui`: Discord の設定画面に「disk」セクションと機能一覧を追加する |
-| 3-6 | Kotlin 側: 選んだ機能を `/*__DISK_FEATURES__*/` に埋め込む |
+| 3-6 | Kotlin側: `BuildFeatures.render`が引用符付き`/*__DISK_FEATURES__*/`を検証し、機能配列を埋め込む。現時点は選択可能な機能patchが0件なので`[]` |
 
 **完了条件:** Discord の設定に disk セクションが出て、トグルの状態が再起動後も残る。
+
+**完了:** UI/永続化条件に加えてログ表示・空の機能表を実機確認し、最新通常版（自動遷移なし）へ同署名更新済み。追加差分も独立レビューで問題なし。Node77件・Kotlin42件・Python20件のテスト、型検査・HBC98・MPPビルドが成功した。[検証記録](PHASE3.md)。
 
 ### Phase 4: 機能
 | タスク | 内容 | 完了条件 |
@@ -505,6 +507,6 @@ Phase 0 準備 ─→ Phase 1 解析 ─→ Phase 2 注入 ─→ Phase 3 core �
 - [x] ライセンス → **GPL-3.0**（Morphe テンプレートと同じ。Morphe の NOTICE に従い、名前に「Morphe」は使わない）
 - [x] esbuild の target → **es2019、class は使わない**（`supported: { class: false }` でビルドを止める）。`hermesc 250829098.0.19` が HBC98 を出力することを確認済み。ただし実機では Discord 自身の Hermes がソースを `eval` するので、構文の最終確認は Phase 2 の実機テストで行う
 - [ ] 方式 D（ネイティブ経由のアセット読み込み）を試すか
-- [ ] 設定の保存先（Discord の既存ストレージを使うか、NativeBridge で専用ファイルにするか）
+- [x] 設定の保存先 → 自然ロード済みNativeFileModuleからprivate files rootを検査し、`disk/settings-v1.json`だけを使う。schema2でも同じパス。writeの戻りpathとread-backを確認するが、耐久性までは保証しない
 - [x] Custom branding → **v0.2 に回す**（v0.1 は公式 Discord を置き換えてインストールする。共存が必要になったら前倒しする）
 - [ ] v0.2 以降に追加する「その他」の機能

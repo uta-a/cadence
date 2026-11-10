@@ -6,8 +6,8 @@ export type ShapeKind = "undefined" | "boolean" | "number" | "string" | "symbol"
     "object" | "null" | "accessor" | "missing" | "uninspectable" | "depth-limit";
 export interface ModuleCapture {
     readonly id: number;
-    /** Trusted, read-only consumer. Never log exports or invoke native methods synchronously here. */
-    readonly onExports: (exports: unknown) => void;
+    /** Trusted lifecycle consumer. Never log exports; effects require dependency-specific readiness guards. */
+    readonly onExports: (exports: unknown, context: Readonly<{ requireModule?: (id: number) => unknown }>) => void;
 }
 export interface ModuleReport {
     readonly name: string;
@@ -41,7 +41,7 @@ export function inspectPath(root: unknown, path: string): ShapeKind {
 
 /** Observe only successful natural factory executions. This is NOT a gate or a feature-hook loader. */
 export function createMetroObserver(host: MetroHost, probes: readonly ModuleProbe[],
-    onReport: (report: ModuleReport) => void, onError: () => void = () => {}, capture?: ModuleCapture) {
+    onReport: (report: ModuleReport) => void, onError: () => void = () => {}, capture?: ModuleCapture | readonly ModuleCapture[]) {
     const targets = new Map<number, ModuleProbe>();
     for (const probe of probes) {
         if (!Number.isInteger(probe.id) || probe.id < 0 || probe.id > 32767 || targets.has(probe.id) ||
@@ -50,10 +50,13 @@ export function createMetroObserver(host: MetroHost, probes: readonly ModuleProb
             throw new TypeError("Invalid Metro diagnostic probe");
         targets.set(probe.id, Object.freeze({ name: probe.name, id: probe.id, paths: Object.freeze([...probe.paths]) }));
     }
-    const capturedId = capture?.id;
-    const onCapture = capture?.onExports;
-    if (capture && (!targets.has(capture.id) || typeof onCapture !== "function"))
-        throw new TypeError("Invalid Metro read-only capture");
+    const captures = new Map<number, ModuleCapture["onExports"]>();
+    const configured = capture ? (Array.isArray(capture) ? capture : [capture]) as readonly ModuleCapture[] : [];
+    for (const item of configured) {
+        if (!targets.has(item.id) || captures.has(item.id) || typeof item.onExports !== "function")
+            throw new TypeError("Invalid Metro module capture");
+        captures.set(item.id, item.onExports);
+    }
     let installed = false;
     let clock = 0;
     const reported = new Set<number>();
@@ -79,7 +82,12 @@ export function createMetroObserver(host: MetroHost, probes: readonly ModuleProb
                         // Retain/log only fixed path labels and kinds, never any module value or factory arguments.
                         try { onReport(Object.freeze({ name: probe.name, id: probe.id, started, completed, shape: Object.freeze(shape) })); }
                         catch (_) { error(); }
-                        if (probe.id === capturedId && onCapture) onCapture(exports.value);
+                        const onCapture = captures.get(probe.id);
+                        if (onCapture) {
+                            const metroRequire = factoryArgs[1];
+                            onCapture(exports.value, Object.freeze({ requireModule: typeof metroRequire === "function"
+                                ? (id: number) => Reflect.apply(metroRequire, undefined, [id]) : undefined }));
+                        }
                     } catch (_) { error(); }
                 }
                 return result;

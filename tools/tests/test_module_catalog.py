@@ -16,11 +16,11 @@ def catalog():
 
 
 class CatalogTests(unittest.TestCase):
-    def test_catalog_remains_explicitly_static(self):
+    def test_catalog_distinguishes_identity_checks_from_feature_approval(self):
         data = catalog()
-        self.assertFalse(data['_meta']['runtimeChecked'])
+        self.assertIs(data['_meta']['runtimeChecked'], True)
         entries = [v for k, v in data.items() if not k.startswith('_')]
-        self.assertGreaterEqual(len(entries), 12)
+        self.assertGreaterEqual(len(entries), 14)
         ids = []
         for entry in entries:
             self.assertIs(entry['verified'], False)
@@ -37,8 +37,11 @@ class CatalogTests(unittest.TestCase):
         receipt = json.loads((ROOT / 'runtime/modules/352.17-observed.json').read_text())
         self.assertEqual({'_meta', 'modules', 'notObserved'}, set(receipt))
         self.assertEqual(data['_meta']['bundleSha256'], receipt['_meta']['sourceBundleSha256'])
-        for flag in ['accessorsEvaluated', 'storeMethodsCalled', 'messagesSent', 'nativeSettingsWrites', 'featureHooksEnabled']:
+        for flag in ['probeAccessorsEvaluated', 'storeMethodsCalled', 'messagesSent', 'featureHooksEnabled', 'normalSmokeFlag']:
             self.assertIs(receipt['_meta'][flag], False)
+        self.assertIs(receipt['_meta']['nativeSettingsWrites'], True)
+        self.assertIs(receipt['_meta']['coreUiHookEnabled'], True)
+        self.assertEqual([7522], receipt['_meta']['importsAfterNavigationReady'])
         kinds = {'undefined', 'boolean', 'number', 'string', 'symbol', 'bigint', 'function',
                  'object', 'null', 'accessor', 'missing', 'uninspectable', 'depth-limit'}
         for name, observed in receipt['modules'].items():

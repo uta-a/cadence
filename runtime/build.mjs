@@ -20,6 +20,7 @@ await build({
     entryPoints: [join(root, "src", "index.ts")],
     outfile: out,
     bundle: true,
+    define: { __DISK_UI_SMOKE__: process.env.DISK_UI_SMOKE === "1" ? "true" : "false" },
     format: "iife",
     platform: "neutral",
     // Discord's Hermes evals this source on the phone. Classes are kept out: Hermes runs them through a slow path

@@ -2,12 +2,9 @@
 
 ## 状態
 
-**本文の契約は静的調査に基づく。後続の実機検証は読み取り専用bootstrapまで。**
-`runtime/src/core/storage.ts` はMetro IDを持たず、生成時にはnative methodを呼ばない。
-[受動診断](DIAGNOSTICS.md)で自然ロード済み1164のmethod descriptorを観測し、
-`core/read-only-settings.ts`から現在のJS stack終了後にだけ利用する接続を追加した。
-実機のreadyはconstants/root検査とfileExists処理までの成功であり、readFile/writeFile実行や耐久性の保証ではない。
-書込は明示的に拒否しており、機能フック・設定UIは未接続。
+本文のDEX/HBC契約は静的調査に基づく。後続のPhase 3では自然ロード済み1164からcontrollerを初期化し、private pathのschema2設定を実機UIで変更→write/read-back→cold restart後に復元した。元のオフ状態へ戻した後も保存・再起動復元を確認済み。現在のentryは`read-only-settings.ts`ではなく`settings-controller.ts`を使う。生成時にはnativeを呼ばず、loadは現在のJS stack終了後に開始する。[Phase 3記録](PHASE3.md)を参照。
+
+これはnativeのdisk-full・電源断・rename成功・耐久性の保証ではない。負のケースと再試行は単体テストで確認し、実機での故障注入はしていない。以下の未検証事項はこの範囲で読む。
 
 ## 入力と再現
 

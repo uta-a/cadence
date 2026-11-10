@@ -5,49 +5,40 @@
     "androidVersion": "13",
     "device": "pipa",
     "sourceBundleSha256": "09dcdd872df4fb7aa84b2a5ecc62946735de7a63447b848d549bd99d6f4505ee",
-    "apkSha256": "d1ee2fd445d5327c1b948e0484326873f97a3fdae1f607d5c272ed7ec387e19e",
-    "mode": "natural-factory-descriptor-observation",
-    "accessorsEvaluated": false,
+    "apkSha256": "36a6a7ed5d3f73c969e578d6405a0f86073d15ad188fdfd8c71ec707aa8e875a",
+    "priorValidatedNormalApkSha256": "16dc654513567a3b418fa203da8c939f0cf30ce18ce24935722f0f9ddaf82263",
+    "uiLogValidationApkSha256": "8d8c62d9053963ae2ee0a45a872f98ef434a3477d8cac8b880dd6485093f7d57",
+    "normalApkSha256": "e7b971928babb1d3a2ee19d2c72f96a1a17056114151bb04da44a1ba38cbda35",
+    "normalApkInstalled": true,
+    "lastInstalledApkMode": "normal",
+    "mode": "factory-descriptors-and-gated-settings-smoke",
+    "probeAccessorsEvaluated": false,
+    "uiLazyGettersEvaluatedAfterNavigationReady": true,
+    "importsAfterNavigationReady": [7522],
     "storeMethodsCalled": false,
     "messagesSent": false,
-    "nativeSettingsWrites": false,
+    "nativeSettingsWrites": true,
     "featureHooksEnabled": false,
-    "settingsReadOnlyStatus": "ready",
-    "scope": "Property kinds only; no values. Native read-only ready establishes constants/root validation and fileExists handling, not readFile/writeFile execution or durability. Order counts selected factory boundaries only. This receipt does not authorize feature hooks."
+    "coreUiHookEnabled": true,
+    "settingsStatus": "saved-readback-and-restored-after-cold-restart",
+    "normalSmokeFlag": false,
+    "scope": "14 descriptors observed in smoke APK; the UI action7522 was imported only after navigation.isReady. Normal cold start observed9 and never auto-opened settings. Compact false->true persisted across restart, restoredfalse and verified across another restart. Only owned settings data was written. Memory log view and empty build manifest were also device-checked; latest normal APK was installed preserving app data and cold-started with settings ready, no auto-navigation and no fatal/type/reference error markers. No approval of unimplemented feature hooks, fault durability or other versions."
   },
   "modules": {
-    "RNInit": {
-      "id": 244, "started": 1, "completed": 2,
-      "paths": { "AppRegistry": "object", "AppRegistry.registerComponent": "function", "AppRegistry.runApplication": "function" }
-    },
-    "ReactNative": {
-      "id": 17, "started": 3, "completed": 4,
-      "paths": { "View": "accessor", "StyleSheet": "accessor", "AppRegistry": "accessor", "TurboModuleRegistry": "accessor" }
-    },
-    "React": {
-      "id": 19, "started": 5, "completed": 6,
-      "paths": { "createElement": "function", "useState": "function", "useMemo": "function", "version": "string" }
-    },
-    "PresenceStore": {
-      "id": 5744, "started": 7, "completed": 8,
-      "paths": { "default": "object", "default.getClientStatus": "function", "default.getStatus": "function" }
-    },
-    "MessageActions": {
-      "id": 7598, "started": 9, "completed": 10,
-      "paths": { "default": "object", "default.sendMessage": "function" }
-    },
-    "FileModule": {
-      "id": 1164, "started": 11, "completed": 12,
-      "paths": { "default": "object", "default.getConstants": "function", "default.fileExists": "function", "default.readFile": "function", "default.writeFile": "function" }
-    },
-    "EmojiStore": {
-      "id": 6757, "started": 13, "completed": 14,
-      "paths": { "default": "object", "default.getCustomEmojiById": "function", "default.getUsableGuildEmoji": "function" }
-    },
-    "FileStorageUtils": {
-      "id": 8728, "started": 15, "completed": 16,
-      "paths": { "readFile": "function", "writeFile": "function" }
-    }
+    "RNInit": { "id": 244, "started": 1, "completed": 2, "paths": { "AppRegistry": "object", "AppRegistry.registerComponent": "function", "AppRegistry.runApplication": "function" } },
+    "ReactNative": { "id": 17, "started": 3, "completed": 4, "paths": { "View": "accessor", "StyleSheet": "accessor", "AppRegistry": "accessor", "TurboModuleRegistry": "accessor" } },
+    "React": { "id": 19, "started": 5, "completed": 6, "paths": { "createElement": "function", "useState": "function", "useMemo": "function", "version": "string" } },
+    "PresenceStore": { "id": 5744, "started": 7, "completed": 8, "paths": { "default": "object", "default.getClientStatus": "function", "default.getStatus": "function" } },
+    "MessageActions": { "id": 7598, "started": 9, "completed": 10, "paths": { "default": "object", "default.sendMessage": "function" } },
+    "FileModule": { "id": 1164, "started": 11, "completed": 12, "paths": { "default": "object", "default.getConstants": "function", "default.fileExists": "function", "default.readFile": "function", "default.writeFile": "function" } },
+    "RootNavigation": { "id": 5183, "started": 13, "completed": 14, "paths": { "getRootNavigationRef": "function" } },
+    "EmojiStore": { "id": 6757, "started": 15, "completed": 16, "paths": { "default": "object", "default.getCustomEmojiById": "function", "default.getUsableGuildEmoji": "function" } },
+    "SettingsNavigation": { "id": 7522, "started": 17, "completed": 18, "paths": { "openUserSettings": "function" } },
+    "SettingsScreens": { "id": 16016, "started": 19, "completed": 20, "paths": { "getSettingScreens": "function", "toSettingListItems": "function" } },
+    "SettingsRegistry": { "id": 15865, "started": 21, "completed": 22, "paths": { "SETTING_RENDERER_CONFIG": "object" } },
+    "SettingsOverview": { "id": 18400, "started": 23, "completed": 24, "paths": { "default": "function" } },
+    "SettingsListRenderer": { "id": 16013, "started": 25, "completed": 26, "paths": { "SearchableSettingsList": "object", "SettingsList": "object" } },
+    "FileStorageUtils": { "id": 8728, "started": 27, "completed": 28, "paths": { "readFile": "function", "writeFile": "function" } }
   },
-  "notObserved": ["SettingsRegistry", "SettingsScreens", "SettingsOverview", "SettingsListRenderer"]
+  "notObserved": []
 }
