@@ -3,7 +3,8 @@
 Python 3.10+、標準ライブラリのみ。バンドルは**読み取り専用**で解析し、JS は実行しない。
 既存の中断作業を継続し、Phase 2 に必要なヘッダ・文字列・関数配置・ハッシュ・定数生成を検証した。
 **Phase 1 全体の完了ではない**。後続の静的調査で `runtime/modules/352.17.json` を候補台帳として追加したが、
-全件 `verified: false` で exports の実行時検証と最終 ID 表は未完成。詳細は [モジュール調査](../docs/MODULE-RESEARCH.md)。
+全件 `verified: false` で機能用の最終 ID 表は未完成。8件の部分的な実機descriptor観測は
+別の `352.17-observed.json` に記録している。詳細は [モジュール調査](../docs/MODULE-RESEARCH.md)・[診断記録](../docs/DIAGNOSTICS.md)。
 この解析ツール自体による注入、APK 書き換え、端末操作、インストールは対象外。
 
 ## 入力と参照元
@@ -149,10 +150,10 @@ export の証拠とは区別する必要がある。`-O0` fixture の環境に s
 ## 再利用可能な self-test
 
 ```sh
-# 外部入力なし: 12 passed、4 skipped
+# 外部入力なし: 14 passed、6 skipped
 python3 -I -m unittest discover -s tools/tests -v
 
-# 固定コンパイラ、出典、実バンドル、read-only比較先を含める: 16 passed
+# 固定コンパイラ、出典、実バンドル、read-only比較先を含める: 20 passed
 # HERMES_SOURCE は上記 commit の Hermes ソースを取得した場所に合わせる。
 # Linux では osx-bin を linux64-bin に変更する。
 HERMES_SOURCE=/path/to/hermes \

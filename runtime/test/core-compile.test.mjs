@@ -7,8 +7,8 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// These modules are deliberately absent from index.ts. Check their target syntax without enabling them.
-test("unconnected core modules compile together to HBC98 without executing them", async () => {
+// Compile the core in isolation as well as checking the production entry. Do not invoke any module or native API.
+test("isolated core modules compile together to HBC98 without executing them", async () => {
     const root = dirname(dirname(fileURLToPath(import.meta.url)));
     const scratch = mkdtempSync(join(tmpdir(), "disk-core-hbc-"));
     try {

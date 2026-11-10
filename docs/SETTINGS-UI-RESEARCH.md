@@ -61,6 +61,19 @@ RN の AppRegistry bootstrap **244** は `exports.AppRegistry` を返す副作�
 初期化と初回消費の関係を追う。既に初回 mount を過ぎている場合は UI 追加を見送る方式も検討する。
 これらのタイミングは静的同定だけでは検証できていない。
 
+## 追加調査：トップ設定を開く入力経路
+
+実機ではUI4候補が未ロードだったため、Android ACTION_VIEW用の安全なURLを静的に追ったが、
+トップ設定までの経路は証明できなかった。**ディープリンクが存在しないという断定ではない。**
+
+- 6410→6411はRPC定数。6411:68,72のUSER_SETTINGSと:252,256のsettingsは、37388が対応付けるだけでURL登録ではない。
+- 125374:139 / 152317:95のUSER_SETTINGSはanalytics用。実際のnavigateは:158..174 / :114..130でrow.routeを渡す。
+- Android受信側は81841のnativeDeepLink→137763→19495.DeepLinkProcessor→19492.handleIncomingURL。
+  157422:1083..1096の5728.parseURLから15127.handleSupportedURLへ進むが、調査した分岐にトップ設定への対応は見つからなかった。
+- 5729:376,394や70338:497..529のsettings系はguild設定。23422:13の `/settings` もguild API pathの部品であり根拠にはならない。
+
+推測のURL、盲目的な画面タップ、先行requireは実行していない。型だけの実機観測は [診断記録](DIAGNOSTICS.md) を参照。
+
 ## 再現
 
 ```sh

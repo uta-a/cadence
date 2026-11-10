@@ -1,0 +1,53 @@
+{
+  "_meta": {
+    "discordVersion": "352.17 - Stable",
+    "date": "2026-11-10",
+    "androidVersion": "13",
+    "device": "pipa",
+    "sourceBundleSha256": "09dcdd872df4fb7aa84b2a5ecc62946735de7a63447b848d549bd99d6f4505ee",
+    "apkSha256": "d1ee2fd445d5327c1b948e0484326873f97a3fdae1f607d5c272ed7ec387e19e",
+    "mode": "natural-factory-descriptor-observation",
+    "accessorsEvaluated": false,
+    "storeMethodsCalled": false,
+    "messagesSent": false,
+    "nativeSettingsWrites": false,
+    "featureHooksEnabled": false,
+    "settingsReadOnlyStatus": "ready",
+    "scope": "Property kinds only; no values. Native read-only ready establishes constants/root validation and fileExists handling, not readFile/writeFile execution or durability. Order counts selected factory boundaries only. This receipt does not authorize feature hooks."
+  },
+  "modules": {
+    "RNInit": {
+      "id": 244, "started": 1, "completed": 2,
+      "paths": { "AppRegistry": "object", "AppRegistry.registerComponent": "function", "AppRegistry.runApplication": "function" }
+    },
+    "ReactNative": {
+      "id": 17, "started": 3, "completed": 4,
+      "paths": { "View": "accessor", "StyleSheet": "accessor", "AppRegistry": "accessor", "TurboModuleRegistry": "accessor" }
+    },
+    "React": {
+      "id": 19, "started": 5, "completed": 6,
+      "paths": { "createElement": "function", "useState": "function", "useMemo": "function", "version": "string" }
+    },
+    "PresenceStore": {
+      "id": 5744, "started": 7, "completed": 8,
+      "paths": { "default": "object", "default.getClientStatus": "function", "default.getStatus": "function" }
+    },
+    "MessageActions": {
+      "id": 7598, "started": 9, "completed": 10,
+      "paths": { "default": "object", "default.sendMessage": "function" }
+    },
+    "FileModule": {
+      "id": 1164, "started": 11, "completed": 12,
+      "paths": { "default": "object", "default.getConstants": "function", "default.fileExists": "function", "default.readFile": "function", "default.writeFile": "function" }
+    },
+    "EmojiStore": {
+      "id": 6757, "started": 13, "completed": 14,
+      "paths": { "default": "object", "default.getCustomEmojiById": "function", "default.getUsableGuildEmoji": "function" }
+    },
+    "FileStorageUtils": {
+      "id": 8728, "started": 15, "completed": 16,
+      "paths": { "readFile": "function", "writeFile": "function" }
+    }
+  },
+  "notObserved": ["SettingsRegistry", "SettingsScreens", "SettingsOverview", "SettingsListRenderer"]
+}

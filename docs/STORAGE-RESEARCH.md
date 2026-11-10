@@ -2,10 +2,12 @@
 
 ## 状態
 
-**静的な引数・実装の追跡のみ。実機・Hermes 上で native API を呼び出していない。**
-`runtime/src/core/storage.ts` はこの結果に基づく未接続のアダプター。Metro ID を持たず、
-受け取った NativeFileModule の形を検査するだけで、生成時には native method を呼ばない。
-自然な初期化と起動境界が確認できるまで `runtime/src/index.ts` から利用しない。
+**本文の契約は静的調査に基づく。後続の実機検証は読み取り専用bootstrapまで。**
+`runtime/src/core/storage.ts` はMetro IDを持たず、生成時にはnative methodを呼ばない。
+[受動診断](DIAGNOSTICS.md)で自然ロード済み1164のmethod descriptorを観測し、
+`core/read-only-settings.ts`から現在のJS stack終了後にだけ利用する接続を追加した。
+実機のreadyはconstants/root検査とfileExists処理までの成功であり、readFile/writeFile実行や耐久性の保証ではない。
+書込は明示的に拒否しており、機能フック・設定UIは未接続。
 
 ## 入力と再現
 
@@ -104,7 +106,8 @@ native 側のファイル読込量を制限するものではない。
 - `FileStorageContractTest` は入力 DEX の SHA-256、spec 引数、private root、encoding と rename の命令を検証する。
 - `runtime/test/storage.test.mjs` は mock native で固定 path、receiver、誤った shape/root/結果の拒否と読み戻しを検証する。
 - `runtime/test/core-compile.test.mjs` は未接続のloader/settings/storageを隔離bundleにまとめ、HBC98へコンパイルできることを確認する。コードの実行やnative検証は行わない。
-- ランタイム未接続で、実際のファイルを作成・読出し・削除していない。端末操作・APK 変更・通信もしていない。
+- 初回静的調査ではnative実行・端末操作なし。後続検証でデータ保持更新と読み取り専用bootstrapを実行した。
+  disk設定の作成・変更・削除はしていない。readyだけではreadFileが実行されたかは区別できない。
 - 接続前に、自然に初期化済みの native export / getConstants の実形、起動順、初回の missing / read / write / failed write を
   許可された隔離環境で確認する必要がある。アクセス不能が false になる場合・不正 UTF-8 の場合の扱いも確認し、
   既存ファイルを誤って missing として上書きするリスクを接続前に再評価する。

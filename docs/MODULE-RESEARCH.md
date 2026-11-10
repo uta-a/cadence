@@ -3,7 +3,10 @@
 ## 結論・適用範囲
 
 `runtime/modules/352.17.json` は**静的調査の台帳**。実装用の承認済み ID 表ではない。
-全エントリ `verified: false`、`runtimeChecked: false`。`confidence: high` は
+全エントリ `verified: false`、全件承認を示す `runtimeChecked` も false。
+後続の実機観測で8候補のdescriptorを確認したが、機能フックは未承認。
+部分観測の詳細は [診断記録](DIAGNOSTICS.md) と `runtime/modules/352.17-observed.json` に分離している。
+下表の「未確認」は初回静的調査時点の状態。`confidence: high` は
 export の構築と利用側から見た**静的な同定の確度**であり、起動安全性やネイティブ API の保証ではない。
 `shape` は `require(id)` からのドット区切りプロパティパス（確認予定項目）で、既存ランタイム用 schema を新設したものではない。
 特に `default` を落としたり、store の prototype メソッドを named export と扱ってはいけない。
@@ -146,9 +149,10 @@ PY
 - 外側 module 8726 の closure `145826:214..277` は deps[4]=8728 の readFile を
   `("documents", computedPath, "utf8")` で呼ぶ。これは native readFile の引数数と同一ではない。
 - **追加調査**: DEXからnative署名・documents=getFilesDir・UTF-8と一時ファイルの処理を追跡した。
-  rename失敗を検出しないため、未接続アダプターは最終内容の読み戻しを必須とする。
+  rename失敗を検出しないため、書込用アダプターは最終内容の読み戻しを必須とする。
   readAssetもnative specに存在するが、保存には使わない。詳細は[保存API調査](STORAGE-RESEARCH.md)。
-  runtimeの形・root・permission・耐久性・競合は未検証で、実際の保存や読出しを実行していない。
+  後続の実機検証ではnative method descriptorと読み取り専用bootstrapのreadyまで確認した。
+  これはconstants/root検査とfileExists処理の成功であり、readFile/writeFile実行・permission障害・耐久性・競合の保証ではない。
 
 ### PresenceStore / EmojiStore / sendMessage
 
@@ -186,6 +190,6 @@ PY
 - 次工程は承認された隔離 runtime で **自然に初期化された対象だけ** import/export shape を検査し、
   getter / prototype / default の扱い、RN gate の順序と失敗時の fail-open を確認する。
 - UI接続前にfrozen registry置換の可否・トップ画面guard・初回mountとhook順序を確認する必要がある。
-  保存アダプターはnative静的契約から実装したが未接続。nativeの実形・専用pathと失敗時の挙動は別途検証する。
+  保存は読み取り専用bootstrapまで接続したが、書込は拒否する。完全なnative I/O・失敗時の挙動は別途検証する。
 - これら未検証部分を省略して Phase 3 prerequisite 完了とはしない。
   Fake Nitro・platform UI・analytics は対象外。Venus コードの複製、端末操作、APK 変更、push は行わない。

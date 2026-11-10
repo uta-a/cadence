@@ -63,4 +63,11 @@
 - マーカー: `work/install-35217/bootlog/disk-markers.log`（固定診断行だけを保存）
 
 **未検証のまま残るもの:** core/Metro IDの実行時shape、初期化ゲート、設定I/O、UI差し込み、
-OTAコミット済み状態の明示的な再現、実機での例外fail-open、長時間動作。coreはまだindex.tsから未接続。
+OTAコミット済み状態の明示的な再現、実機での例外fail-open、長時間動作。この時点ではcore未接続。
+
+## 追記：受動観測と読み取り専用設定
+
+その後、ユーザーから通常の開発・データ保持更新を自律的に進める依頼を受け、2回の同署名上書きで検証した。
+8/12候補のdescriptorを自然ロード時に観測し、FileModule限定の読み取り専用設定bootstrapでreadyを確認。
+設定UI4候補、native書込、機能フックは未接続・未確認。アカウントやメッセージは取得・操作せず、データ消去も行っていない。
+現在のAPK・証拠・限界は [診断記録](DIAGNOSTICS.md) と [型のみのreceipt](../runtime/modules/352.17-observed.json) を参照。

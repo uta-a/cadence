@@ -32,6 +32,25 @@ class CatalogTests(unittest.TestCase):
             ids.append(entry['id'])
         self.assertEqual(len(ids), len(set(ids)))
 
+    def test_observation_receipt_contains_only_allowlisted_module_metadata(self):
+        data = catalog()
+        receipt = json.loads((ROOT / 'runtime/modules/352.17-observed.json').read_text())
+        self.assertEqual({'_meta', 'modules', 'notObserved'}, set(receipt))
+        self.assertEqual(data['_meta']['bundleSha256'], receipt['_meta']['sourceBundleSha256'])
+        for flag in ['accessorsEvaluated', 'storeMethodsCalled', 'messagesSent', 'nativeSettingsWrites', 'featureHooksEnabled']:
+            self.assertIs(receipt['_meta'][flag], False)
+        kinds = {'undefined', 'boolean', 'number', 'string', 'symbol', 'bigint', 'function',
+                 'object', 'null', 'accessor', 'missing', 'uninspectable', 'depth-limit'}
+        for name, observed in receipt['modules'].items():
+            self.assertEqual({'id', 'started', 'completed', 'paths'}, set(observed))
+            self.assertEqual(data[name]['id'], observed['id'])
+            self.assertEqual(data[name]['shape'], list(observed['paths']))
+            self.assertTrue(all(kind in kinds for kind in observed['paths'].values()))
+            self.assertGreater(observed['completed'], observed['started'])
+        names = {key for key in data if not key.startswith('_')}
+        self.assertEqual(names, set(receipt['modules']) | set(receipt['notObserved']))
+        self.assertFalse(set(receipt['modules']) & set(receipt['notObserved']))
+
 
 @unittest.skipUnless(os.environ.get('DISK_BUNDLE'), 'set DISK_BUNDLE to check catalog evidence against original HBC')
 class CatalogBundleTests(unittest.TestCase):

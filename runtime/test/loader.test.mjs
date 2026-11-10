@@ -144,7 +144,7 @@ test("descriptor guards fail open and do not falsely mark install as complete", 
     }
     const c = defineCollector();
     const host = {};
-    Object.defineProperty(host, "__d", { get: () => c.define, configurable: true });
+    Object.defineProperty(host, "__d", { value: c.define, writable: false, configurable: true });
     const l = loader(host);
     const seen = [];
     l.register(7, () => seen.push(7));
@@ -203,6 +203,23 @@ test("modules loaded while draining join behind the previously waiting modules",
     assert.equal(gate.default(), true);
     assert.deepEqual(seen, [3, 4, 5]);
     assert.equal(l.ready, true);
+});
+
+test("callable define, factory and initializer tolerate shadowed apply properties", () => {
+    const c = defineCollector(), host = { __d: c.define }, seen = [];
+    c.define.apply = null;
+    const l = loader(host, 9);
+    l.register(7, () => seen.push(7));
+    l.install();
+    const factory = (...args) => { args[4].exports = {}; return 42; };
+    factory.apply = null;
+    host.__d(factory, 7, []);
+    assert.equal(c.load(7).outcome, 42);
+    const gate = () => 19;
+    gate.apply = null;
+    host.__d((...args) => { args[4].exports = { default: gate }; }, 9, []);
+    assert.equal(c.load(9).module.exports.default(), 19);
+    assert.deepEqual(seen, [7]);
 });
 
 test("IDs outside the pinned table are rejected", () => {

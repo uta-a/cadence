@@ -252,7 +252,7 @@ function wrap(define) {
 - 初期化の安全な境界が確認できるまでは差し替えを保留する。244 の factory 完了だけで一括適用する設計は未検証
 - 機能ごとのフックは try/catch で囲む。1 つ失敗しても、その機能が無効になるだけで済むようにする
 
-**Phase 3 実装状況:** `runtime/src/core/loader.ts` に ID 未接続のローダー基盤を実装した。Node で遅延 `__d`、factory の戻り値と `this`、元の例外の伝播、hook の例外分離、関数型 RN 初期化ゲートを検証した。352.17 の AppRegistry 初期化候補 module 244 は `AppRegistry` の named export であり **関数型 default export ではない**。このゲートをそのまま接続してはいけない。初期化完了の境界と exports の実機確認が済むまで `runtime/src/index.ts` からはローダーを使用せず、Discord の起動に影響を与えない。
+**Phase 3 実装状況:** `runtime/src/core/loader.ts` に ID 未接続のローダー基盤を実装した。Node で遅延 `__d`、factory の戻り値と `this`、元の例外の伝播、hook の例外分離、関数型 RN 初期化ゲートを検証した。352.17 の AppRegistry 初期化候補 module 244 は `AppRegistry` の named export であり **関数型 default export ではない**。このゲートをそのまま接続してはいけない。初期化完了の境界が確認できるまでactive loaderは接続しない。代わりに受動observerを接続し、実機で8候補のdescriptorを観測した。getter評価・先行require・exports差替えはしない。詳細は [診断記録](DIAGNOSTICS.md)。
 
 ### 5.3 モジュール ID 表（`core/modules`）
 - ID はビルドごとに変わる。`runtime/modules/352.17.json` は静的候補と証拠の台帳で、**全件 `verified: false`**。実装用の承認済み ID 表ではない
@@ -263,11 +263,11 @@ function wrap(define) {
 - 実行時に全モジュールを走査して探すことはしない（起動が遅くなるため）。探索は開発時のツールで行う（§9）
 
 ### 5.4 設定（`core/settings`）
-- v1 は `{ version: 1, features: { fakeNitro: false, platformIndicator: false } }` の JSON 1 ファイルを想定する。`documents/disk/settings-v1.json` 用の未接続アダプターを追加した。ネイティブ契約は静的追跡のみで、実行時の形・root・失敗時の挙動を確認するまで接続しない。機能オプションを追加する場合はスキーマを明示的に更新する
+- v1 は `{ version: 1, features: { fakeNitro: false, platformIndicator: false } }` の JSON 1 ファイルを想定する。`documents/disk/settings-v1.json` 用アダプターは自然に初期化済みのFileModuleから読み取り専用で接続し、実機readyまで確認した。これはconstants/rootとfileExists処理までで、完全なnative I/O・書込・失敗時の挙動は未検証。機能オプションを追加する場合はスキーマを明示的に更新する
 - 変更は購読者（React フック `useSetting`）に通知する。再起動が必要な機能だけ再起動を促す
 - パッチ時に組み込まれた機能（`/*__DISK_FEATURES__*/` に Kotlin 側が埋め込む）以外は、設定画面に表示しない
 
-**設定コアの進捗:** `runtime/src/core/settings.ts` は allowlist・初期オフ・保存順序・失敗後の再試行を単体テスト済み。`storage.ts` は private root と固定パスだけを受け入れ、native がrename失敗を検出しないため書込後の最終内容を確認する。実行時未検証・未接続。ストアは Discord のアカウント情報を読まない。詳細は [保存 API 調査](STORAGE-RESEARCH.md)。
+**設定コアの進捗:** `runtime/src/core/settings.ts` は allowlist・初期オフ・保存順序・失敗後の再試行を単体テスト済み。`storage.ts` は private root と固定パスだけを受け入れ、native がrename失敗を検出しないため書込後の最終内容を確認する。実機ではread-only bootstrapのみ接続し、writeは拒否する。ストアは Discord のアカウント情報を読まない。詳細は [保存 API 調査](STORAGE-RESEARCH.md)。
 
 ### 5.5 設定 UI（`core/ui`）
 - トップ階層は18400内の非公開80703が構築する。16013.SearchableSettingsListのprops境界が追加候補だが、React.memo・汎用rendererのためトップ画面限定guardとcomponent対応が必要。15865のregistry置換・初回mountとhook順序・route登録は未検証。詳細は [設定 UI 調査](SETTINGS-UI-RESEARCH.md)
@@ -328,9 +328,9 @@ JS 層の方法はランタイムが動いていることが前提なので、Mo
 DEXで `documents=getFilesDir()`、`readFile(absolutePath, encoding)`、`writeFile(storageDir, relativePath, data, encoding)` を追跡した。
 `readAsset` もnative specに存在するが、コマンド通信路としては使用しない。
 
-- v0.1 の保存は既存APIと固定のdisk専用pathを使う未接続アダプターで検証を進める
+- v0.1 の保存は既存APIと固定のdisk専用pathを使う。現段階は読み取り専用bootstrapのみ接続
 - renameのboolean破棄、fileExistsでmissingとアクセス不能を区別できない可能性、decode時の置換と耐久性の制限がある
-- 既存APIで不足する場合に限りDEX分岐方式を再設計する。実行時native検証前に接続しない
+- 既存APIで不足する場合に限りDEX分岐方式を再設計する。native書込は契約・失敗時の検証前に接続しない
 
 ---
 

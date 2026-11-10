@@ -2,7 +2,7 @@
 
 Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator、プライバシー保護をオフラインで追加する。
 
-> 開発中（**Phase 3: core 準備中**）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
+> 開発中（**Phase 3: core の受動観測・読み取り専用設定を検証中**）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
 
 **開発対象:** Discord **352.17 - Stable**（APKM）。Fake Nitro・Platform Indicator・Privacy 本体はまだ未実装です。
 
@@ -15,9 +15,10 @@ Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator�
 | 実機での起動 | **起動・entry実行を確認** | Android 13で同署名の上書き更新後、`[disk] loaded 0.0.1 (native)` を確認。coreは引き続き未接続（[実機記録](docs/DEVICE-TEST.md)） |
 | 起動時 OTA チェックの停止 | 未実装（意図的） | OTA のダウンロードは続くが、読み込まれるのは APK 同梱バンドルの想定。実機では未確認（DESIGN §4.4） |
 | Metro ローダー基盤 | 単体テストのみ | `runtime/src/core/loader.ts` の遅延 `__d`、init gate、hook 分離を Node でテスト。候補 244 は関数型 gate に使えないため、ランタイムには接続しない |
-| 設定コア・保存アダプター | 単体・静的テストのみ | `runtime/src/core/settings.ts` / `storage.ts` は許可リスト・初期オフ・保存順序・固定パス・読み戻しを検証。native 契約は DEX から追跡したが、実行時未検証・ランタイム未接続 |
+| Metro受動観測 | 実機で8/12候補のdescriptorを観測 | getter・先行require・store呼出しを避け、名前・ID・型だけを記録。機能フックは未接続（[診断記録](docs/DIAGNOSTICS.md)） |
+| 設定コア・保存アダプター | 読み取り専用bootstrapまで実機確認 | 自然ロード済みFileModuleからprivate rootと固定disk pathを検査し、`settings read-only ready`を確認。書込・UIは未接続。完全な読込/保存・耐久性は未検証 |
 
-**実機でdisk entryの実行を確認した。Metro loader・settings・native storageは未接続・実行時未検証。** `bundle pin` は OTA がコミット済みの
+**実機でdisk entry・受動観測・読み取り専用設定の初期化を確認した。機能フック、設定UIと書込は未接続。** `bundle pin` は OTA がコミット済みの
 端末でも APK 同梱バンドルを読む想定だが、その条件では実機未検証。ガードは対象メソッドの固定であり、
 APK 全体や追加 callsite・外部 helper の任意の改変を検証するものではない。対象メソッドを変更する他パッチは拒否する。
 
@@ -63,9 +64,9 @@ HBC の実行テストには `work/hermes/hermes`、実バンドルの検証に�
 python3 -I -m unittest discover -s tools/tests -v
 ```
 
-ローカル検証結果: Kotlin **39件成功（skipなし）**、解析ツール **19件成功（入力を指定した場合）**、ランタイムのテスト **36件成功（entryの早期ログ・未接続 core の HBC98 コンパイル検証を含む）**。
+ローカル検証結果: Kotlin **39件成功（skipなし）**、解析ツール **20件成功（入力を指定した場合）**、ランタイムのテスト **55件成功（早期ログ・受動観測・読み取り専用設定・HBC98 コンパイル検証を含む）**。
 解析ツールの全件実行には `HERMESC`・`HERMES_SOURCE`・`DISK_BUNDLE` の指定が必要（tools の README を参照）。
-モジュール ID 表は静的候補（すべて `verified: false`）。保存先と設定 UI の候補は特定したが、RN 初期化 gate・native 実行・初回 mount 前の接続可否は未検証。
+モジュール ID 表は機能フック未承認（すべて `verified: false`）。8候補のdescriptor観測は別の[実機receipt](runtime/modules/352.17-observed.json)に記録。設定UI4候補・初期化gate・初回mount前の接続可否・native書込は未検証。
 
 ## 実機で確認すること（一部実施）
 

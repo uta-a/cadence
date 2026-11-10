@@ -5,7 +5,9 @@
     "bundleSha256": "09dcdd872df4fb7aa84b2a5ecc62946735de7a63447b848d549bd99d6f4505ee",
     "evidenceMode": "static-disassembly-only",
     "runtimeChecked": false,
-    "shapeNotation": "Dot-separated paths relative to require(id), proposed checks only; not a runtime-validated schema. confidence rates static identity, not operational safety.",
+    "runtimeObservationCount": 8,
+    "runtimeObservationReceipt": "352.17-observed.json",
+    "shapeNotation": "Dot-separated paths relative to require(id). Partial descriptor-only observations are recorded separately; this is NOT an operationally approved schema. confidence rates static identity, not method contracts or hook safety.",
     "offsetUnit": "decimal byte offset within function; registration offsets are within global function 0"
   },
   "React": {
@@ -476,10 +478,10 @@
     "verified": false
   },
   "_missing": {
-    "runtimeVerification": "All verified=false. No Hermes VM, bundle require, native methods, phone, or network operations executed. Runtime shape/type/identity checks remain mandatory.",
+    "runtimeVerification": "All verified=false. Eight candidates have descriptor-only device observations in 352.17-observed.json; four settings UI candidates were not naturally loaded. No store/send calls or accessor evaluation. Read-only native settings bootstrap reported ready, but native write/durability, full method contracts, hook safety and remaining shapes are unverified.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",
     "settingsSectionInsertion": "Top-level sections are built by private closure 80703 in module 18400. Candidate props boundary is module16013.SearchableSettingsList, a React.memo export, NOT assumed callable. See docs/SETTINGS-UI-RESEARCH.md. Frozen registry replacement, top-level-only guard, first mount timing, hook ordering and route registration remain unverified.",
-    "fileStorageContract": "DEX static contract now traced: documents=getFilesDir, readFile(absolutePath,encoding), writeFile(storageDir,relativePath,data,encoding); readAsset exists in native spec but is not used for settings. See docs/STORAGE-RESEARCH.md. Native rename result is discarded; readback establishes only final content. fileExists false may also mean inaccessible. Runtime shape, roots, persistence, failure behavior and durability remain unverified; storage adapter is NOT connected.",
+    "fileStorageContract": "DEX static contract now traced: documents=getFilesDir, readFile(absolutePath,encoding), writeFile(storageDir,relativePath,data,encoding); readAsset exists in native spec but is not used for settings. See docs/STORAGE-RESEARCH.md. Native rename result is discarded; readback establishes only final content. fileExists false may also mean inaccessible. Native method descriptor kinds were observed and the read-only settings bootstrap reached ready on the device. This establishes constants/root validation and fileExists handling, not readFile/writeFile execution, failure behavior or durability. Writes remain disconnected.",
     "presenceReturnShape": "No direct getClientStatus consumer found by exact indexed search. It is a prototype method of default store, not a named export; desktop/mobile/web/embedded keys and subscription API are not runtime checked.",
     "sendMessageContract": "Export and external consumer traced; full async implementation, argument contract and send semantics not audited. Do not call during research.",
     "deferred": "Fake Nitro, platform UI, analytics and other feature hooks intentionally outside this prerequisite research."
