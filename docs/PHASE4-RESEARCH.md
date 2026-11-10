@@ -1,72 +1,101 @@
-# Phase 4 調査・再開メモ
+# Phase 4 調査記録（352.17 静的解析）
 
-## 作業範囲
+## 状態
 
-Phase 3完了時の`f8b1454`を起点に、Phase 4の静的調査だけを開始した。ユーザーの「キリがいいところで止めて」という指示に従い、進行中の調査を整理して停止する。機能実装・新しいAPKの作成/導入・実機操作・送信は行わない。
-Fake Nitro・Platform Indicator・Privacy本体はまだ未実装。以下は実装承認済みの契約一覧ではなく、再開時に確認するための記録。
+Phase 3完了時の`f8b1454`を起点に、Phase 4の静的解析を行った。対象はDiscord 352.17 - Stableの`work/352.17/assets/index.android.bundle`（HBC98）と`base.apk`のDEXのみ。
+bundleの実行・実機操作・送信は行っていない。以下は静的に読んだ呼び出し契約であり、実行時の承認ではない。
+各機能は、実行時のshape/descriptor検査と、失敗時に元の動作へ戻す設計を前提に実装する。
 
-## 共通基盤で確認したこと
+調査はサブエージェントに委譲した。中間出力は`/tmp/disk-p4/`（リポジトリ外・一時）に置いた。証拠は`function:offset`、moduleは`module→factory`で示す。
 
-- 現在の`core/settings.ts`はschema2。設定のfeature keyは`fakeNitro`と`platformIndicator`で、初期値は両方false。compactだけが表示用preference。Phase 4のサイズ/表示箇所等を追加するなら、既存schema1/2との互換性・書込順序・再試行を維持する必要がある。
-- ビルド機能IDは`fakeNitro` / `platformIndicator` / `privacy`。`BuildFeatures.render`は選択setの直列化・不明ID拒否・marker一意性を検証するが、現在の`RuntimePatch`は空setを渡す。Morpheの機能選択との接続はまだない。
-- ローカルのMorphe Patcher **2.3.0**を`javap`で確認。`RawResourcePatchBuilder`は`execute(ResourcePatchContext)`と`finalize(ResourcePatchContext)`の両方を公開する。`PatchBuilder`には`dependsOn`とdefaultの指定がある。
-- `PatcherContext.fileWorkspace`はpublic。`allPatches`/`executablePatches`等のgetterは`$morphe_patcher`付きのinternal APIであり、公開された選択取得APIとみなさない。finalizeの順序・コンテキストからのworkspace到達方法・複数APK間の分離は未確認。
-- 選択結果をsingletonのmutable Setに持たせない。後続の機能patchより前にruntimeを注入すると選択が反映できないので、注入タイミングとper-APKの選択情報の受渡しを先に設計・テストする。
-- Privacyは設計上Morphe側の選択だけで、Discord内のオン/オフは作らない。Fake Nitro / Platform Indicatorは保存値に加えて、実際に組み込まれている機能と依存readinessを確認してから有効化する。
+## 共通: 機能選択の受け渡し
 
-### API確認の再現
-
-対象jar:
-`~/.gradle/caches/modules-2/files-2.1/app.morphe/morphe-patcher/2.3.0/d7cf45fefa4860d14f57311fc592f841b37f4184/morphe-patcher-2.3.0.jar`
-
-```sh
-javap -classpath "$JAR" app.morphe.patcher.patch.RawResourcePatchBuilder \
-  app.morphe.patcher.patch.PatchBuilder app.morphe.patcher.PatcherContext
-```
+- Morphe Patcher 2.3.0の`Patcher$invoke$2`を`javap -c`で読み、全patchの`execute`が終わった後に、`finalize`を`asReversed`の順で呼ぶことを確認した。
+- 方針: 各機能patch（`disk`に依存）は`execute`で自分の選択を記録し、`disk`は`finalize`で選択をまとめて`BuildFeatures.render`に渡してから注入する。選択はAPKごとの作業領域に置き、singletonのmutable stateは使わない。記録物は注入後に必ず消す。
+- 実際のCLIで、選択した機能だけが埋め込まれることをビルドして確かめる。
 
 ## 4a Fake Nitro
 
-既存記録を読み直した範囲に限る。サブエージェントのExplore環境は読み取り・検索のみで、Python/HBC追加逆アセンブルを実行できなかった。
+### 送信経路
 
-- MessageActions7598/factory7599の`7599:1262`にobject shape2197、slot18。`1434..1439`でsendMessage43054を設定し、`1683`でdefault exportする。
-- `43054:3..62`は4引数のasync wrapperで、第3引数undefinedの既定値はtrue。各引数の意味・配下generator・戻り値・content/stickerIdsの所有位置は未確認。
-- consumer8483のclosure145757は`126..143`でsendMessageを取得し、`219..230`で呼ぶ。引数構築元の追加追跡が必要。
-- EmojiStore6757/factory6758はgetUsableGuildEmoji38746とgetCustomEmojiById38752をprototypeへ設定する。既知consumer42529はgetCustomEmojiById(emojiId)を呼ぶが、戻り値と利用可否判定との関係は未確認。
-- 利用可否候補2053/factory2054の`2054:1480`にcanUseEmojisEverywhere/canUseAnimatedEmojisのwrite keysがあると既存一覧に記載。export帰属・実consumer・sticker判定は未確認。名前だけで接続しない。
+- MessageActions **7598→7599**。default exportの実体は`7599:1683`で代入されるobjectで、`sendMessage`=43054（`7599:1439`）、`_sendMessage`=43065（`7599:1538`）、`validateMessage`=43064、`sendStickers`=43061がそのプロパティ。
+- `sendMessage(channelId, message, arg3 = true, options)`。43054はgenerator **145141**を作る。145141は`nonce`補完・`recordMessageSendAttempt`・channelのready待ちを行い、`_sendMessage`を呼ぶ。messageからは`reaction`以外を読まない。条件付きで同じexport objectの`sendMessage`を再帰呼出しする（`145141:530-571`）。
+- `_sendMessage(channelId, message, options)`はgenerator **145142**。messageから`content`(`:1169`)・`invalidEmojis`(`:1178`)・`validNonShortcutEmojis`(`:1184`)・`tts`(`:1194`)・`components`を、optionsから`stickerIds`(`:1251`)・`messageReference`・`allowedMentions`・`nonce`等を読む。`content`はそのまま送信bodyに入る（`:2329-2389`）。
+- **使えない絵文字は送信を止めず、ローカル通知だけを出す。** `145142:2181-2258`で`invalidEmojis.length > 0`なら`validateMessage(invalidEmojis, currentUser, channelId)`の文言を`sendBotMessage`する。送信自体は続く（静的に読んだ限り。実行では未確認）。
+- 通常のチャット入力: **63829**（module 13126）が`parse(...)`でmessageを作り（`:462`）、`message.tts`を上書き（`:490`）。`:767`で`sendMessage`をプロパティ参照で取り、`:829`で`sendMessage(channel.id, message, undefined, options)`を呼ぶ。export objectのプロパティを差し替えれば、この経路に効く。
+- `_sendMessage`を直接呼ぶ`sendInvite`・`sendActivityBookmark`・`sendStickers`・`sendPollMessage`には、`sendMessage`の差し替えが効かない。
 
-次回は43054とそのgenerator、145757の引数構築、38752/38746、2054の該当closureの順に限定して静的解析する。現時点ではcontentの書換え・stickerIds削除・送信可否上書きを実装できる根拠はない。送信関数を実行して契約を推測しない。
+### message の作られ方（parser）
+
+- `parse`=44632（module **7787**→7788、`7788:1927`）。`parse(channel, text, ctx?, opts?)`は`{content, tts:false, invalidEmojis:[], validNonShortcutEmojis:[]}`を返す（`44632:50-76`）。
+- カスタム絵文字は`{type:'customEmoticon', content:'<'+(animated?'a':'')+':'+(originalName??name)+':'+id+'>', emoji}`のnodeになる（`44618:113-212`、`44620:110-196`）。**使えない絵文字でもcontentは`<:name:id>`のまま**で、置換はどこにもない。
+- 検証callback 99690は`isEmojiPremiumLocked({emoji, channel, intention: CHAT})`（32987、module 4953）で判定し、lockedなら`invalidEmojis`へ、そうでなく非shortcutなら`validNonShortcutEmojis`へpushする。contentは書き換えない。
+- 配列の要素はemoji objectそのもの。`id`・`name`・`animated`・`originalName`の読み出しは確認済み。`guildId`は未確認。
+
+### 利用可否の判定
+
+- module **2053→2054**のdefault exportはshape付きobject（`2054:1480`）。`canUseAnimatedEmojis`=27731、`canUseEmojisEverywhere`=27732、`canUseCustomStickersEverywhere`=27751。引数`(user)`、戻り値boolean。いずれも`canUserUse(EntitlementFeatureNames.X, user)`（module 5060の33540）へ委譲し、最終的に`user.premiumType`から判定する。
+- 不可理由: module **4953**（`utils/EmojiUtils.tsx`）の32980（getEmojiDisabledReason）が`PREMIUM_LOCKED`・`DISALLOW_EXTERNAL`等を返す。`bypassPremiumEmojiEntitlement`が真ならcanUse*を呼ばない。ギルド側の制約（`available`・`USE_EXTERNAL_EMOJIS`権限など）はcanUse*とは別に残る。
+- スタンプ: module **7475→7476**。`StickerSendability`（`SENDABLE`=0、`SENDABLE_WITH_PREMIUM`=1、`NONSENDABLE`=2、`SENDABLE_WITH_BOOSTED_GUILD`=3）、`getStickerSendability(sticker, user, channel)`=42462、`isSendableSticker`=42463。
+- `sendStickers(channelId, stickerIds, content = '', options, tts = false)`は`_sendMessage(channelId, message, {...options, stickerIds})`を呼ぶ（`43061:142`）。stickerのpickerは150051（module 13120）`:289`。
+- URL: module 4953の`getEmojiUrl`=32993。CDN文字列の組み立てとスタンプURL helperは未確認。
+
+### 実装方針（Phase 4a）
+
+1. **入力した絵文字の変換**（最優先）: `7598.default.sendMessage`を元関数保持で差し替える。`message.invalidEmojis`（Discord自身がlockedと判定したもの）について、`content`中の`<a?:name:id>`をCDNリンクへ置換し、`invalidEmojis`を空にしてから元関数を呼ぶ。判定をDiscordに任せるので、使える絵文字はそのまま送られる。変換は冪等（再帰呼出しでも安全）にし、例外時は元の引数で元関数を呼ぶ。
+2. pickerで選べるようにする（canUse*の差し替え）は、上記の判定（parserのlocked判定）まで変えてしまう。元関数を一時的に戻して判定する仕組みが必要で、後回しにする。
+3. スタンプは`sendStickers`を差し替え、送信不可のスタンプだけリンク送信に変える。判定に必要なsticker object・userの取得経路が未確認なので、1の後に追加調査する。
+4. 実送信を伴う確認は、ユーザーの承認を得てから行う。
 
 ## 4b Platform Indicator
 
-追加のbundle解析は実行できず、既存記録の確認にとどまる。
+### データと購読
 
-- PresenceStore5744/factory5745は`5745:516..521`でgetClientStatus35468をprototypeへ設定し、`688`でinstanceを構築、`717`でdefault exportする。
-- `35468:3..10`は内部slot15をuserIdで参照して返す。fallbackは確認されていない。
-- consumer9181/factory9182は`110..115`でStoreをimport。closure102879はisMobileOnline/isVROnline/getStatusを呼ぶ。getClientStatusの直接consumerは既存検索では未発見（不在とは断定しない）。
-- desktop/mobile/web/embeddedの格納・更新、購読API、表示境界とpropsのuserId型、memo/frozen制約は未確認。
+- PresenceStore **5744→5745**。内部slot15が`{[userId]: {desktop|mobile|web|vr: status}}`。書き込みは35447（flattenPresence）・35449（updatePresence）・35471・35477。`getClientStatus`=35468（`5745:516..521`）。action mapは`5745:565`（`PRESENCE_UPDATES`・`PRESENCES_REPLACE`・`CONNECTION_OPEN`等）。
+- ClientTypes（module 1098→1099、`PutById @12535`）の値は`desktop`・`web`・`mobile`・`vr`。
+- 購読: flux module **504→505**が`useStateFromStores`・`useStateFromStoresObject`をplain data propertyで再export（`@340/@345`・`@360/@366`）。実装はmodule 573→574の21420/21421。
+  - `useStateFromStores(stores, getter, deps?, areStatesEqual?)`。depsがあれば浅い比較で再計算を省く。
+  - 呼び出し例: 9182`@120-159`で`useStateFromStoresObject([PresenceStore], getter, [user_id])`。
 
-次回はfactory5745からslot15への書込み・dispatcher登録先を追い、102879の親componentとprops受渡しを確認する。実機のuserIdやstoreの内容は取得しない。
+### 表示境界
+
+- **Avatar**: module **15449→15450**（`design/void/Avatar/native/Avatar.tsx`）。default exportは`React.memo(70989 | 70990)`で、plain data property（`15450@297`）。propsは`user`・`guildId`・`isMobileOnline`・`isVROnline`・`status`・`size`・`autoStatusCutout`等。design-system barrel module 1202経由で674 moduleから参照される。
+- 70990は`props.user`を読み（`@219`）、`.id`を`userId`として下位へ渡す（`@1197/@1202`）。`user`が`id`を持つuser objectであるという点は有力な推定で、レジスタの追跡は未完了。
+- アイコン: 1 module 1アイコンで、`ScreenIcon`=9514、`MobilePhoneIcon`=7085、`GlobeEarthIcon`=9524、`GameControllerIcon`=9648、`VrHeadsetIcon`=16280。propsは`style`・`color`（既定`colors.INTERACTIVE_ICON_DEFAULT`）と残りを`BaseIconImage`へ渡す。`size`の扱いは未確認。
+
+### 実装方針（Phase 4b）
+
+- module 15449のdefault（React.memo）を、factory終了後・最初のconsumer前に、元の要素を常に保持するwrapperで差し替える。wrapperは`props.user?.id`が文字列のときだけ、`useStateFromStores([PresenceStore], () => getClientStatus(id), [id])`で状態を取り、Avatarの隣に小さなアイコンを並べる。
+- Avatarは至る所で使われるため、表示箇所の絞り込み（サイズ条件など）と描画コストを実機で確認する。設定の「表示箇所」オプションは、確認後に決める。
 
 ## 4c Privacy
 
-安全に停止できる境界は未特定。Explore環境ではコマンドを実行できず、DEX/HBCの追加解析をしていない。対象が存在しないとは判断できない。
+### JS analytics
 
-- `work/352.17/research/entry-f1.txt`の47〜49行にsentryEnd→record→Call1があるが、Sentry initの根拠にはならない。
-- `work/352.17/research/native-file/DiskFileEvidence.java`はAPKの各classes*.dexをdexlib2で読み、限定ownerの命令・参照・分岐先を出力する再利用例。現在のowner指定はFileModule向けで、Privacy対象を調べたものではない。
-- `tools/hbc.py`と既存BundlePinの検証方式は利用できるが、analyticsのmodule/export/consumer、Sentry init/Appsflyer start/AdvertisingId getterのclass・署名・全命令・副作用は未確認。
+- `track`=24981。module **1267→1268**で`{getCampaignParams, setSystemAccessibilityFeatures, expandEventProperties, track}`を作り、`1268:2469`でplain dataとして`exports.default`に代入する。
+- trackは`throttlePercent`による間引き・`logEventProperties`の後、trackMaker（module 1275）経由で`dispatcher.dispatch({type: TRACK_ACTION_NAME, event, properties, flush, fingerprint, …})`する（142134`:108`）。戻り値のPromiseは解決されない（間引き時のみ`Promise.resolve()`）。
+- 方針: `1267.default.track`を、`Promise.resolve()`を返すno-opに差し替える。`trackNetworkAction`（24989）等の別exportと、1268`:2331`の2つ目のtrackMaker経路は未確認。
 
-次回はtrack/analyticsの文字列参照からexportとconsumerを絞り、DEXでは各SDKへの参照元だけを列挙してから該当メソッドと呼出し元を検証する。SDK名の一致だけで初期化全体や複合onCreateをスタブ化しない。全APK decompileは不要。
+### DEX
 
-## 調査上の制約と停止点
+- **Sentry**: 全初期化は`Lio/sentry/android/core/e1;->b(Context,k0,c4)V`（classes3）に集まる。呼び出し元は3つ。
+  - `SentryInitProvider.onCreate()`: Manifestの`io.sentry.auto-init=false`により、`e1.b`を呼ばずにreturnする（既に無効）。
+  - `RNSentryModuleImpl.initNativeSdk(ReadableMap, Promise)`: JSの`Sentry.init`から呼ばれ、`e1.b`後に`promise.resolve(TRUE)`。
+  - `Lu5/b;->call()`（classes.dex、アプリ独自のcrash reporting）: switchのcase0で設定を作り`e1.b`を呼び、続けて`NativeCrashReporting.initNative(Z)`。
+  - 方針は未決。`e1.b`をreturn-voidにすると全経路が止まる見込みだが、SDK内部メソッドで、JS側Sentryの送信経路（native transportか、fetchか）とnative crash reportingは未確認。
+- **AppsFlyer**: `MainApplication.onCreate`が`Ld6/a;`（`invoke`内のpacked switch。複数の用途を兼ねる）を別スレッドで実行し、case3で`getInstance`→`subscribeForDeepLink`→`init`→`start`を呼ぶ（`invoke` #45/#46）。アプリ側からのinit/start呼び出しはここだけ。`invoke`全体はスタブ化できない。case3の分岐だけを無効化する命令レベルの置換を、BundlePin同様に全命令を固定して検討する。
+- **広告ID**: React Nativeから呼ばれる入口は`AdsModule.getGoogleAdvertisingId(Promise)`（`@ReactMethod`）のみ。既存のprivate `resolveWithNullId(Promise)`が`{googleAdvertisingId: null, isLimitAdTrackingEnabled: true}`をresolveする。方針: `getGoogleAdvertisingId`の本体を`invoke-direct {p0, p1}, resolveWithNullId` + `return-void`に置換する。AppsFlyer内部（`AFe1fSDK.getRevenue`）からの取得は、AppsFlyerを止めれば止まる。
 
-3件のサブ調査は結果を回収済み。既存資料から新たに実行時契約を承認できる情報は得られていない。上記のfunction:offsetは既存記録からの参照であり、今回bundleから独立再検証した値ではない。次回の追加解析は、親のbash/Python環境を使うか、コマンド実行可能な委譲種別を明示して行う。ツール制約を避けるために無断で別CLIエージェントへ切り替えてはいない。
+## 実装順序
 
-この区切りで作業を停止する。変更はREADMEと本メモのみで、runtime/Kotlinコード・APK・端末は変更していない。文書のみのためPhase 3のテストは再実行していない。pushなし。
+1. 共通: 機能patchの追加と`finalize`での埋め込み（Kotlin、テスト）。
+2. Privacy: 広告ID（DEX、最小）とJS analytics（`track`のno-op）。AppsFlyer・Sentryは追加検証後。
+3. Platform Indicator: Avatar wrapper（表示のみ）。
+4. Fake Nitro: 入力した絵文字の変換。実送信の確認はユーザー承認後。
+5. 全テスト・独立レビュー・同署名APKでの実機確認（送信以外）・資料更新。
 
-## 再開時の注意
+## 注意
 
-- 原本は352.17の固定bundle/DEXを使い、Venusコードは複製しない。
-- descriptor一致だけで機能の意味論・呼出し契約・起動安全性を承認しない。
-- 送信はモックで検証し、実送信が必要なら別途ユーザーに確認する。
-- アカウント/メッセージ/store内容を調査用に取得・保存しない。初期オフとエラー時の元動作を維持する。
-- Phase 4は未完了。端末はPhase 3で確認した通常版のまま変更していない。
+- Venusのコードは参照・複製しない。
+- descriptor一致だけで機能の意味論や起動安全性を承認しない。差し替えは実行時にshapeを検査し、失敗時は元の動作のままにする。
+- 送信はモックで検証し、実送信はユーザーに確認してから行う。アカウント・メッセージ・storeの内容は取得・保存しない。
