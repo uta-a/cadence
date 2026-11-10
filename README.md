@@ -5,6 +5,7 @@ Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator�
 > 開発中（**Phase 3: core完了**。次はPhase 4の機能実装）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
 
 **開発対象:** Discord **352.17 - Stable**（APKM）。Fake Nitro・Platform Indicator・Privacy 本体はまだ未実装です。
+Phase 4は静的調査に着手し、実装前の区切りで停止しています。[再開メモ](docs/PHASE4-RESEARCH.md)を参照。
 
 ## 現在の状態
 
