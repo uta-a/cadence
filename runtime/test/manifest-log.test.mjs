@@ -16,8 +16,8 @@ test("build feature manifest is immutable, allowlisted and fails closed on marke
     const { parseBuildFeatures } = api();
     for (const value of ["/*__DISK_FEATURES__*/", null, {}, ["unknown"], ["fakeNitro", "fakeNitro"], [true]])
         assert.equal(parseBuildFeatures(value).length, 0);
-    const selected = parseBuildFeatures(["fakeNitro", "privacy"]);
-    assert.equal(JSON.stringify(selected), '["fakeNitro","privacy"]');
+    const selected = parseBuildFeatures(["fakeNitro", "disableAnalytics"]);
+    assert.equal(JSON.stringify(selected), '["fakeNitro","disableAnalytics"]');
     assert.ok(Object.isFrozen(selected));
 });
 

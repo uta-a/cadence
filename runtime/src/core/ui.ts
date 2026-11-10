@@ -1,6 +1,12 @@
 import type { SettingsController, SettingsViewState } from "./settings-controller";
 import type { BuildFeature } from "./features";
 import { getLogs } from "./log";
+import type { FeatureKey } from "./settings";
+
+const FEATURE_ROWS: ReadonlyArray<{ id: FeatureKey; title: string; description: string }> = Object.freeze([
+    { id: "fakeNitro", title: "Fake Nitro", description: "使えない絵文字を画像リンクとして送信します" },
+    { id: "platformIndicator", title: "Platform Indicator", description: "アバターに接続中のデバイスを表示します" },
+]);
 
 export interface ReactApi {
     Fragment: unknown;
@@ -73,7 +79,20 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                 state.phase === "error" ? button("読み込みを再試行", () => { void controller.retryLoad(); }) : null,
                 state.save === "error" ? button("保存を再試行", () => { void controller.setCompact(compact).catch(() => {}); }) : null,
                 text("機能", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginTop: spacing * 2 } }),
-                text("Fake Nitro / Platform Indicator / Privacy はまだ未実装です。", { style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
+                ...FEATURE_ROWS.map(row => {
+                    const built = features.includes(row.id);
+                    const on = built && state.features[row.id] === true;
+                    return h(native.View, { key: row.id, style: { backgroundColor: colors.surface, padding: spacing, borderRadius: 12,
+                        flexDirection: "row", alignItems: "center", marginTop: spacing } },
+                        h(native.View, { style: { flex: 1 } }, text(row.title),
+                            text(built ? row.description : "このビルドには含まれていません",
+                                { accessibilityLabel: `disk:feature:${row.id}:${on}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
+                        built ? h(native.Switch, { accessibilityLabel: `disk:feature:${row.id}`, value: on,
+                            disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
+                            onValueChange: (value: boolean) => { void controller.setFeature(row.id, value).catch(() => {}); } }) : null);
+                }),
+                text(features.includes("disableAnalytics") ? "Analytics：JS の track 送信を停止しています（Morphe で選択）" : "Analytics：このビルドでは停止していません",
+                    { accessibilityLabel: "disk:feature:disableAnalytics", style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
                 text("情報", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginTop: spacing * 2 } }),
                 text("disk 0.0.1 / Discord 352.17", { style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
                 text(`組み込み機能: ${features.length ? features.join(", ") : "なし"}`, { accessibilityLabel: "disk:features", style: { color: colors.secondary, fontSize: 14, marginTop: 8 } }),

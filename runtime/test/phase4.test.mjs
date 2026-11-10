@@ -1,0 +1,274 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { build } from "esbuild";
+import vm from "node:vm";
+import { fileURLToPath } from "node:url";
+
+const { outputFiles } = await build({ stdin: { contents: [
+    'export * from "./features/fakeNitro";', 'export * from "./features/analytics";', 'export * from "./features/platformIndicator";',
+    'export * from "./core/modules";', 'export * from "./core/ui";', 'export * from "./core/settings-controller";'].join(" "),
+    resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
+function api(globals = {}) {
+    const host = { module: { exports: {} }, Promise, ...globals };
+    vm.runInNewContext(outputFiles[0].text, host);
+    return host.module.exports;
+}
+const plain = value => JSON.parse(JSON.stringify(value));
+const locked = (id, name, animated = false) => ({ id, name, animated, guildId: "1" });
+
+test("only Discord-classified locked emojis are linked; usable ones and text stay as typed", () => {
+    const { convertMessage, emojiUrl } = api();
+    const message = { content: "hi <:pog:111>! <:mine:222> <a:dance:333>", invalidEmojis: [locked("111", "pog"), locked("333", "dance", true)],
+        validNonShortcutEmojis: [locked("222", "mine")], tts: false };
+    const out = convertMessage(message);
+    assert.equal(out.content, `hi ${emojiUrl("111", false, "pog")} ! <:mine:222> ${emojiUrl("333", true, "dance")}`);
+    assert.match(out.content, /emojis\/111\.webp\?size=48&name=pog/);
+    assert.match(out.content, /emojis\/333\.gif\?size=48&name=dance/);
+    assert.deepEqual(plain(out.invalidEmojis), []);
+    assert.deepEqual(plain(out.validNonShortcutEmojis), plain(message.validNonShortcutEmojis));
+    assert.equal(out.tts, false);
+    assert.equal(message.content, "hi <:pog:111>! <:mine:222> <a:dance:333>", "the caller's message is not mutated");
+    assert.equal(convertMessage(out), null, "idempotent for Discord's recursive sendMessage call");
+});
+
+test("unconvertible locked emojis stay reported, and odd shapes or long results send the original", () => {
+    const { convertMessage, MAX_CONTENT_LENGTH } = api();
+    const partial = convertMessage({ content: "<:a:1> :b:", invalidEmojis: [locked("1", "a"), locked("2", "b")] });
+    assert.equal(plain(partial.invalidEmojis).map(e => e.id).join(), "2");
+    assert.equal(convertMessage({ content: ":b:", invalidEmojis: [locked("2", "b")] }), null);
+    for (const value of [null, "text", [], {}, { content: 1, invalidEmojis: [locked("1", "a")] }, { content: "<:a:1>", invalidEmojis: [] },
+        { content: "<:a:1>", invalidEmojis: [{ id: 1, name: "a" }] }, { content: "<:a:1>", invalidEmojis: [{ id: "1x", name: "a" }] }])
+        assert.equal(convertMessage(value), null);
+    const long = "x".repeat(MAX_CONTENT_LENGTH - 10) + " <:a:1>";
+    assert.equal(convertMessage({ content: long, invalidEmojis: [locked("1", "a")] }), null);
+    assert.ok(convertMessage({ content: "<:a:1>", invalidEmojis: [{ id: "1", name: "renamed", originalName: "a" }] }).content.includes("name=a"));
+});
+
+test("sendMessage hook converts only while enabled and always calls the original with this and every argument", () => {
+    const { installSendMessageHook } = api();
+    const calls = [], original = function (...args) { calls.push([this, args]); return "result"; };
+    const target = { sendMessage: original, other: 1 }, exports = { default: target };
+    let enabled = false, converted = 0;
+    assert.equal(installSendMessageHook(exports, () => enabled, () => converted++), true);
+    assert.notEqual(target.sendMessage, original);
+    const message = { content: "<:a:1>", invalidEmojis: [locked("1", "a")] }, options = { nonce: "n" };
+    assert.equal(target.sendMessage("c", message, undefined, options), "result");
+    assert.equal(calls[0][0], target);
+    assert.equal(calls[0][1][1], message, "disabled: the identical message object");
+    assert.equal(calls[0][1].length, 4);
+    enabled = true;
+    target.sendMessage("c", message, undefined, options);
+    assert.notEqual(calls[1][1][1], message);
+    assert.match(calls[1][1][1].content, /cdn\.discordapp\.com\/emojis\/1\.webp/);
+    assert.equal(calls[1][1][3], options);
+    target.sendMessage("c", message, undefined, options);
+    assert.equal(converted, 1, "the fixed diagnostic is reported once");
+    const hostile = { get content() { throw new Error("boom"); }, invalidEmojis: [locked("1", "a")] };
+    target.sendMessage("c", hostile);
+    assert.equal(calls[3][1][1], hostile, "conversion failure falls back to the original arguments");
+    const fresh = { sendMessage: original };
+    installSendMessageHook({ default: fresh }, () => { throw new Error("settings"); });
+    fresh.sendMessage("c", message);
+    assert.equal(calls[4][1][1], message, "a settings failure sends the original message");
+    assert.equal(installSendMessageHook({ default: Object.freeze({ sendMessage: original }) }, () => true), false);
+    assert.equal(installSendMessageHook({ default: { get sendMessage() { return original; } } }, () => true), false);
+    assert.equal(installSendMessageHook({}, () => true), false);
+});
+
+test("analytics track becomes a resolved no-op without calling the original; unexpected shapes are left alone", async () => {
+    const { installAnalyticsBlock } = api();
+    let called = 0;
+    const target = { track() { called++; return new Promise(() => {}); }, expandEventProperties() {} };
+    assert.equal(installAnalyticsBlock({ default: target }), true);
+    assert.equal(await target.track("event", { secret: 1 }), undefined);
+    assert.equal(called, 0);
+    const frozen = Object.freeze({ track() {} });
+    assert.equal(installAnalyticsBlock({ default: frozen }), false);
+    assert.equal(installAnalyticsBlock({ default: { track: 1 } }), false);
+    assert.equal(installAnalyticsBlock(null), false);
+});
+
+test("platform states keep a fixed order and ignore offline, invisible and unknown platforms", () => {
+    const { platformsOf } = api();
+    assert.deepEqual(plain(platformsOf({ web: "idle", desktop: "online", mobile: "offline", embedded: "online", vr: "dnd" })),
+        [{ platform: "desktop", color: "#23A55A" }, { platform: "web", color: "#F0B232" }, { platform: "vr", color: "#F23F43" }]);
+    for (const value of [undefined, null, "online", { desktop: "invisible" }]) assert.deepEqual(plain(platformsOf(value)), []);
+});
+
+function hookHarness() {
+    const states = [], refs = [], effects = [], cleanups = [];
+    let cursor = 0, hookCalls = 0, nextEffects = [];
+    const react = {
+        createElement(type, props, ...children) { return { type, props: props ?? {}, children }; },
+        useState(initial) {
+            const id = cursor++; hookCalls++;
+            if (!(id in states)) states[id] = typeof initial === "function" ? initial() : initial;
+            return [states[id], value => { states[id] = value; }];
+        },
+        useEffect(fn, deps) {
+            const id = cursor++; hookCalls++;
+            if (!effects[id] || deps.some((v, i) => v !== effects[id][i])) { effects[id] = deps; nextEffects.push([id, fn]); }
+        },
+        useRef(initial) { const id = cursor++; hookCalls++; if (!(id in refs)) refs[id] = { current: initial }; return refs[id]; },
+        memo(component) { return { memo: component }; },
+    };
+    return { react, render(component, props) {
+        cursor = 0; hookCalls = 0;
+        const tree = component.memo(props);
+        for (const [id, fn] of nextEffects) { cleanups[id]?.(); cleanups[id] = fn(); }
+        nextEffects = [];
+        return { tree, hookCalls };
+    }, unmount() { cleanups.forEach(fn => fn?.()); } };
+}
+const flat = tree => !tree || typeof tree !== "object" ? [] : [tree, ...(tree.children ?? []).flatMap(flat)];
+
+test("avatar wrapper keeps the original element, a fixed hook count, and only overlays while enabled", () => {
+    const { createPlatformAvatar } = api(), harness = hookHarness();
+    const original = { memo: "OriginalAvatar" }, store = { name: "PresenceStore" }, listeners = new Set();
+    let enabled = false, subscribedStores, storeCalls = 0;
+    const seenDeps = [];
+    const status = { "10": { desktop: "online", mobile: "idle" } };
+    const presence = { store, getClientStatus(id) { assert.equal(this, store); storeCalls++; return status[id]; },
+        useStateFromStores(stores, getter, deps) { subscribedStores = stores; seenDeps.push(plain(deps)); return getter(); } };
+    const component = createPlatformAvatar({ react: harness.react, original, native: () => ({ View: "View", Text: "Text" }),
+        presence: () => presence, icons: () => ({ desktop: "ScreenIcon" }), enabled: () => enabled,
+        subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); }, onEvent: event => events.push(event) });
+    const events = [];
+    const props = { user: { id: "10" }, size: "SIZE_40" };
+    let { tree, hookCalls } = harness.render(component, props);
+    assert.equal(tree.type, original);
+    assert.equal(tree.props, props);
+    assert.equal(hookCalls, 3, "useState, useEffect, useRef (plus the store hook recorded below)");
+    assert.equal(seenDeps.length, 1);
+    assert.equal(subscribedStores.length, 1);
+    assert.equal(subscribedStores[0], store);
+    assert.deepEqual(seenDeps[0], ["10"]);
+    enabled = true;
+    listeners.forEach(fn => fn());
+    ({ tree, hookCalls } = harness.render(component, props));
+    assert.equal(hookCalls, 3);
+    assert.equal(seenDeps.length, 2, "the store hook is called on every render, enabled or not");
+    assert.equal(tree.type, "View");
+    assert.equal(tree.children[0].type, original);
+    const badge = tree.children[1];
+    assert.equal(badge.props.pointerEvents, "none");
+    assert.deepEqual(flat(badge).slice(1).map(node => node.type), ["ScreenIcon", "Text"]);
+    assert.equal(flat(badge)[2].children[0], "M");
+    assert.ok(storeCalls > 0);
+    ({ tree } = harness.render(component, { user: { id: "missing" } }));
+    assert.equal(tree.children[1], null, "no badge without a visible platform");
+    assert.deepEqual(seenDeps.at(-1), ["missing"]);
+    assert.deepEqual(events, ["rendered", "badge"], "each fixed diagnostic is reported once");
+    harness.unmount();
+    assert.equal(listeners.size, 0);
+});
+
+test("an avatar rendered before native UI is ready gains the badge later; one without presence never adds the store hook", () => {
+    const { createPlatformAvatar } = api(), harness = hookHarness();
+    let available = false, hookUsed = 0;
+    const presence = { store: {}, getClientStatus: () => ({ desktop: "online" }), useStateFromStores() { hookUsed++; return { desktop: "online" }; } };
+    const component = createPlatformAvatar({ react: harness.react, original: "Avatar",
+        native: () => available ? { View: "View", Text: "Text" } : null, presence: () => presence, icons: () => ({}),
+        enabled: () => true, subscribe: () => () => {} });
+    let result = harness.render(component, { user: { id: "1" } });
+    assert.equal(result.tree.type, "Avatar");
+    available = true;
+    result = harness.render(component, { user: { id: "1" } });
+    assert.equal(result.tree.type, "View", "native UI looked up again on later renders");
+    assert.equal(result.hookCalls, 3);
+    assert.equal(hookUsed, 2, "the store hook runs on every render once presence was available at first render");
+
+    const other = hookHarness();
+    let presenceReady = false, used = 0;
+    const late = createPlatformAvatar({ react: other.react, original: "Avatar", native: () => ({ View: "View", Text: "Text" }),
+        presence: () => presenceReady ? { ...presence, useStateFromStores() { used++; return {}; } } : null, icons: () => ({}),
+        enabled: () => true, subscribe: () => () => {} });
+    assert.equal(other.render(late, { user: { id: "1" } }).tree.type, "Avatar");
+    presenceReady = true;
+    assert.equal(other.render(late, { user: { id: "1" } }).tree.type, "Avatar");
+    assert.equal(used, 0, "no store hook is added after the first render");
+});
+
+test("replacement avatar keeps the original statics but not React's memo internals", () => {
+    const { createPlatformAvatar } = api(), harness = hookHarness();
+    const original = { $$typeof: "memo-symbol", type: () => {}, compare: null, displayName: "Avatar", Sizes: { SMALL: 1 } };
+    const component = createPlatformAvatar({ react: harness.react, original, native: () => null, presence: () => null,
+        icons: () => ({}), enabled: () => false, subscribe: () => () => {} });
+    assert.equal(component.displayName, "Avatar");
+    assert.equal(component.Sizes, original.Sizes);
+    assert.equal(component.$$typeof, undefined);
+    assert.equal(component.compare, undefined);
+});
+
+function memory() {
+    let text = null;
+    const writes = [];
+    return { writes, storage: { read: async () => text, write: async value => { writes.push(JSON.parse(value)); text = value; } } };
+}
+
+test("feature switches persist schema2 features and isEnabled is off until ready", async () => {
+    const { createSettingsController } = api(), m = memory();
+    const c = createSettingsController(() => {}, () => m.storage);
+    assert.equal(c.isEnabled("fakeNitro"), false);
+    await assert.rejects(c.setFeature("fakeNitro", true));
+    await c.attach({});
+    await c.setFeature("fakeNitro", true);
+    assert.equal(c.isEnabled("fakeNitro"), true);
+    assert.equal(c.isEnabled("platformIndicator"), false);
+    assert.deepEqual(m.writes.at(-1), { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: false } });
+    await assert.rejects(c.setFeature("unknown", true));
+    await assert.rejects(c.setFeature("fakeNitro", "yes"));
+    const reloaded = createSettingsController(() => {}, () => m.storage);
+    await reloaded.attach({});
+    assert.equal(reloaded.isEnabled("fakeNitro"), true);
+});
+
+test("feature captures exist only for built features, and install hooks on natural factory completion", () => {
+    const { createCoreModules } = api({ setTimeout() {} });
+    const ids = core => plain(core.captures.map(c => c.id).sort((a, b) => a - b));
+    assert.deepEqual(ids(createCoreModules(() => {})), [17, 19, 1164, 5183, 7522, 18400]);
+    const events = [];
+    const core = createCoreModules(value => events.push(value), false, ["fakeNitro", "platformIndicator", "disableAnalytics"]);
+    assert.deepEqual(ids(core), [17, 19, 504, 1164, 1267, 5183, 5744, 7085, 7522, 7598, 9515, 9524, 15449, 16280, 18400]);
+    const capture = new Map(core.captures.map(c => [c.id, c.onExports]));
+    const analytics = { default: { track() { return new Promise(() => {}); } } };
+    capture.get(1267)(analytics, {});
+    const messages = { default: { sendMessage() {} } };
+    const originalSend = messages.default.sendMessage;
+    capture.get(7598)(messages, {});
+    assert.notEqual(messages.default.sendMessage, originalSend);
+    capture.get(19)({ Fragment: "F", createElement() {}, useState() {}, useEffect() {}, useRef() {}, memo: c => c }, {});
+    const avatar = { default: { $$typeof: "memo" } }, originalAvatar = avatar.default;
+    capture.get(15449)(avatar, {});
+    assert.notEqual(avatar.default, originalAvatar);
+    assert.deepEqual(events, ["analytics blocked", "fake-nitro installed", "platform-indicator installed"]);
+    const other = createCoreModules(value => events.push(value), false, ["platformIndicator"]);
+    const otherCapture = new Map(other.captures.map(c => [c.id, c.onExports]));
+    otherCapture.get(19)({ Fragment: "F", createElement() {}, useState() {}, useEffect() {}, useRef() {} }, {});
+    const frozenAvatar = Object.freeze({ default: originalAvatar });
+    otherCapture.get(15449)(frozenAvatar, {});
+    assert.equal(frozenAvatar.default, originalAvatar);
+    assert.equal(events.at(-1), "platform-indicator unavailable");
+});
+
+test("settings page shows switches only for built features and states which are not included", () => {
+    const { createSettingsOverview } = api();
+    const native = { View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Switch: "Switch", Modal: "Modal" };
+    const state = { phase: "ready", save: "idle", preferences: { compact: false }, features: { fakeNitro: true, platformIndicator: false } };
+    const changes = [];
+    const controller = { get: () => state, subscribe: () => () => {}, setFeature: async (key, value) => { changes.push([key, value]); } };
+    const react = { Fragment: "F", createElement(type, props, ...children) { return { type, props: props ?? {}, children }; },
+        useState(initial) { const value = typeof initial === "function" ? initial() : initial; return [initial === false ? true : value, () => {}]; },
+        useEffect() {} };
+    const tree = createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, ["fakeNitro", "disableAnalytics"])({});
+    const all = flat(tree);
+    const fake = all.find(node => node.props.accessibilityLabel === "disk:feature:fakeNitro");
+    assert.equal(fake.type, "Switch");
+    assert.equal(fake.props.value, true);
+    fake.props.onValueChange(false);
+    assert.deepEqual(changes, [["fakeNitro", false]]);
+    assert.ok(all.some(node => node.props.accessibilityLabel === "disk:feature:platformIndicator:false"));
+    assert.equal(all.find(node => node.props.accessibilityLabel === "disk:feature:platformIndicator"), undefined);
+    assert.ok(all.some(node => node.children?.includes("このビルドには含まれていません")));
+    assert.ok(all.some(node => String(node.children?.[0]).startsWith("Analytics：JS の track 送信を停止しています")));
+});

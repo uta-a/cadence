@@ -12,33 +12,214 @@
     "normalApkInstalled": true,
     "lastInstalledApkMode": "normal",
     "mode": "factory-descriptors-and-gated-settings-smoke",
-    "probeAccessorsEvaluated": false,
+    "observerAccessorsEvaluated": false,
     "uiLazyGettersEvaluatedAfterNavigationReady": true,
-    "importsAfterNavigationReady": [7522],
-    "storeMethodsCalled": false,
-    "messagesSent": false,
+    "importsAfterNavigationReady": [
+      7522
+    ],
+    "observerStoreMethodsCalled": false,
+    "observerMessagesSent": false,
     "nativeSettingsWrites": true,
-    "featureHooksEnabled": false,
+    "featureHooksEnabled": true,
     "coreUiHookEnabled": true,
     "settingsStatus": "saved-readback-and-restored-after-cold-restart",
     "normalSmokeFlag": false,
-    "scope": "14 descriptors observed in smoke APK; the UI action7522 was imported only after navigation.isReady. Normal cold start observed9 and never auto-opened settings. Compact false->true persisted across restart, restoredfalse and verified across another restart. Only owned settings data was written. Memory log view and empty build manifest were also device-checked; latest normal APK was installed preserving app data and cold-started with settings ready, no auto-navigation and no fatal/type/reference error markers. No approval of unimplemented feature hooks, fault durability or other versions."
+    "scope": "14 descriptors observed in smoke APK; the UI action7522 was imported only after navigation.isReady. Normal cold start observed9 and never auto-opened settings. Compact false->true persisted across restart, restoredfalse and verified across another restart. Only owned settings data was written. Memory log view and empty build manifest were also device-checked; latest normal APK was installed preserving app data and cold-started with settings ready, no auto-navigation and no fatal/type/reference error markers. No approval of unimplemented feature hooks, fault durability or other versions.",
+    "phase4": {
+      "smokeApkSha256": "19850e32a1d24675bd603da8633b096b2a14739be4da2dc5167412b96d975ff5",
+      "builtFeatures": [
+        "fakeNitro",
+        "platformIndicator",
+        "disableAnalytics"
+      ],
+      "installed": [
+        "analytics blocked",
+        "fake-nitro installed",
+        "platform-indicator installed"
+      ],
+      "storeMethodsCalledByFeatures": [
+        "PresenceStore.getClientStatus (inside the Avatar render, values never logged)"
+      ],
+      "userAuthorizedMessagesSent": 1,
+      "fakeNitro": "User-authorized DM to peer-account: a test emoji added to the user's Dev server (also user-authorized) was sent as a CDN link with no invalid-emoji notice; fixed log fake-nitro converted.",
+      "platformIndicator": "Badge rendered on the DM card and the chat header avatar (screenshot authorized by the user); not on DM rows or message avatars, which use other components. Setting persisted across a cold restart.",
+      "notes": "Icons not yet loaded fall back to text labels. No fatal, TypeError, ReferenceError or hook-order errors in the checked runs.",
+      "normalApkSha256": "095755378b2c0f7c43bb48eb90b1c5c2d75a77afbc95e0787114cc69e3268746",
+      "normalApkInstalled": true,
+      "normalColdStart": "No auto-navigation; analytics blocked, fake-nitro installed, platform-indicator installed/rendered/badge, settings ready; no fatal, type, reference or hook-order errors."
+    }
   },
   "modules": {
-    "RNInit": { "id": 244, "started": 1, "completed": 2, "paths": { "AppRegistry": "object", "AppRegistry.registerComponent": "function", "AppRegistry.runApplication": "function" } },
-    "ReactNative": { "id": 17, "started": 3, "completed": 4, "paths": { "View": "accessor", "StyleSheet": "accessor", "AppRegistry": "accessor", "TurboModuleRegistry": "accessor" } },
-    "React": { "id": 19, "started": 5, "completed": 6, "paths": { "createElement": "function", "useState": "function", "useMemo": "function", "version": "string" } },
-    "PresenceStore": { "id": 5744, "started": 7, "completed": 8, "paths": { "default": "object", "default.getClientStatus": "function", "default.getStatus": "function" } },
-    "MessageActions": { "id": 7598, "started": 9, "completed": 10, "paths": { "default": "object", "default.sendMessage": "function" } },
-    "FileModule": { "id": 1164, "started": 11, "completed": 12, "paths": { "default": "object", "default.getConstants": "function", "default.fileExists": "function", "default.readFile": "function", "default.writeFile": "function" } },
-    "RootNavigation": { "id": 5183, "started": 13, "completed": 14, "paths": { "getRootNavigationRef": "function" } },
-    "EmojiStore": { "id": 6757, "started": 15, "completed": 16, "paths": { "default": "object", "default.getCustomEmojiById": "function", "default.getUsableGuildEmoji": "function" } },
-    "SettingsNavigation": { "id": 7522, "started": 17, "completed": 18, "paths": { "openUserSettings": "function" } },
-    "SettingsScreens": { "id": 16016, "started": 19, "completed": 20, "paths": { "getSettingScreens": "function", "toSettingListItems": "function" } },
-    "SettingsRegistry": { "id": 15865, "started": 21, "completed": 22, "paths": { "SETTING_RENDERER_CONFIG": "object" } },
-    "SettingsOverview": { "id": 18400, "started": 23, "completed": 24, "paths": { "default": "function" } },
-    "SettingsListRenderer": { "id": 16013, "started": 25, "completed": 26, "paths": { "SearchableSettingsList": "object", "SettingsList": "object" } },
-    "FileStorageUtils": { "id": 8728, "started": 27, "completed": 28, "paths": { "readFile": "function", "writeFile": "function" } }
+    "RNInit": {
+      "id": 244,
+      "started": 1,
+      "completed": 2,
+      "paths": {
+        "AppRegistry": "object",
+        "AppRegistry.registerComponent": "function",
+        "AppRegistry.runApplication": "function"
+      }
+    },
+    "ReactNative": {
+      "id": 17,
+      "started": 3,
+      "completed": 4,
+      "paths": {
+        "View": "accessor",
+        "StyleSheet": "accessor",
+        "AppRegistry": "accessor",
+        "TurboModuleRegistry": "accessor"
+      }
+    },
+    "React": {
+      "id": 19,
+      "started": 5,
+      "completed": 6,
+      "paths": {
+        "createElement": "function",
+        "useState": "function",
+        "useMemo": "function",
+        "version": "string"
+      }
+    },
+    "PresenceStore": {
+      "id": 5744,
+      "started": 7,
+      "completed": 8,
+      "paths": {
+        "default": "object",
+        "default.getClientStatus": "function",
+        "default.getStatus": "function"
+      }
+    },
+    "MessageActions": {
+      "id": 7598,
+      "started": 9,
+      "completed": 10,
+      "paths": {
+        "default": "object",
+        "default.sendMessage": "function"
+      }
+    },
+    "FileModule": {
+      "id": 1164,
+      "started": 11,
+      "completed": 12,
+      "paths": {
+        "default": "object",
+        "default.getConstants": "function",
+        "default.fileExists": "function",
+        "default.readFile": "function",
+        "default.writeFile": "function"
+      }
+    },
+    "RootNavigation": {
+      "id": 5183,
+      "started": 13,
+      "completed": 14,
+      "paths": {
+        "getRootNavigationRef": "function"
+      }
+    },
+    "EmojiStore": {
+      "id": 6757,
+      "started": 15,
+      "completed": 16,
+      "paths": {
+        "default": "object",
+        "default.getCustomEmojiById": "function",
+        "default.getUsableGuildEmoji": "function"
+      }
+    },
+    "SettingsNavigation": {
+      "id": 7522,
+      "started": 17,
+      "completed": 18,
+      "paths": {
+        "openUserSettings": "function"
+      }
+    },
+    "SettingsScreens": {
+      "id": 16016,
+      "started": 19,
+      "completed": 20,
+      "paths": {
+        "getSettingScreens": "function",
+        "toSettingListItems": "function"
+      }
+    },
+    "SettingsRegistry": {
+      "id": 15865,
+      "started": 21,
+      "completed": 22,
+      "paths": {
+        "SETTING_RENDERER_CONFIG": "object"
+      }
+    },
+    "SettingsOverview": {
+      "id": 18400,
+      "started": 23,
+      "completed": 24,
+      "paths": {
+        "default": "function"
+      }
+    },
+    "SettingsListRenderer": {
+      "id": 16013,
+      "started": 25,
+      "completed": 26,
+      "paths": {
+        "SearchableSettingsList": "object",
+        "SettingsList": "object"
+      }
+    },
+    "FileStorageUtils": {
+      "id": 8728,
+      "started": 27,
+      "completed": 28,
+      "paths": {
+        "readFile": "function",
+        "writeFile": "function"
+      }
+    },
+    "Analytics": {
+      "id": 1267,
+      "started": 9,
+      "completed": 10,
+      "paths": {
+        "default": "object",
+        "default.track": "function"
+      }
+    },
+    "Avatar": {
+      "id": 15449,
+      "started": 19,
+      "completed": 20,
+      "paths": {
+        "default": "object"
+      }
+    },
+    "Flux": {
+      "id": 504,
+      "started": 7,
+      "completed": 8,
+      "paths": {
+        "useStateFromStores": "function",
+        "useStateFromStoresObject": "function"
+      }
+    },
+    "GlobeEarthIcon": {
+      "id": 9524,
+      "started": 28,
+      "completed": 29,
+      "paths": {
+        "GlobeEarthIcon": "function"
+      }
+    }
   },
-  "notObserved": []
+  "notObserved": [
+    "ScreenIcon",
+    "MobilePhoneIcon",
+    "VrHeadsetIcon"
+  ]
 }

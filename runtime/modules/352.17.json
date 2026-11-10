@@ -493,6 +493,199 @@
     "confidence": "high",
     "verified": false
   },
+  "Analytics": {
+    "id": 1267,
+    "factory": 1268,
+    "shape": [
+      "default",
+      "default.track"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 40312,
+        "detail": "module 1267 -> factory 1268"
+      },
+      {
+        "kind": "construction",
+        "function": 1268,
+        "offset": 2433,
+        "detail": "CreateClosure 24981 (track); the object also receives getCampaignParams, setSystemAccessibilityFeatures and expandEventProperties from 2410"
+      },
+      {
+        "kind": "construction",
+        "function": 1268,
+        "offset": 2438,
+        "detail": "DefineOwnById track on the default object"
+      },
+      {
+        "kind": "export",
+        "function": 1268,
+        "offset": 2469,
+        "detail": "PutByIdStrict exports.default (plain data); source literal utils/AnalyticsUtils.tsx at 2458"
+      },
+      {
+        "kind": "consumer",
+        "function": 24981,
+        "offset": 108,
+        "detail": "track reads options.throttlePercent, then queues a TRACK dispatcher action through trackMaker (module 1275); the returned Promise is not settled"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "Avatar": {
+    "id": 15449,
+    "factory": 15450,
+    "shape": [
+      "default"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 507222,
+        "detail": "module 15449 -> factory 15450"
+      },
+      {
+        "kind": "construction",
+        "function": 15450,
+        "offset": 224,
+        "detail": "React.memo wraps closure 70990 (compiler) or 70989 chosen at 248 by isReactCompilerEnabled"
+      },
+      {
+        "kind": "export",
+        "function": 15450,
+        "offset": 297,
+        "detail": "PutByIdStrict exports.default (plain data); source literal design/void/Avatar/native/Avatar.tsx at 286"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "Flux": {
+    "id": 504,
+    "factory": 505,
+    "shape": [
+      "useStateFromStores",
+      "useStateFromStoresObject"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 16452,
+        "detail": "module 504 -> factory 505"
+      },
+      {
+        "kind": "export",
+        "function": 505,
+        "offset": 345,
+        "detail": "PutByIdStrict useStateFromStores re-exported from module 573 (implementation 21420: stores, getter, deps?, areStatesEqual?)"
+      },
+      {
+        "kind": "export",
+        "function": 505,
+        "offset": 366,
+        "detail": "PutByIdStrict useStateFromStoresObject re-exported from module 573"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "ScreenIcon": {
+    "id": 9515,
+    "factory": 9516,
+    "shape": [
+      "ScreenIcon"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 308972,
+        "detail": "module 9515 -> factory 9516"
+      },
+      {
+        "kind": "export",
+        "function": 9516,
+        "offset": 178,
+        "detail": "PutByIdStrict ScreenIcon; source design/components/Icon/native/redesign/generated/ScreenIcon.tsx"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "MobilePhoneIcon": {
+    "id": 7085,
+    "factory": 7086,
+    "shape": [
+      "MobilePhoneIcon"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 228136,
+        "detail": "module 7085 -> factory 7086"
+      },
+      {
+        "kind": "export",
+        "function": 7086,
+        "offset": 178,
+        "detail": "PutByIdStrict MobilePhoneIcon; source design/components/Icon/native/redesign/generated/MobilePhoneIcon.tsx"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "GlobeEarthIcon": {
+    "id": 9524,
+    "factory": 9525,
+    "shape": [
+      "GlobeEarthIcon"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 309272,
+        "detail": "module 9524 -> factory 9525"
+      },
+      {
+        "kind": "export",
+        "function": 9525,
+        "offset": 178,
+        "detail": "PutByIdStrict GlobeEarthIcon; source design/components/Icon/native/redesign/generated/GlobeEarthIcon.tsx"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "VrHeadsetIcon": {
+    "id": 16280,
+    "factory": 16281,
+    "shape": [
+      "VrHeadsetIcon"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 534796,
+        "detail": "module 16280 -> factory 16281"
+      },
+      {
+        "kind": "export",
+        "function": 16281,
+        "offset": 182,
+        "detail": "PutByIdStrict VrHeadsetIcon; source design/components/Icon/native/redesign/generated/VrHeadsetIcon.tsx"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
   "_missing": {
     "runtimeVerification": "All14 descriptor identities have device observations. verified=false reserves full feature-hook approval; core Overview UI and owned settings write/readback/restart have separate capability evidence. Probes never evaluated accessors; UI lazy getters were evaluated only after navigation readiness. No store/send methods were called; unimplemented feature contracts and fault durability remain unverified.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",

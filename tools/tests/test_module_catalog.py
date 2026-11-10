@@ -37,8 +37,11 @@ class CatalogTests(unittest.TestCase):
         receipt = json.loads((ROOT / 'runtime/modules/352.17-observed.json').read_text())
         self.assertEqual({'_meta', 'modules', 'notObserved'}, set(receipt))
         self.assertEqual(data['_meta']['bundleSha256'], receipt['_meta']['sourceBundleSha256'])
-        for flag in ['probeAccessorsEvaluated', 'storeMethodsCalled', 'messagesSent', 'featureHooksEnabled', 'normalSmokeFlag']:
+        # The observer itself never evaluates accessors, calls store methods or sends; features are recorded apart.
+        for flag in ['observerAccessorsEvaluated', 'observerStoreMethodsCalled', 'observerMessagesSent', 'normalSmokeFlag']:
             self.assertIs(receipt['_meta'][flag], False)
+        self.assertIs(receipt['_meta']['featureHooksEnabled'], True)
+        self.assertEqual({'fakeNitro', 'platformIndicator', 'disableAnalytics'}, set(receipt['_meta']['phase4']['builtFeatures']))
         self.assertIs(receipt['_meta']['nativeSettingsWrites'], True)
         self.assertIs(receipt['_meta']['coreUiHookEnabled'], True)
         self.assertEqual([7522], receipt['_meta']['importsAfterNavigationReady'])

@@ -3,6 +3,114 @@
   "version": "0.0.1",
   "patches": [
     {
+      "name": "Disable advertising ID",
+      "description": "Report no Google advertising ID to Discord's JavaScript.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Disable analytics",
+      "description": "Drop Discord's JavaScript analytics events before they are queued.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Fake Nitro",
+      "description": "Send emojis that need Nitro as image links. Off until enabled in the disk settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Platform Indicator",
+      "description": "Show which devices a user is connected from next to their avatar. Off until enabled in the disk settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "bundle pin",
       "description": "Always load the bundle packaged in the APK instead of a downloaded or cached OTA bundle.",
       "default": true,
@@ -31,7 +139,7 @@
     },
     {
       "name": "disk",
-      "description": "Inject the disk runtime into the APK bundle (experimental; not yet verified on a device).",
+      "description": "Inject the disk runtime and its settings screen into the APK bundle.",
       "default": true,
       "category": null,
       "compatiblePackages": [

@@ -1,11 +1,12 @@
 import { createSettingsStore } from "./settings";
 import { createNativeSettingsStorage } from "./storage";
-import type { PreferencesSnapshot, SettingsStorage } from "./settings";
+import type { FeatureKey, PreferencesSnapshot, SettingsSnapshot, SettingsStorage } from "./settings";
 
 export interface SettingsViewState {
     readonly phase: "loading" | "ready" | "error";
     readonly save: "idle" | "saving" | "saved" | "error";
     readonly preferences: PreferencesSnapshot;
+    readonly features: SettingsSnapshot;
 }
 export function createSettingsController(onStatus: (status: string) => void = () => {},
     storageFactory: (native: unknown) => SettingsStorage = createNativeSettingsStorage) {
@@ -14,7 +15,8 @@ export function createSettingsController(onStatus: (status: string) => void = ()
     let pending: Promise<void> | null = null;
     let store: ReturnType<typeof createSettingsStore> | undefined;
     let saving = 0;
-    let state: SettingsViewState = Object.freeze({ phase: "loading", save: "idle", preferences: Object.freeze({ compact: false }) });
+    let state: SettingsViewState = Object.freeze({ phase: "loading", save: "idle",
+        preferences: Object.freeze({ compact: false }), features: Object.freeze({ fakeNitro: false, platformIndicator: false }) });
     const listeners = new Set<() => void>();
     function report(value: string): void { try { onStatus(value); } catch (_) { /* Ignore diagnostics. */ } }
     function publish(patch: Partial<SettingsViewState>): void {
@@ -31,7 +33,8 @@ export function createSettingsController(onStatus: (status: string) => void = ()
                 if (failed) throw new Error("Settings load failed");
                 store = candidate;
                 store.subscribePreferences(() => publish({ preferences: candidate.getPreferences() }));
-                publish({ phase: "ready", preferences: store.getPreferences() });
+                store.subscribe(() => publish({ features: candidate.get() }));
+                publish({ phase: "ready", preferences: store.getPreferences(), features: store.get() });
                 report("ready");
             } catch (_) {
                 store = undefined;
@@ -42,8 +45,25 @@ export function createSettingsController(onStatus: (status: string) => void = ()
         publish({ phase: "loading", save: "idle" });
         return pending;
     }
+    async function persist(write: (ready: ReturnType<typeof createSettingsStore>) => Promise<void>): Promise<void> {
+        if (!store || state.phase !== "ready") throw new Error("Settings not ready");
+        saving++;
+        publish({ save: "saving" });
+        try {
+            await write(store);
+            if (--saving === 0) publish({ save: "saved" });
+            report("saved");
+        } catch (error) {
+            saving--;
+            publish({ save: "error" });
+            report("save-error");
+            throw error;
+        }
+    }
     return {
         get(): SettingsViewState { return state; },
+        /** Feature hooks read this on every use: off while loading, after a load error, or when the user turned it off. */
+        isEnabled(key: FeatureKey): boolean { return state.phase === "ready" && state.features[key] === true; },
         subscribe(listener: () => void): () => void { listeners.add(listener); return () => { listeners.delete(listener); }; },
         attach(value: unknown): Promise<void> | undefined {
             if (attached) return pending ?? undefined;
@@ -58,19 +78,12 @@ export function createSettingsController(onStatus: (status: string) => void = ()
             return initialize();
         },
         async setCompact(value: boolean): Promise<void> {
-            if (!store || state.phase !== "ready" || typeof value !== "boolean") throw new Error("Settings not ready");
-            saving++;
-            publish({ save: "saving" });
-            try {
-                await store.setPreference("compact", value);
-                if (--saving === 0) publish({ save: "saved" });
-                report("saved");
-            } catch (error) {
-                saving--;
-                publish({ save: "error" });
-                report("save-error");
-                throw error;
-            }
+            if (typeof value !== "boolean") throw new Error("Settings not ready");
+            await persist(ready => ready.setPreference("compact", value));
+        },
+        async setFeature(key: FeatureKey, value: boolean): Promise<void> {
+            if (typeof value !== "boolean") throw new Error("Settings not ready");
+            await persist(ready => ready.set(key, value));
         },
     };
 }

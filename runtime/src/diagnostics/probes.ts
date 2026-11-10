@@ -17,4 +17,11 @@ export const MODULE_PROBES: readonly ModuleProbe[] = [
     { name: "PresenceStore", id: 5744, paths: ["default", "default.getClientStatus", "default.getStatus"] },
     { name: "EmojiStore", id: 6757, paths: ["default", "default.getCustomEmojiById", "default.getUsableGuildEmoji"] },
     { name: "MessageActions", id: 7598, paths: ["default", "default.sendMessage"] },
+    { name: "Analytics", id: 1267, paths: ["default", "default.track"] },
+    { name: "Avatar", id: 15449, paths: ["default"] },
+    { name: "Flux", id: 504, paths: ["useStateFromStores", "useStateFromStoresObject"] },
+    { name: "ScreenIcon", id: 9515, paths: ["ScreenIcon"] },
+    { name: "MobilePhoneIcon", id: 7085, paths: ["MobilePhoneIcon"] },
+    { name: "GlobeEarthIcon", id: 9524, paths: ["GlobeEarthIcon"] },
+    { name: "VrHeadsetIcon", id: 16280, paths: ["VrHeadsetIcon"] },
 ];

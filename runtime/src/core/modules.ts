@@ -3,6 +3,10 @@ import type { BuildFeature } from "./features";
 import { createSettingsOverview } from "./ui";
 import type { NativeUi, ReactApi } from "./ui";
 import type { ModuleCapture } from "../diagnostics/observer";
+import { installAnalyticsBlock } from "../features/analytics";
+import { installSendMessageHook } from "../features/fakeNitro";
+import { createPlatformAvatar } from "../features/platformIndicator";
+import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
 /** Data descriptors only; trusted RN lazy component getters are evaluated separately after navigation readiness. */
 export function dataProperty(value: unknown, key: string): unknown {
@@ -16,13 +20,23 @@ export function dataProperty(value: unknown, key: string): unknown {
     return undefined;
 }
 
+// Platform icon components (docs/PHASE4-RESEARCH.md, 4b): one module per icon, a single named export each.
+const ICON_MODULES: ReadonlyArray<{ id: number; name: string; platform: Platform }> = Object.freeze([
+    { id: 9515, name: "ScreenIcon", platform: "desktop" },
+    { id: 7085, name: "MobilePhoneIcon", platform: "mobile" },
+    { id: 9524, name: "GlobeEarthIcon", platform: "web" },
+    { id: 16280, name: "VrHeadsetIcon", platform: "vr" },
+]);
+
 /** Per-module readiness, not an invented global RN initializer. No scan and no eager boot require. */
 export function createCoreModules(onStatus: (status: string) => void, smoke = false, features: readonly BuildFeature[] = []) {
     const modules = new Map<number, unknown>();
     const settings = createSettingsController(status => report(`settings ${status}`));
+    const icons: Partial<Record<Platform, unknown>> = {};
     let requireModule: ((id: number) => unknown) | undefined;
     let smokeScheduled = false;
     let uiInstalled = false;
+    let native: NativeUi | null | undefined;
     function report(value: string): void { try { onStatus(value); } catch (_) { /* Fixed diagnostics only. */ } }
     function navigationReady(): boolean {
         try {
@@ -32,38 +46,71 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             return typeof isReady === "function" && Reflect.apply(isReady, ref, []) === true;
         } catch (_) { return false; }
     }
+    /** RN lazy getters are only read once root navigation is ready; the result (or failure) is cached. */
+    function resolveNative(): NativeUi | null {
+        if (native !== undefined) return native;
+        const rn = modules.get(17);
+        if (!rn || typeof rn !== "object" || !navigationReady()) return null;
+        try {
+            const parts: Record<string, unknown> = {};
+            for (const key of ["View", "Text", "Pressable", "ScrollView", "Switch", "Modal"]) {
+                const value = Reflect.get(rn, key);
+                if (!value || (typeof value !== "function" && typeof value !== "object")) throw new Error("Native UI unavailable");
+                parts[key] = value;
+            }
+            native = parts as unknown as NativeUi;
+        } catch (_) { native = null; report("ui unavailable"); }
+        return native;
+    }
+    function reactApi(keys: readonly string[]): unknown {
+        const react = modules.get(19);
+        for (const key of keys) if (typeof dataProperty(react, key) !== "function") return undefined;
+        return dataProperty(react, "Fragment") === undefined ? undefined : react;
+    }
+    function replaceDefault(exports: unknown, wrap: (original: unknown) => unknown): boolean {
+        if (!exports || typeof exports !== "object") return false;
+        const descriptor = Object.getOwnPropertyDescriptor(exports, "default");
+        if (!descriptor || !("value" in descriptor) || descriptor.value === undefined || descriptor.value === null ||
+            (!descriptor.configurable && !descriptor.writable)) return false;
+        Object.defineProperty(exports, "default", { ...descriptor, value: wrap(descriptor.value) });
+        return true;
+    }
     function installUi(exports: unknown): void {
         if (uiInstalled) return;
         try {
-            const react = modules.get(19), rn = modules.get(17);
-            for (const key of ["createElement", "useState", "useEffect"])
-                if (typeof dataProperty(react, key) !== "function") throw new Error("React unavailable");
-            if (dataProperty(react, "Fragment") === undefined || !rn || typeof rn !== "object" || !exports || typeof exports !== "object")
-                throw new Error("UI unavailable");
-            const descriptor = Object.getOwnPropertyDescriptor(exports, "default");
-            if (!descriptor || !("value" in descriptor) || typeof descriptor.value !== "function" ||
-                (!descriptor.configurable && !descriptor.writable)) throw new Error("Overview export immutable");
-            let native: NativeUi | null | undefined;
-            const resolveNative = (): NativeUi | null => {
-                if (native !== undefined) return native;
-                if (!navigationReady()) return null;
-                try {
-                    const parts: Record<string, unknown> = {};
-                    for (const key of ["View", "Text", "Pressable", "ScrollView", "Switch", "Modal"]) {
-                        const value = Reflect.get(rn, key);
-                        if (!value || (typeof value !== "function" && typeof value !== "object")) throw new Error("Native UI unavailable");
-                        parts[key] = value;
-                    }
-                    native = parts as unknown as NativeUi;
-                } catch (_) { native = null; report("ui unavailable"); }
-                return native;
-            };
-            const wrapper = createSettingsOverview(react as ReactApi, resolveNative, descriptor.value, settings,
-                value => report(`ui ${value}`), navigationReady, features);
-            Object.defineProperty(exports, "default", { ...descriptor, value: wrapper });
+            const react = reactApi(["createElement", "useState", "useEffect"]);
+            if (!react || !modules.get(17)) throw new Error("UI unavailable");
+            const descriptor = exports && typeof exports === "object" ? Object.getOwnPropertyDescriptor(exports, "default") : undefined;
+            if (!descriptor || !("value" in descriptor) || typeof descriptor.value !== "function") throw new Error("Overview export immutable");
+            if (!replaceDefault(exports, original => createSettingsOverview(react as ReactApi, resolveNative, original, settings,
+                value => report(`ui ${value}`), navigationReady, features))) throw new Error("Overview export immutable");
             uiInstalled = true;
             report("ui installed");
         } catch (_) { report("ui unavailable"); }
+    }
+    function presenceSource(): PresenceSource | null {
+        const store = dataProperty(modules.get(5744), "default");
+        const getClientStatus = dataProperty(store, "getClientStatus");
+        const useStateFromStores = dataProperty(modules.get(504), "useStateFromStores");
+        if (!store || typeof store !== "object" || typeof getClientStatus !== "function" || typeof useStateFromStores !== "function") return null;
+        return { store, getClientStatus: getClientStatus as PresenceSource["getClientStatus"],
+            useStateFromStores: useStateFromStores as PresenceSource["useStateFromStores"] };
+    }
+    function installPlatformIndicator(exports: unknown): void {
+        try {
+            const react = reactApi(["createElement", "useState", "useEffect", "useRef"]);
+            if (!react) throw new Error("React unavailable");
+            const ok = replaceDefault(exports, original => createPlatformAvatar({
+                react: react as AvatarReact, original,
+                native: () => { const ui = resolveNative(); return ui ? { View: ui.View, Text: ui.Text } : null; },
+                presence: presenceSource,
+                icons: () => icons,
+                enabled: () => settings.isEnabled("platformIndicator"),
+                subscribe: listener => settings.subscribe(listener),
+                onEvent: event => report(`platform-indicator ${event}`),
+            }));
+            report(ok ? "platform-indicator installed" : "platform-indicator unavailable");
+        } catch (_) { report("platform-indicator unavailable"); }
     }
     function openSettings(): boolean {
         if (!navigationReady()) return false;
@@ -89,7 +136,11 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
         };
         globalThis.setTimeout(attempt, 1000);
     }
-    const captures: ModuleCapture[] = [19, 17, 5183, 7522, 1164, 18400].map(id => ({ id,
+    const ids = [19, 17, 5183, 7522, 1164, 18400];
+    if (features.includes("disableAnalytics")) ids.push(1267);
+    if (features.includes("fakeNitro")) ids.push(7598);
+    if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
+    const captures: ModuleCapture[] = ids.map(id => ({ id,
         onExports(exports, context) {
             modules.set(id, exports);
             if (context.requireModule && !requireModule) requireModule = context.requireModule;
@@ -102,6 +153,16 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                 } catch (_) { void settings.attach(undefined); }
             }
             if (id === 18400) installUi(exports);
+            if (id === 1267) report(installAnalyticsBlock(exports) ? "analytics blocked" : "analytics unavailable");
+            if (id === 7598) report(installSendMessageHook(exports, () => settings.isEnabled("fakeNitro"),
+                () => report("fake-nitro converted"))
+                ? "fake-nitro installed" : "fake-nitro unavailable");
+            if (id === 15449) installPlatformIndicator(exports);
+            const icon = ICON_MODULES.find(item => item.id === id);
+            if (icon) {
+                const component = dataProperty(exports, icon.name);
+                if (component && (typeof component === "function" || typeof component === "object")) icons[icon.platform] = component;
+            }
             scheduleSmoke();
         },
     }));
