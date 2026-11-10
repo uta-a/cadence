@@ -222,11 +222,39 @@
     "confidence": "high",
     "verified": false
   },
+  "SettingsOverview": {
+    "id": 18400,
+    "factory": 18401,
+    "shape": ["default"],
+    "evidence": [
+      { "kind": "registration", "function": 0, "offset": 605988, "detail": "module 18400 -> factory 18401; deps[11]=11240 createList, deps[12]=16013 renderer" },
+      { "kind": "construction", "function": 18401, "offset": 20, "detail": "Creates private section builder closure 80703; stores in environment slot 6 at 27" },
+      { "kind": "export", "function": 18401, "offset": 198, "detail": "Default export selects component 80705 or compiler component 80704" },
+      { "kind": "consumer", "function": 135536, "offset": 22, "detail": "Navigator module 18396 deps[33]=18400; returns its default as overview component" }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "SettingsListRenderer": {
+    "id": 16013,
+    "factory": 16014,
+    "shape": ["SearchableSettingsList", "SettingsList"],
+    "evidence": [
+      { "kind": "registration", "function": 0, "offset": 525786, "detail": "module 16013 -> factory 16014; deps[14]=16016 list helpers" },
+      { "kind": "construction", "function": 16014, "offset": 493, "detail": "React.memo wraps selected SearchableSettingsList component 72817/72816; do not assume callable export" },
+      { "kind": "export", "function": 16014, "offset": 529, "detail": "Named SearchableSettingsList export; SettingsList export at 523" },
+      { "kind": "consumer", "function": 80705, "offset": 145, "detail": "Overview non-compiler component renders SearchableSettingsList with node from private section builder; compiler branch at 80704:302" }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
   "FileModule": {
     "id": 1164,
     "factory": 1165,
     "shape": [
       "default",
+      "default.getConstants",
+      "default.fileExists",
       "default.readFile",
       "default.writeFile"
     ],
@@ -450,8 +478,8 @@
   "_missing": {
     "runtimeVerification": "All verified=false. No Hermes VM, bundle require, native methods, phone, or network operations executed. Runtime shape/type/identity checks remain mandatory.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",
-    "settingsSectionInsertion": "15865 is a frozen page/renderer mapping, not a mutable section array. 16016 consumes routes; 15863 consumes predicates/titles. Top-level category order, visibility and insertion seam still need tracing. 1087.UserSettingsSections is an enum, NOT a UI registry.",
-    "fileStorageContract": "NativeFileModule existence/method use is static only. No native signature, sandbox root, permissions, atomicity, encoding/error behavior or disk settings persistence validated. readAsset from DESIGN is not corroborated here; do not assume it exists.",
+    "settingsSectionInsertion": "Top-level sections are built by private closure 80703 in module 18400. Candidate props boundary is module16013.SearchableSettingsList, a React.memo export, NOT assumed callable. See docs/SETTINGS-UI-RESEARCH.md. Frozen registry replacement, top-level-only guard, first mount timing, hook ordering and route registration remain unverified.",
+    "fileStorageContract": "DEX static contract now traced: documents=getFilesDir, readFile(absolutePath,encoding), writeFile(storageDir,relativePath,data,encoding); readAsset exists in native spec but is not used for settings. See docs/STORAGE-RESEARCH.md. Native rename result is discarded; readback establishes only final content. fileExists false may also mean inaccessible. Runtime shape, roots, persistence, failure behavior and durability remain unverified; storage adapter is NOT connected.",
     "presenceReturnShape": "No direct getClientStatus consumer found by exact indexed search. It is a prototype method of default store, not a named export; desktop/mobile/web/embedded keys and subscription API are not runtime checked.",
     "sendMessageContract": "Export and external consumer traced; full async implementation, argument contract and send semantics not audited. Do not call during research.",
     "deferred": "Fake Nitro, platform UI, analytics and other feature hooks intentionally outside this prerequisite research."

@@ -34,7 +34,7 @@ val installRuntimeDeps by tasks.registering(Exec::class) {
 }
 
 val testRuntime by tasks.registering(Exec::class) {
-    description = "Run isolated Metro loader tests against the TypeScript source."
+    description = "Test isolated runtime core modules and verify their HBC98 compilation."
     group = "verification"
     workingDir = runtimeDir.asFile
     dependsOn(installRuntimeDeps)

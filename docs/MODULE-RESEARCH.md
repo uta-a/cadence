@@ -15,6 +15,8 @@ export の構築と利用側から見た**静的な同定の確度**であり、
 | RN AppRegistry 初期化 | **244 → 245** | `exports.AppRegistry` + global 登録の副作用 | high / 未確認 |
 | 設定ページ renderer registry | **15865 → 15866** | `SETTING_RENDERER_CONFIG`（freeze 済み） | high / 未確認 |
 | 設定画面列挙 helper | **16016 → 16017** | `getSettingScreens`, `toSettingListItems` | high / 未確認 |
+| 設定トップ画面 | **18400 → 18401** | `default`、非公開 section builder 80703 | high / 未確認 |
+| 共通設定 renderer | **16013 → 16014** | `SearchableSettingsList`（React.memo）ほか | high / 未確認 |
 | NativeFileModule | **1164 → 1165** | `default`（TurboModule） | high / 未確認 |
 | ファイル保存 helper | **8728 → 8729** | `readFile`, `writeFile` | high / 未確認 |
 | PresenceStore | **5744 → 5745** | `default` の instance / prototype methods | high / 未確認 |
@@ -127,9 +129,10 @@ PY
   `72851:61..95` は deps[10]=15865 の registry を列挙する。
   callback `125376:66..169` は ROUTE 型を選び `[settingKey,screen]` を生成、screen.route で重複排除。
 - 外側 module 18396 は deps[22]=16016。closure `135527:11..28` は getSettingScreens を呼ぶ。
-- **未解決**: top-level の section/category 順序・表示条件・置換ポイント。
-  `1087.UserSettingsSections` は enum であり registry の代わりにはならない。
-  この台帳だけで「disk section の追加が可能」と判断しない。
+- **追加調査**: top-level の section は18400内の非公開closure80703が構築する。
+  接続候補は16013.SearchableSettingsListのprops境界だが、React.memoであり普通の関数として呼べない。
+  [設定 UI 調査](SETTINGS-UI-RESEARCH.md)に両compiler分岐・frozen registry・初回mountの制約を記録した。
+  トップ画面限定guard・差替え可能性・route登録は未検証。`1087.UserSettingsSections` は enum であり registry の代わりにはならない。
 
 ### FileModule / 設定保存
 
@@ -142,8 +145,10 @@ PY
   `145829:319..354` は同 native import の readFile に組み立てた path と encoding を渡す。
 - 外側 module 8726 の closure `145826:214..277` は deps[4]=8728 の readFile を
   `("documents", computedPath, "utf8")` で呼ぶ。これは native readFile の引数数と同一ではない。
-- **未解決**: native 署名 / 利用可能 root / 戻り値 / error / atomic write / disk 専用 path。
-  DESIGN の `FileModule.readAsset` はこの調査では裏付けられていない。保存や読出しを実行していない。
+- **追加調査**: DEXからnative署名・documents=getFilesDir・UTF-8と一時ファイルの処理を追跡した。
+  rename失敗を検出しないため、未接続アダプターは最終内容の読み戻しを必須とする。
+  readAssetもnative specに存在するが、保存には使わない。詳細は[保存API調査](STORAGE-RESEARCH.md)。
+  runtimeの形・root・permission・耐久性・競合は未検証で、実際の保存や読出しを実行していない。
 
 ### PresenceStore / EmojiStore / sendMessage
 
@@ -170,15 +175,17 @@ PY
 - `python3 -m json.tool runtime/modules/352.17.json` は成功。
   `hbc_inspect.py ... func 245 --disasm` と `func 1165 --disasm` を CLI で実行し、
   上記の他の対象も HbcFile.disassemble で確認した。
-- 台帳の52件の function:offset が実命令の先頭であること、全10件の ID → factory、
-  記載した登録 offset、入力 hash、43-key buffer の sendMessage=slot 18 を読み取り専用で照合し成功。
-- `python3 -m unittest discover -s tools/tests -v`: 16件中12件成功、4件は外部入力用環境変数未指定で skip。
-  新規コード・テストの追加はない（研究資料のみ）。
+- 初回調査は52件の function:offset・全10件の ID → factory・登録 offset・入力 hash・
+  43-key bufferのsendMessage=slot18を照合。追加の設定UI候補を含む全12件についても
+  `tools/tests/test_module_catalog.py` で入力hash・factory・登録offset・命令境界を照合した。
+  これはdetailの意味やexportsの実行時検証ではない。
+- 初回調査のツールテストは16件中12件成功・4件は入力未指定でskip。
+  追加調査では台帳の回帰テストも加え、指定入力付きで全19件成功。
 - Hermes VM で実バンドルを起動していない。TurboModuleRegistry、AppRegistry、native 環境なしの
   require を「shape 検証」と見なせないため、無理な mock 実行は行わない。
 - 次工程は承認された隔離 runtime で **自然に初期化された対象だけ** import/export shape を検査し、
   getter / prototype / default の扱い、RN gate の順序と失敗時の fail-open を確認する。
-- UI 実装前に frozen registry の置換方法と category insertion を決める追加調査が必要。
-  保存実装前に native メソッド契約と専用 path を別途検証する。
+- UI接続前にfrozen registry置換の可否・トップ画面guard・初回mountとhook順序を確認する必要がある。
+  保存アダプターはnative静的契約から実装したが未接続。nativeの実形・専用pathと失敗時の挙動は別途検証する。
 - これら未検証部分を省略して Phase 3 prerequisite 完了とはしない。
   Fake Nitro・platform UI・analytics は対象外。Venus コードの複製、端末操作、APK 変更、push は行わない。

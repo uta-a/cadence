@@ -263,14 +263,14 @@ function wrap(define) {
 - 実行時に全モジュールを走査して探すことはしない（起動が遅くなるため）。探索は開発時のツールで行う（§9）
 
 ### 5.4 設定（`core/settings`）
-- v1 は `{ version: 1, features: { fakeNitro: false, platformIndicator: false } }` の JSON 1 ファイルを想定する。保存先・Discord のネイティブ契約は未検証で、永続化アダプターは接続しない。機能オプションを追加する場合はスキーマを明示的に更新する
+- v1 は `{ version: 1, features: { fakeNitro: false, platformIndicator: false } }` の JSON 1 ファイルを想定する。`documents/disk/settings-v1.json` 用の未接続アダプターを追加した。ネイティブ契約は静的追跡のみで、実行時の形・root・失敗時の挙動を確認するまで接続しない。機能オプションを追加する場合はスキーマを明示的に更新する
 - 変更は購読者（React フック `useSetting`）に通知する。再起動が必要な機能だけ再起動を促す
 - パッチ時に組み込まれた機能（`/*__DISK_FEATURES__*/` に Kotlin 側が埋め込む）以外は、設定画面に表示しない
 
-**設定コアの進捗:** `runtime/src/core/settings.ts` で既知機能だけの allowlist と初期オフ、連続トグルの保存順序・失敗後の再試行を単体テスト済み。保存先と native method 署名は未確定で、I/O アダプターは未接続。ストアは Discord のアカウント情報を読まない。
+**設定コアの進捗:** `runtime/src/core/settings.ts` は allowlist・初期オフ・保存順序・失敗後の再試行を単体テスト済み。`storage.ts` は private root と固定パスだけを受け入れ、native がrename失敗を検出しないため書込後の最終内容を確認する。実行時未検証・未接続。ストアは Discord のアカウント情報を読まない。詳細は [保存 API 調査](STORAGE-RESEARCH.md)。
 
 ### 5.5 設定 UI（`core/ui`）
-- Discord の設定画面に「disk」セクションを追加したいが、category の挿入箇所は未特定。15865 の renderer registry は freeze されており、単純な追記では実現しない
+- トップ階層は18400内の非公開80703が構築する。16013.SearchableSettingsListのprops境界が追加候補だが、React.memo・汎用rendererのためトップ画面限定guardとcomponent対応が必要。15865のregistry置換・初回mountとhook順序・route登録は未検証。詳細は [設定 UI 調査](SETTINGS-UI-RESEARCH.md)
 - 画面は Discord 自身のコンポーネント（TableRow、Switch など）を使い、見た目を揃える
 - 構成: 機能一覧 → 各機能の詳細オプション → 情報（バージョン、ログ表示）
 
@@ -324,10 +324,13 @@ JS 層の方法はランタイムが動いていることが前提なので、Mo
 
 ## 7. JS ↔ ネイティブ通信（`NativeBridge`）
 
-**未設計・未実装。** 静的調査で module 1164 の `default` が `NativeFileModule`、helper 8728 が `readFile` / `writeFile` を使うことだけ確認した。ネイティブ署名、保存可能な root、専用 path、エラー時の動作は未確認。`FileModule.readAsset` は根拠がなく、実装の前提にしない。
+**独自通信路は未設計・未実装。** module1164の `default` はNativeFileModule。
+DEXで `documents=getFilesDir()`、`readFile(absolutePath, encoding)`、`writeFile(storageDir, relativePath, data, encoding)` を追跡した。
+`readAsset` もnative specに存在するが、コマンド通信路としては使用しない。
 
-- v0.1 の設定保存は既存 API で安全な専用 path を確保できるか先に調べる
-- 既存 API で足りない場合に限り、DEX に分岐を加える方式と失敗時の安全性を再設計する
+- v0.1 の保存は既存APIと固定のdisk専用pathを使う未接続アダプターで検証を進める
+- renameのboolean破棄、fileExistsでmissingとアクセス不能を区別できない可能性、decode時の置換と耐久性の制限がある
+- 既存APIで不足する場合に限りDEX分岐方式を再設計する。実行時native検証前に接続しない
 
 ---
 
