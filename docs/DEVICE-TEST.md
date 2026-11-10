@@ -13,13 +13,13 @@
 - 明示component `com.discord/.main.MainDefault` の起動はStatus: ok。PIDの存在とログイン画面の描画を確認。
 - ログイン・パスワード入力・メッセージ送信・アプリ内設定操作は行っていない。
 
-## 確認できていないこと
+## 初回導入時に確認できなかったこと（起動ログは下記追記で確認）
 
 **ログイン画面の起動確認は、disk runtimeの実行確認と同義ではない。**
 
 - 対象PIDの選択したlogcat buffers/tagsで `[disk] loaded` を確認できなかった。
   同じ条件でfatal/errorの該当行も観測しなかったが、全例外・将来のクラッシュがないという保証ではない。
-- 現在のentryはpreludeの時点でconsoleが存在するときだけconsole.logする。
+- 初回entryはpreludeの時点でconsoleが存在するときだけconsole.logする。
   未観測の原因は未確定。native側のログ経路やconsole初期化との関係を次に調べる。
 - `globalThis.__disk` の実形、Metro loader・settings・native storageの実行時検証はしていない。
   coreは引き続きindex.tsから未接続。
@@ -36,4 +36,31 @@
 - 適用結果: `work/install-35217/patch-result.json`、署名検証: `signature-verification.txt`、DEX証拠: `patched-dex-evidence.txt`。
 - 以前のLSPatch版APK退避: `work/device-readonly-SRWZsD/`。ログイン情報や設定を復元できるバックアップではない。
 
-アプリを通常起動してログイン画面を確認しただけであり、Fake Nitro・Platform Indicator・Privacy本体は依然未実装。
+初回確認はログイン画面まで。Fake Nitro・Platform Indicator・Privacy本体は依然未実装。
+
+## 追記：ログイン後の同署名更新と早期ログ確認
+
+- ユーザーからログイン完了の報告後、データ保持の上書き更新と再起動を明示承認された。
+- entryに任意のhost関数 `nativeLoggingHook(message, 1)` を優先するログ経路を追加。
+  loggerの取得・呼び出しの例外を分離し、consoleへフォールバックする。Metro/RNモジュールはrequireしない。
+- Node36件・Kotlin39件（skipなし）、型チェック、HBC98コンパイルとMPPビルド成功。独立レビューOK。
+  ログ文言変更に合わせてHermes VMテストの期待値も更新した。
+- 元の352.17 APKMへ適用し、同じ開発用署名であることを確認。
+  `adb install --no-incremental -r --user 0` がSuccess。**アンインストールやデータ消去は行っていない。**
+- 再起動はCOLD / Status: ok。新PIDのmain/crash buffersで次の固定マーカーを観測した。
+
+```text
+11-10 09:44:29.349 I ReactNativeJS: [disk] loaded 0.0.1 (native)
+```
+
+これにより、今回の上書きAPKで**同梱HBCのpreludeからdisk entryが実行され、native loggerで出力した**ことを確認した。
+同時点でプロセスと前面Activityが存在し、対象PIDのbuffersにfatal markerは見つからなかった。
+ログイン状態の画面を読み取ったり、アカウントやメッセージの情報を取得したりはしていない。
+上書き後のログイン状態そのものはユーザー側の確認に委ねる。
+
+- 更新APK: `work/install-35217/bootlog/disk-352.17-signed.apk`
+- SHA-256: `549c595da8de53195a021f0d796e84a3f65f5d5d78c9abc51e4eda79909850b7`
+- マーカー: `work/install-35217/bootlog/disk-markers.log`（固定診断行だけを保存）
+
+**未検証のまま残るもの:** core/Metro IDの実行時shape、初期化ゲート、設定I/O、UI差し込み、
+OTAコミット済み状態の明示的な再現、実機での例外fail-open、長時間動作。coreはまだindex.tsから未接続。

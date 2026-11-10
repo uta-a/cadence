@@ -266,7 +266,7 @@ class HbcInjectorTest {
                     HbcInjector.inject(marked, runtime + ";print('[disk] revision',globalThis.__disk.revision);" + if (throws) "throw 1;" else "")
                     val (exit, output) = execute(hermes.path, "-b", marked.path)
                     assertEquals(1, exit)
-                    assertTrue(output.startsWith("[disk] loaded 0.0.1\n[disk] revision 0.0.1\n"), output)
+                    assertTrue(output.startsWith("[disk] loaded 0.0.1 (console)\n[disk] revision 0.0.1\n"), output)
                     assertTrue(output.contains("__fbBatchedBridgeConfig is not set"), output)
                 }
             } finally { marked.delete() }
