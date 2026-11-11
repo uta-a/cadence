@@ -21,8 +21,10 @@
 | Kotlin、実バンドル・DEX・Hermesあり | 57件成功、skipなし |
 | normal / smoke APK | ビルド成功 |
 | normal APK | user0へ同署名更新。設定を維持し、`loaded`と`settings ready`を確認。起動ログにFATAL・TypeError・ReferenceErrorなし |
-| 配布準備 | 通常MPPからのローカル実行に成功。公開なし |
-| クリーン作業ディレクトリ | `def4aa2`のgit archiveからビルド・配布準備成功。実入力を置かないためKotlin48件、Python6件はskip |
+| 配布準備 | `work/release-staging/pre-release-be1d4e3/`にクリーンビルドの通常MPPを配置。全6ファイルのチェックサム検査成功。公開なし |
+| クリーン作業ディレクトリ | `be1d4e3`のgit archiveからビルド・配布準備成功。実入力を置かないためKotlin57件中48件、Python25件中6件はskip。runtime・DEX・ビルド情報・同梱表記は実入力あり環境の生成物と完全一致 |
+
+最終の通常APKはSHA-256 `97ce48627f6356506ccd7cee7e3dc24b13266010080ed11fdceb7860f2151053`。場所別設定とRead allのオン／オフ、保存の読み戻しを実操作で確認後、再起動して設定復元を確認しました。履歴と非表示チャンネルはオフです。UI試験はクリックの成否だけでなく状態変化も検査します。
 
 `work/`はローカル専用です。Discord APK、署名用秘密鍵、アカウント画面、録音データは配布物に含めません。チェックサムは署名や作者の証明ではありません。
 

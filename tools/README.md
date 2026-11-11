@@ -195,6 +195,8 @@ DISK_KEYSTORE_PASSWORD=... bash tools/build_test_apk.sh smoke
 
 ビルダーはインストール/削除を行わない。normalでは`DISK_UI_SMOKE=0`を強制し、Gradleもフラグを入力に含める。Kotlinは実際の選択feature配列を埋める（Phase 3は`[]`）。鍵・APK・テスト出力はgitignore対象。
 
-`run_ui_smoke.sh SERIAL ACTION [EXPECTED]`はdisk自身の固定labelだけを操作する。actionは`open-disk`、`toggle-compact`、`check-compact true|false`、`check-saved`、`show-logs`、`close-disk`。元Discordのアカウント/メッセージ画面のdumpや座標操作はしない。runnerはAndroid13の旧UIAutomator用にandroid.test.runner/base jarも渡し、成功文字列だけでなくFailure/aborted/shortMsgも検査する。
+`run_ui_smoke.sh SERIAL ACTION [EXPECTED] [FEATURE]`はdisk自身の固定labelだけを操作する。actionは`open-disk`、`toggle-compact`、`check-compact true|false`、`check-saved`、`show-logs`、`close-disk`。元Discordのアカウント/メッセージ画面のdumpや座標操作はしない。runnerはAndroid13の旧UIAutomator用にandroid.test.runner/base jarも渡し、成功文字列だけでなくFailure/aborted/shortMsgも検査する。
+
+追加機能は`toggle-feature CURRENT FEATURE`、場所別設定は`toggle-platform CURRENT PLACE`で操作する。CURRENTは操作前のtrue/false。初期状態とクリック後の変化を検査し、対象を画面中央側へ寄せて端での空振りを避ける。`check-feature EXPECTED FEATURE`はSwitchのcheckedを読む。本文が変わらない説明ラベルの更新待ちに依存しない。`check-saved`は実際に設定を変更した後の保存・読み戻し確認に使う。起動直後の読み込みだけでは保存完了表示は出ない。試験後は元の値へ戻す。
 
 検証後は同署名・データ保持でnormalへ戻す。最新版の実機結果と接続待ちは[Phase 3記録](../docs/PHASE3.md)を参照。
