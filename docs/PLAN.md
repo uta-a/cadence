@@ -18,7 +18,7 @@ Phase 0〜3は完了。Phase 4の機能実装とPhase 5の配布準備を進め�
 - [x] PrivacyのJS analytics・広告ID・Sentry・AppsFlyer。通信の対照試験済み。
 - [x] Platform IndicatorのDM一覧・ヘッダー・メンバー一覧・プロフィール名・メッセージ名と場所別設定。実機でオン/オフと再起動後の復元を確認。
 - [ ] 音声通話中のMemberRowItemの実機確認。
-- [ ] Venusと突き合わせ、v0.1に含める細かな差と制限を確定。
+- [x] Venusと突き合わせ、v0.1に含める差と制限を確定（`VENUS-PORT.md`）。
 
 ## Phase 4V-3 — Servers
 
@@ -53,7 +53,11 @@ Phase 0〜3は完了。Phase 4の機能実装とPhase 5の配布準備を進め�
 - [x] 一時仕事用プロファイルで新規データのDiscord起動とdiskの読み込みを確認。試験後にプロファイルを削除し、元のユーザーへ復帰。
 - [x] 同プロファイルでMorphe ManagerへローカルMPPを取り込み。
 - [x] 公式Manager 2.5.0へ同署名更新。新規プロファイルでMPP→20 patch適用→APK保存を確認し、開発用の同署名へそろえて導入・起動も確認。CLI版とJSバンドルが完全一致。詳細と署名上の注意は`RELEASE.md`。
-- [ ] v0.1の機能範囲、バージョン、公開前チェックを確定。
+- [x] v0.1の機能範囲を確定（`VENUS-PORT.md`の「v0.1の範囲」）。Privacyの不足分`Disable telemetry and touch logging`を追加し、他の未移植機能はv0.2以降。
+- [x] バージョンを0.1.0へ。ランタイム表記とGradleの一致をテストで確認。
+- [x] テストAPKの作成スクリプトが、Managerの既定選択と同じく`patches-list.json`の全既定patchを有効にし、適用結果と一致しない場合は失敗するようにした。
+- [x] 専用AVD（`work/avd/`、Android 17 arm64）で0.1.0の新規起動を確認。ユーザーのAVDは変更していない。
+- [ ] 0.1.0の実機確認（pipa不在のため後回し、ユーザー判断）。下の未確認経路とまとめて行う。
 
 詳細は `RELEASE.md`。リモートソース追加は公開URLが必要なため、非公開の段階では未検証として残す。
 

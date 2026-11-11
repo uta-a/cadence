@@ -2,7 +2,7 @@
 
 Discord Android向けのMorphe patchバンドルです。Fake Nitro、端末表示、Privacy、メッセージ操作を追加します。
 
-**開発中・未リリース。対応はDiscord 352.17 Stableのみです。** 開発用バージョンは0.0.1で、v0.1の公開前確認を進めています。未実装の選択済み機能もあります。[残作業](docs/PLAN.md)と[公開前チェック](docs/RELEASE.md)を参照してください。
+**未リリース。対応はDiscord 352.17 Stableのみです。** バージョン0.1.0の公開候補で、実機での追加確認が残っています。v0.1の機能範囲とVenusとの差は[移植記録](docs/VENUS-PORT.md#v01の範囲2026-11-12確定)、残作業は[計画](docs/PLAN.md)と[公開前チェック](docs/RELEASE.md)を参照してください。
 
 > Discord公式の製品ではありません。利用規約違反やアカウント停止の可能性があります。利用は自己責任です。APKや認証情報は配布しません。
 
@@ -12,7 +12,7 @@ Discord Android向けのMorphe patchバンドルです。Fake Nitro、端末表�
 | --- | --- |
 | Fake Nitro | 使用できない絵文字・スタンプを画像リンクへ変換。ピッカー、アニメ絵文字、スタンプの送信を実機確認。サイズと名前付きリンクの設定あり |
 | Platform Indicator | DM行・ヘッダー・メンバー一覧・プロフィール名にバッジ。メッセージ名はPC/M/W/VRの文字表示。場所別スイッチと保存復元を実機確認 |
-| Privacy | JS analytics、広告ID、Sentry、AppsFlyerの停止。SentryとAppsFlyer宛ての接続がなくなることをホスト名で確認 |
+| Privacy | JS analytics、広告ID、Sentry、AppsFlyer、タップ記録と端末内テレメトリーログの停止。SentryとAppsFlyer宛ての接続がなくなることをホスト名で確認。テレメトリー停止はエミュレーターでの起動確認まで |
 | 確認の省略 | 削除・ピン留めの確認を省略。各機能を個別に選択 |
 | Always trust | リンクとファイルの警告を省略。リンクは実機確認、ファイル警告は未確認 |
 | 最初のメッセージへ移動 | チャット先頭へ移動するボタン |
@@ -31,7 +31,7 @@ Venus由来のコード、元作者、実機の確認範囲は [移植記録](do
 
 ## ローカルで使う
 
-現在、公開済みの「Add to Morphe」リンクやReleaseはありません。**patcher 2.3.0以降を内蔵したMorphe Managerが必要です。** Manager 2.5.0でローカルMPPから20個のpatchを適用し、生成APKの導入・起動を確認しました。旧Manager 1.28.0の内蔵patcher 1.11.0では実行できません。
+現在、公開済みの「Add to Morphe」リンクやReleaseはありません。**patcher 2.3.0以降を内蔵したMorphe Managerが必要です。** Manager 2.5.0でローカルMPP（0.0.1、20 patch）を適用し、生成APKの導入・起動を確認しました。0.1.0は21 patchです。旧Manager 1.28.0の内蔵patcher 1.11.0では実行できません。
 
 1. 自分で用意したDiscord **352.17 Stable** の正規APKMを使います。別バージョンや改変済み入力は対象外です。
 2. 以下の手順で通常MPPをビルドします。
@@ -51,7 +51,7 @@ export GITHUB_ACTOR=your-account
 export GITHUB_TOKEN="$(gh auth token)"
 export DISK_UI_SMOKE=0
 ./gradlew :patches:test :patches:generatePatchesList :patches:buildAndroid --no-daemon
-# patches/build/libs/patches-0.0.1.mpp
+# patches/build/libs/patches-0.1.0.mpp
 ```
 
 `buildAndroid`を最後に実行します。`build`や`generatePatchesList`だけでは必要なDEXが入らないためです。smokeビルドはテスト専用で配布しません。

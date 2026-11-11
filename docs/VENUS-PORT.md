@@ -23,6 +23,35 @@
 3. Keep deleted messages
 4. Servers系（Show hidden channels、Read all、Server info など）
 
+## v0.1の範囲（2026-11-12確定）
+
+ユーザーの判断で、v0.1ではPrivacyの不足分（telemetry・タップ記録）だけを追加し、それ以外の未移植項目はv0.2以降へ回す。選んだ4グループに含まれるVenusの機能と、diskでの扱いは次のとおり。
+
+| グループ | Venusの機能 | disk v0.1 |
+| --- | --- | --- |
+| 既存強化 | Show device indicators | 実装。場所別6設定とメッセージ名の文字表示。Venusの「モバイルを隠す」設定は未移植。通話中のMemberRowItemは実機未確認 |
+| 既存強化 | Send Nitro stickers and emojis as links | 実装（disk独自のFake Nitro。サイズ・名前付きリンク設定あり） |
+| Privacy | Disable analytics | 実装（JSのtrack送信を破棄） |
+| Privacy | Disable crash reporting | 実装（Sentry SDKを起動しない） |
+| Privacy | Disable telemetry and touch logging | **一部**。タップ記録とTelemetryRingへの書き込みを停止。jank・フレーム計測・TTI・metric monitorは止めない（送信はJS analytics経由で、Disable analyticsで破棄） |
+| Privacy | Disable advertising identifiers | 実装（JSへの広告ID）。AppsFlyer自身の読み取りは、Disable install attributionでAppsFlyerを起動しないことで防ぐ |
+| Privacy | Disable install attribution | 実装（AppsFlyerの起動とイベント送信）。InstallReferrerModuleは止めない |
+| Messages | Keep deleted messages | **一部**。起動中のみ専用画面へ保持。チャット内表示・永続化・添付保持・検索はなし |
+| Messages | Double-tap to reply | 実装（トリプルタップ削除は別スイッチで初期オフ） |
+| Messages | Load full-quality images | 実装（場所別・GIF設定は1スイッチに統合） |
+| Messages | Skip delete / pin confirmation | 実装 |
+| Messages | Download voice messages | 実装 |
+| Messages | Always trust links and files | 実装（ファイル警告は実機未確認） |
+| Messages | Jump to first message | 実装 |
+| Messages | Reply without pinging | 実装（サーバー別・グループDM別・自分宛て例外の設定は未移植） |
+| Messages | Bulk delete、Hide blocked or ignored、Message highlights、Translate、Keep media playing、Banners in DND、Favourite any image | v0.2以降 |
+| Servers | Read all button | 実装（Androidの3ボタンAlert） |
+| Servers | Show hidden channels | **一部**。長押しメニューの読み取り専用一覧。ネイティブ一覧への鍵付き表示はしない |
+| Servers | Server info | **一部**。読み込み済みの基本情報のみ。友達一覧・所有者遷移・コピー・装飾シートなし |
+| Servers | Edit servers locally、Clone emojis and stickers、Clean channel names、Preview servers、Pause invites、Fast delete channels | v0.2以降 |
+
+「一部」は安全側に絞った移植で、v0.1の仕様とする。
+
 ## 進捗
 
 | 機能 | Venus | 352.17のmodule | 状態 |
@@ -34,6 +63,15 @@
 | ダブルタップで返信（patch: Double-tap to reply） | Double-tap to reply（Geastures+ by kmmiio99o の移植） | DoubleTapToReactUtils 8358、MessagesHandlers 11269、通知・バナー 9868/14023/13207、canReply 8365、replyToMessage 11370、canEdit 11371、handleEdit 10117、haptics 5244、定数 1087、UserStore 1392 | 実機確認済み: 相手のメッセージで返信、自分のメッセージで編集、トリプルタップ（別スイッチ、初期オフ）で自分のメッセージを削除 |
 | 高画質で画像を読み込む（patch: Load full-quality images） | Load full-quality images（Uncompressed Discord Images by Knewest、HighResProfileImages by Kawtious） | ImageUtils 1498、AvatarUtils 1417 | 実機確認済み: チャットの画像が元ファイルのURLで読み込まれた（`full-images image`）。Venusの場所別・GIFの設定は省き、チャットと全画面とアイコンをまとめて1つのスイッチにした（GIFはDiscordのまま） |
 | すべて既読にする（patch: Read all） | Read all（ReadAllNotificationsButton の移植） | useGuildsBarProps 17778、GuildsBarConstants 17768。押したときに読む: GuildReadStateStore 6846、SortedGuildStore 6733、LurkingStore 4936、GuildStore 4877、ReadStateStore 6803、ReadStateTypes 6737、markGuildsAsRead 15243、Constants 1087、PrivateChannelReadStateStore 15096、PrivateChannelSortStore 7354、MessageRequestUtils 6844、ReadStateActionCreators 7238 | 実機確認済み: サーバー一覧のDMボタンの下にボタンが出る。タップでサーバーの未読マークが消え、長押し→DMで未読バッジ4件が消えることを確認（`read-all cleared`）。設定オフ／オンも再起動なしで反映。未読がないときは`nothing`になる。Venusの長押しシートとトーストは使わず、AndroidのAlert（ボタン3つ、外側タップで閉じる）と、消せたときの✓表示にした |
+
+### Disable telemetry and touch logging（Privacy、DEX）
+
+- Venusの`NativePrivacy.telemetry`の対象一覧を参考に、352.17で実在と命令を確認した4メソッドだけを`return-void`にする。既存のSentry・AppsFlyer停止と同じ`MethodStub`で、メソッド全体のダイジェストが一致しなければパッチを止める。
+  - `TouchEventAnalyticsModule.enableTouchLogging()` / `onEventRecognized(z5.c)`: タッチ・ビュー階層・メモリ量の記録を始めない。
+  - `crash_reporting.u.a(String,long,String,Map,List)`（TelemetryRingの書き込み口）と`TelemetryRingModule.append`: 端末内テレメトリーログへ何も書かない。snapshotは空を返す。
+- Promiseを受け取るメソッドや値を返すメソッドは変更しない。JSの待ち状態が残らないようにするため。
+- jank計測は対象外とした。`JankStatsModule.startTracking`だけを止めても、`MainActivity.onResume`がネイティブで計測を始めることをエミュレーターのログで確認したため。集計オブジェクトの初期化を止めると`setJankHeuristicMultiplier`が例外になる。これらの値はJS analyticsのイベントとして送られ、Disable analyticsで破棄される。
+- 検証: Kotlinテストで4メソッドのダイジェスト・先頭分岐なし・再パッチの冪等性・DEX往復を確認。通常APKのDEXで4メソッドの先頭が`return-void`になっていることを確認。専用AVD（Android 17、arm64、16KBページ）で新規データの起動と`loaded 0.1.0` / `settings ready`、FATAL・TypeError・ReferenceErrorなしを確認。**実機とログイン状態での確認は未実施**。
 
 ### Keep deleted messages（起動中の本文履歴）
 

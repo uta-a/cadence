@@ -12,7 +12,8 @@
 - [ ] グループDMなど未確認経路の実機確認。
 - [x] 全機能を組み込んだAPKで追加機能の併存・設定保存・プロセス再起動・上書き更新を確認。未確認経路は上記のとおり残る。
 - [x] Manager 2.5.0でローカルMPP→正規APKM→20 patch適用→APK保存まで成功。生成物を開発用同署名にそろえて一時プロファイルへ導入し、新規データの起動を確認。Manager自身のインストールボタンは使っていない。
-- [ ] 公開するバージョンと機能範囲の最終確認。
+- [x] 公開候補のバージョンを0.1.0、機能範囲を`VENUS-PORT.md`の「v0.1の範囲」に確定（2026-11-12、ユーザー判断）。Privacyの不足分としてテレメトリー停止を追加。
+- [ ] 0.1.0のAPKをpipaへ導入し、テレメトリー停止を含む全機能で再確認。0.1.0は専用AVDでの新規起動まで確認済み。
 
 これらが残っている間は、準備ツールが成功しても「公開可能」とは扱いません。
 
@@ -39,11 +40,11 @@ Discordの実バンドルやDEX、Hermes VMがない環境では対応する検�
 
 ```bash
 python3 tools/prepare_release.py \
-  --mpp patches/build/libs/patches-0.0.1.mpp \
-  --version 0.0.1 \
+  --mpp patches/build/libs/patches-0.1.0.mpp \
+  --version 0.1.0 \
   --repository uta-a/disk \
   --notes CHANGELOG.md \
-  --out work/release-staging/0.0.1
+  --out work/release-staging/0.1.0
 ```
 
 出力先は空のディレクトリにします。MPPのmanifestと`patches-list.json`のバージョンが指定値に一致しない場合、DEXやビルド情報、ライセンス・帰属表記がない場合、smoke版の場合は拒否します。MPP内にも`disk/legal/license.txt`と`notice.txt`を同梱します。
