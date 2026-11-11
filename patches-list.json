@@ -165,6 +165,60 @@
       "options": []
     },
     {
+      "name": "Skip delete confirmation",
+      "description": "Delete messages without the \"Are you sure?\" alert. Off until enabled in the disk settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Skip pin confirmation",
+      "description": "Pin and unpin without a confirmation (based on NoConfirmPin by Skamt). Off until enabled in the disk settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "bundle pin",
       "description": "Always load the bundle packaged in the APK instead of a downloaded or cached OTA bundle.",
       "default": true,

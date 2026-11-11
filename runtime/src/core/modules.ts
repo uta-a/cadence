@@ -140,8 +140,9 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
         };
         globalThis.setTimeout(attempt, 1000);
     }
-    // 5941 AlertActionCreators and 1128 intl: ported Venus features, toggled in the disk settings (docs/VENUS-PORT.md).
-    const ids = [19, 17, 5183, 7522, 1164, 18400, 5941, 1128];
+    const ids = [19, 17, 5183, 7522, 1164, 18400];
+    // Ported Venus features (docs/VENUS-PORT.md): 5941 AlertActionCreators and 1128 intl.
+    if (features.includes("quickDelete") || features.includes("noConfirmPin")) ids.push(5941, 1128);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
@@ -175,8 +176,8 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             if ((id === 5941 || id === 1128) && modules.has(5941) && modules.has(1128) && !confirmInstalled) {
                 confirmInstalled = true;
                 report(installQuickConfirm(modules.get(5941), modules.get(1128), {
-                    quickDelete: () => settings.isExtraEnabled("quickDelete"),
-                    noConfirmPin: () => settings.isExtraEnabled("noConfirmPin"),
+                    quickDelete: () => features.includes("quickDelete") && settings.isExtraEnabled("quickDelete"),
+                    noConfirmPin: () => features.includes("noConfirmPin") && settings.isExtraEnabled("noConfirmPin"),
                 }, () => report("quick-confirm skipped")) ? "quick-confirm installed" : "quick-confirm unavailable");
             }
             if (id === 15449) installPlatformIndicator(exports);

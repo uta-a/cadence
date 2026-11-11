@@ -42,9 +42,11 @@ public class DiskUiSmoke extends UiAutomatorTestCase {
             System.out.println("DISK_UI hardware back preserved overview");
         } else if (action.equals("toggle-feature") || action.equals("check-feature")) {
             String feature = getParams().getString("feature", "");
-            assertTrue("DISK_UI invalid feature", feature.equals("fakeNitro") || feature.equals("platformIndicator"));
+            boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin");
+            assertTrue("DISK_UI invalid feature", extra || feature.equals("fakeNitro") || feature.equals("platformIndicator"));
+            String prefix = extra ? "disk:extra:" : "disk:feature:";
             if (action.equals("toggle-feature")) {
-                UiObject toggle = control("disk:feature:" + feature);
+                UiObject toggle = control(prefix + feature);
                 assertTrue("DISK_UI feature control missing", toggle.waitForExists(5000));
                 toggle.click();
                 getUiDevice().waitForIdle();
@@ -52,7 +54,7 @@ public class DiskUiSmoke extends UiAutomatorTestCase {
             } else {
                 String expected = getParams().getString("expected", "false");
                 assertTrue("DISK_UI invalid expected value", expected.equals("true") || expected.equals("false"));
-                assertTrue("DISK_UI feature state mismatch", control("disk:feature:" + feature + ":" + expected).waitForExists(5000));
+                assertTrue("DISK_UI feature state mismatch", control(prefix + feature + ":" + expected).waitForExists(5000));
                 System.out.println("DISK_UI feature matches expected");
             }
         } else if (action.equals("check-compact")) {

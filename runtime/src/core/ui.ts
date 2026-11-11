@@ -119,8 +119,9 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                         h(native.Switch, { accessibilityLabel: "disk:nitro-masked", value: state.nitro.maskedLinks,
                             disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
                             onValueChange: (value: boolean) => { void controller.setNitro({ maskedLinks: value }).catch(() => {}); } }))) : null,
-                text("Venus から移植した機能", { accessibilityRole: "header", style: { color: colors.text, fontSize: 16, fontWeight: "600", marginTop: spacing * 1.5 } }),
-                ...EXTRA_ROWS.map(row => {
+                EXTRA_ROWS.some(row => (features as readonly string[]).includes(row.id)) ? text("Venus から移植した機能",
+                    { accessibilityRole: "header", style: { color: colors.text, fontSize: 16, fontWeight: "600", marginTop: spacing * 1.5 } }) : null,
+                ...EXTRA_ROWS.filter(row => (features as readonly string[]).includes(row.id)).map(row => {
                     const on = Array.isArray(state.extras) && state.extras.includes(row.id);
                     return h(native.View, { key: row.id, style: { backgroundColor: colors.surface, padding: spacing, borderRadius: 12,
                         flexDirection: "row", alignItems: "center", marginTop: spacing } },

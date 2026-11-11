@@ -227,10 +227,11 @@ test("feature switches persist schema2 features and isEnabled is off until ready
 test("feature captures exist only for built features, and install hooks on natural factory completion", () => {
     const { createCoreModules } = api({ setTimeout() {} });
     const ids = core => plain(core.captures.map(c => c.id).sort((a, b) => a - b));
-    assert.deepEqual(ids(createCoreModules(() => {})), [17, 19, 1128, 1164, 5183, 5941, 7522, 18400]);
+    assert.deepEqual(ids(createCoreModules(() => {})), [17, 19, 1164, 5183, 7522, 18400]);
+    assert.deepEqual(ids(createCoreModules(() => {}, false, ["noConfirmPin"])), [17, 19, 1128, 1164, 5183, 5941, 7522, 18400]);
     const events = [];
     const core = createCoreModules(value => events.push(value), false, ["fakeNitro", "platformIndicator", "disableAnalytics"]);
-    assert.deepEqual(ids(core), [17, 19, 504, 1128, 1164, 1267, 1395, 4953, 5183, 5744, 5941, 7085, 7475, 7522, 7598, 9515, 9524, 15449, 16280, 18400]);
+    assert.deepEqual(ids(core), [17, 19, 504, 1164, 1267, 1395, 4953, 5183, 5744, 7085, 7475, 7522, 7598, 9515, 9524, 15449, 16280, 18400]);
     const capture = new Map(core.captures.map(c => [c.id, c.onExports]));
     const analytics = { default: { track() { return new Promise(() => {}); } } };
     capture.get(1267)(analytics, {});
@@ -525,4 +526,22 @@ test("extras are stored as an optional list of known IDs and omitted while none 
     await loaded.attach({});
     assert.deepEqual(plain(loaded.get().extras), ["noConfirmPin"]);
     assert.equal(loaded.isExtraEnabled("noConfirmPin"), true);
+});
+
+test("ported feature switches appear only for the features built into this APK", () => {
+    const { createSettingsOverview } = api();
+    const native = { View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Switch: "Switch", Modal: "Modal" };
+    const state = { phase: "ready", save: "idle", preferences: { compact: false }, features: { fakeNitro: false, platformIndicator: false },
+        nitro: { emojiSize: 48, maskedLinks: false }, extras: ["quickDelete"] };
+    const controller = { get: () => state, subscribe: () => () => {}, setExtra: async () => {} };
+    const react = { Fragment: "F", createElement(type, props, ...children) { return { type, props: props ?? {}, children }; },
+        useState(initial) { const value = typeof initial === "function" ? initial() : initial; return [initial === false ? true : value, () => {}]; },
+        useEffect() {} };
+    const render = built => flat(createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, built)({}));
+    const none = render([]);
+    assert.equal(none.find(node => node.props.accessibilityLabel === "disk:extra:quickDelete"), undefined);
+    assert.ok(!none.some(node => node.children?.includes("Venus から移植した機能")));
+    const one = render(["quickDelete"]);
+    assert.equal(one.find(node => node.props.accessibilityLabel === "disk:extra:quickDelete").props.value, true);
+    assert.equal(one.find(node => node.props.accessibilityLabel === "disk:extra:noConfirmPin"), undefined);
 });
