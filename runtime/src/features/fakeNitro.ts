@@ -175,3 +175,40 @@ export function installStickerHooks(sendability: unknown, actions: unknown, enab
     Object.defineProperty(target, "sendStickers", { ...sender, value: sendStickers });
     return true;
 }
+
+// Emoji picker (docs/PHASE4.md). module 4953's default object exposes getEmojiUnavailableReason(s); the picker reads
+// them at call time. Both accept `bypassPremiumEmojiEntitlement`, which skips only the Nitro check and keeps
+// server-side restrictions. The parser's isEmojiPremiumLocked calls the same implementation through a closure,
+// not through these exports, so Discord still reports locked emojis at send time and they are linked as above.
+// Only the CHAT intention is unlocked: reactions and custom status cannot be sent as links.
+
+export function installEmojiPickerUnlock(utils: unknown, intentions: unknown, enabled: () => boolean): boolean {
+    if (!utils || typeof utils !== "object" || !intentions || typeof intentions !== "object") return false;
+    const holder = Object.getOwnPropertyDescriptor(utils, "default");
+    const target = holder && "value" in holder ? holder.value : undefined;
+    const enumHolder = Object.getOwnPropertyDescriptor(intentions, "EmojiIntention");
+    const intention = enumHolder && "value" in enumHolder && enumHolder.value && typeof enumHolder.value === "object"
+        ? (enumHolder.value as Record<string, unknown>).CHAT : undefined;
+    if (!target || typeof target !== "object" || intention === undefined || intention === null) return false;
+    const names = ["getEmojiUnavailableReason", "getEmojiUnavailableReasons"];
+    const descriptors = names.map(name => Object.getOwnPropertyDescriptor(target, name));
+    if (descriptors.some(d => !d || !("value" in d) || typeof d.value !== "function" || (!d.writable && !d.configurable))) return false;
+    names.forEach((name, index) => {
+        const descriptor = descriptors[index]!, original = descriptor.value as (...args: unknown[]) => unknown;
+        function unlocked(this: unknown, ...args: unknown[]): unknown {
+            let call = args;
+            try {
+                const options = args[0];
+                if (options && typeof options === "object" && !Array.isArray(options) && enabled() &&
+                    (options as Record<string, unknown>).intention === intention &&
+                    (options as Record<string, unknown>).bypassPremiumEmojiEntitlement !== true) {
+                    call = args.slice();
+                    call[0] = { ...(options as Record<string, unknown>), bypassPremiumEmojiEntitlement: true };
+                }
+            } catch (_) { call = args; }
+            return Reflect.apply(original, this, call);
+        }
+        Object.defineProperty(target, name, { ...descriptor, value: unlocked });
+    });
+    return true;
+}

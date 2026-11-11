@@ -728,6 +728,84 @@
     "confidence": "high",
     "verified": false
   },
+  "EmojiUtils": {
+    "id": 4953,
+    "factory": 4954,
+    "shape": [
+      "default",
+      "default.getEmojiUnavailableReason",
+      "default.getEmojiUnavailableReasons"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 158414,
+        "detail": "module 4953 -> factory 4954 (utils/EmojiUtils.tsx)"
+      },
+      {
+        "kind": "construction",
+        "function": 4954,
+        "offset": 466,
+        "detail": "default object shape: getEmojiUnavailableReason slot4 = 32980 (also env20), getEmojiUnavailableReasons slot6 = 32983, isEmojiPremiumLocked slot8 = 32985"
+      },
+      {
+        "kind": "export",
+        "function": 4954,
+        "offset": 642,
+        "detail": "PutByIdStrict exports.default (plain data)"
+      },
+      {
+        "kind": "consumer",
+        "function": 105109,
+        "offset": 109,
+        "detail": "EmojiPickerList press handler reads getEmojiUnavailableReason at call time; PREMIUM_LOCKED opens the upsell at 190"
+      },
+      {
+        "kind": "consumer",
+        "function": 146971,
+        "offset": 25,
+        "detail": "EmojiPickerUtils reads getEmojiUnavailableReasons at call time"
+      },
+      {
+        "kind": "implementation",
+        "function": 32985,
+        "offset": 3,
+        "detail": "isEmojiPremiumLocked calls 32980 through environment slot 20, not the export; the message parser 99690 uses it with intention CHAT"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "EmojiIntention": {
+    "id": 1395,
+    "factory": 1396,
+    "shape": [
+      "EmojiIntention"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 44240,
+        "detail": "module 1395 -> factory 1396"
+      },
+      {
+        "kind": "construction",
+        "function": 1396,
+        "offset": 290,
+        "detail": "EmojiIntention.CHAT (REACTION at 248, STATUS at 262)"
+      },
+      {
+        "kind": "export",
+        "function": 1396,
+        "offset": 900,
+        "detail": "PutByIdStrict EmojiIntention"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
   "_missing": {
     "runtimeVerification": "All14 descriptor identities have device observations. verified=false reserves full feature-hook approval; core Overview UI and owned settings write/readback/restart have separate capability evidence. Probes never evaluated accessors; UI lazy getters were evaluated only after navigation readiness. No store/send methods were called; unimplemented feature contracts and fault durability remain unverified.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",

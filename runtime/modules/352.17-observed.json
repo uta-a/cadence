@@ -221,6 +221,8 @@
     "ScreenIcon",
     "MobilePhoneIcon",
     "VrHeadsetIcon",
-    "StickerSendability"
+    "StickerSendability",
+    "EmojiUtils",
+    "EmojiIntention"
   ]
 }

@@ -230,7 +230,7 @@ test("feature captures exist only for built features, and install hooks on natur
     assert.deepEqual(ids(createCoreModules(() => {})), [17, 19, 1164, 5183, 7522, 18400]);
     const events = [];
     const core = createCoreModules(value => events.push(value), false, ["fakeNitro", "platformIndicator", "disableAnalytics"]);
-    assert.deepEqual(ids(core), [17, 19, 504, 1164, 1267, 5183, 5744, 7085, 7475, 7522, 7598, 9515, 9524, 15449, 16280, 18400]);
+    assert.deepEqual(ids(core), [17, 19, 504, 1164, 1267, 1395, 4953, 5183, 5744, 7085, 7475, 7522, 7598, 9515, 9524, 15449, 16280, 18400]);
     const capture = new Map(core.captures.map(c => [c.id, c.onExports]));
     const analytics = { default: { track() { return new Promise(() => {}); } } };
     capture.get(1267)(analytics, {});
@@ -387,4 +387,33 @@ test("sticker hooks refuse unexpected shapes without changing anything", () => {
     assert.equal(installStickerHooks(good, { default: frozen }, () => true), false);
     assert.equal(good.getStickerSendability, original, "nothing is replaced when any target is unusable");
     assert.equal(installStickerHooks(good, null, () => true), false);
+});
+
+test("picker unlock bypasses only the Nitro check, only for CHAT, only while enabled", () => {
+    const { installEmojiPickerUnlock } = api();
+    const calls = [];
+    const target = {
+        getEmojiUnavailableReason(options) { calls.push(["one", this, options]); return options.bypassPremiumEmojiEntitlement ? null : "PREMIUM_LOCKED"; },
+        getEmojiUnavailableReasons(options) { calls.push(["many", this, options]); return { locked: !options.bypassPremiumEmojiEntitlement }; },
+        isEmojiPremiumLocked() { return true; },
+    };
+    const isLocked = target.isEmojiPremiumLocked;
+    let enabled = true;
+    assert.equal(installEmojiPickerUnlock({ default: target }, { EmojiIntention: { CHAT: 6, REACTION: 1 } }, () => enabled), true);
+    const chat = { emoji: { id: "1" }, channel: {}, intention: 6 };
+    assert.equal(target.getEmojiUnavailableReason(chat), null);
+    assert.equal(calls[0][1], target);
+    assert.notEqual(calls[0][2], chat, "the caller's object is not mutated");
+    assert.equal(chat.bypassPremiumEmojiEntitlement, undefined);
+    assert.deepEqual(plain(target.getEmojiUnavailableReasons({ categoryEmojis: [], intention: 6 })), { locked: false });
+    assert.equal(target.getEmojiUnavailableReason({ ...chat, intention: 1 }), "PREMIUM_LOCKED", "reactions stay locked");
+    enabled = false;
+    assert.equal(target.getEmojiUnavailableReason(chat), "PREMIUM_LOCKED", "disabled");
+    assert.equal(target.isEmojiPremiumLocked, isLocked, "the parser's check is never replaced");
+    const throwing = { getEmojiUnavailableReason: o => o, getEmojiUnavailableReasons: o => o };
+    installEmojiPickerUnlock({ default: throwing }, { EmojiIntention: { CHAT: 6 } }, () => { throw new Error("settings"); });
+    assert.equal(throwing.getEmojiUnavailableReason(chat), chat, "a settings failure calls the original with the same argument");
+    assert.equal(installEmojiPickerUnlock({ default: target }, { EmojiIntention: {} }, () => true), false);
+    assert.equal(installEmojiPickerUnlock({ default: Object.freeze({ getEmojiUnavailableReason() {}, getEmojiUnavailableReasons() {} }) },
+        { EmojiIntention: { CHAT: 6 } }, () => true), false);
 });
