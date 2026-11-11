@@ -28,6 +28,12 @@ val alwaysTrustLinksAndFiles = venusFeature(
 )
 
 @Suppress("unused")
+val jumpToFirstMessage = venusFeature(
+    "jumpToTop", "Jump to first message",
+    "A button to jump to the start of any chat. Off until enabled in the disk settings.",
+)
+
+@Suppress("unused")
 val skipPinConfirmation = venusFeature(
     "noConfirmPin", "Skip pin confirmation",
     "Pin and unpin without a confirmation (based on NoConfirmPin by Skamt). Off until enabled in the disk settings.",

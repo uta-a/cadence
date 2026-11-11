@@ -227,6 +227,11 @@
     "AlertActionCreators",
     "Intl",
     "MaskedLinkStore",
-    "SuspiciousDownloadUtils"
+    "SuspiciousDownloadUtils",
+    "JumpToPresentButton",
+    "ChatFloatingNavButton",
+    "ChatBottomManager",
+    "MessageStore",
+    "JumpArrowAsset"
   ]
 }

@@ -8,6 +8,8 @@ import { installEmojiPickerUnlock, installSendMessageHook, installStickerHooks }
 import { createPlatformAvatar } from "../features/platformIndicator";
 import { installQuickConfirm } from "../features/venus/quickConfirm";
 import { installAlwaysTrust } from "../features/venus/alwaysTrust";
+import { createJumpToTop } from "../features/venus/jumpToTop";
+import type { JumpReact } from "../features/venus/jumpToTop";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
 /** Data descriptors only; trusted RN lazy component getters are evaluated separately after navigation readiness. */
@@ -118,6 +120,25 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             report(ok ? "platform-indicator installed" : "platform-indicator unavailable");
         } catch (_) { report("platform-indicator unavailable"); }
     }
+    function installJumpToTop(exports: unknown): void {
+        try {
+            const react = reactApi(["createElement", "cloneElement"]);
+            const descriptor = exports && typeof exports === "object" ? Object.getOwnPropertyDescriptor(exports, "default") : undefined;
+            if (!react || !descriptor || !("value" in descriptor) || typeof descriptor.value !== "function") throw new Error("unavailable");
+            const ok = replaceDefault(exports, original => createJumpToTop({
+                react: react as JumpReact, original: original as (...args: unknown[]) => unknown,
+                native: () => { const ui = resolveNative(); return ui ? { View: ui.View } : null; },
+                chatHeight: modules.get(9814),
+                messageStore: () => dataProperty(modules.get(6042), "default"),
+                messageActions: () => dataProperty(modules.get(7598), "default"),
+                pill: () => dataProperty(modules.get(13193), "default"),
+                icon: () => modules.get(13194),
+                enabled: () => settings.isExtraEnabled("jumpToTop"),
+                onEvent: () => report("jump-to-top pressed"),
+            }));
+            report(ok ? "jump-to-top installed" : "jump-to-top unavailable");
+        } catch (_) { report("jump-to-top unavailable"); }
+    }
     function openSettings(): boolean {
         if (!navigationReady()) return false;
         try {
@@ -146,10 +167,13 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     // Ported Venus features (docs/VENUS-PORT.md): 5941 AlertActionCreators and 1128 intl.
     if (features.includes("quickDelete") || features.includes("noConfirmPin")) ids.push(5941, 1128);
     if (features.includes("alwaysTrust")) ids.push(8894, 8642);
+    // Jump to first message: JumpToPresentButton 13192, its pill 13193 and arrow asset 13194, chat input heights 9814,
+    // MessageStore 6042 and MessageActions 7598.
+    if (features.includes("jumpToTop")) ids.push(13192, 13193, 13194, 9814, 6042, 7598);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
-    const captures: ModuleCapture[] = ids.map(id => ({ id,
+    const captures: ModuleCapture[] = Array.from(new Set(ids)).map(id => ({ id,
         onExports(exports, context) {
             modules.set(id, exports);
             if (context.requireModule && !requireModule) requireModule = context.requireModule;
@@ -188,6 +212,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                 report(installAlwaysTrust(modules.get(8894), modules.get(8642), () => settings.isExtraEnabled("alwaysTrust"))
                     ? "always-trust installed" : "always-trust unavailable");
             }
+            if (id === 13192) installJumpToTop(exports);
             if (id === 15449) installPlatformIndicator(exports);
             const icon = ICON_MODULES.find(item => item.id === id);
             if (icon) {

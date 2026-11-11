@@ -1,6 +1,7 @@
 package app.disk.test;
 
 import com.android.uiautomator.core.UiObject;
+import com.android.uiautomator.core.UiScrollable;
 import com.android.uiautomator.core.UiSelector;
 import com.android.uiautomator.testrunner.UiAutomatorTestCase;
 
@@ -8,6 +9,19 @@ import com.android.uiautomator.testrunner.UiAutomatorTestCase;
 public class DiskUiSmoke extends UiAutomatorTestCase {
     private UiObject control(String label) {
         return new UiObject(new UiSelector().packageName("com.discord").description(label).enabled(true));
+    }
+    /** The disk page grows with each feature; scroll the named control into view before using it. */
+    private UiObject scrolled(String label) throws Exception {
+        UiSelector selector = new UiSelector().packageName("com.discord").description(label);
+        UiScrollable page = new UiScrollable(new UiSelector().packageName("com.discord").scrollable(true));
+        if (page.exists() && !new UiObject(selector).exists()) {
+            page.scrollToBeginning(10);
+            page.scrollIntoView(selector);
+        } else if (page.exists()) {
+            page.scrollIntoView(selector);
+        }
+        getUiDevice().waitForIdle();
+        return control(label);
     }
     public void testNamedAction() throws Exception {
         String action = getParams().getString("action", "open-disk");
@@ -32,7 +46,7 @@ public class DiskUiSmoke extends UiAutomatorTestCase {
             assertTrue("DISK_UI memory logs missing", control("disk:log-content").waitForExists(5000));
             System.out.println("DISK_UI memory logs and empty build manifest visible");
         } else if (action.equals("check-saved")) {
-            assertTrue("DISK_UI save acknowledgement missing", control("disk:saved").waitForExists(10000));
+            assertTrue("DISK_UI save acknowledgement missing", scrolled("disk:saved").waitForExists(10000));
             System.out.println("DISK_UI native save and read-back acknowledged");
         } else if (action.equals("close-disk")) {
             assertTrue("DISK_UI disk page missing", new UiObject(new UiSelector().packageName("com.discord").text("disk 設定")).exists());
@@ -42,11 +56,11 @@ public class DiskUiSmoke extends UiAutomatorTestCase {
             System.out.println("DISK_UI hardware back preserved overview");
         } else if (action.equals("toggle-feature") || action.equals("check-feature")) {
             String feature = getParams().getString("feature", "");
-            boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin") || feature.equals("alwaysTrust");
+            boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin") || feature.equals("alwaysTrust") || feature.equals("jumpToTop");
             assertTrue("DISK_UI invalid feature", extra || feature.equals("fakeNitro") || feature.equals("platformIndicator"));
             String prefix = extra ? "disk:extra:" : "disk:feature:";
             if (action.equals("toggle-feature")) {
-                UiObject toggle = control(prefix + feature);
+                UiObject toggle = scrolled(prefix + feature);
                 assertTrue("DISK_UI feature control missing", toggle.waitForExists(5000));
                 toggle.click();
                 getUiDevice().waitForIdle();
@@ -54,7 +68,7 @@ public class DiskUiSmoke extends UiAutomatorTestCase {
             } else {
                 String expected = getParams().getString("expected", "false");
                 assertTrue("DISK_UI invalid expected value", expected.equals("true") || expected.equals("false"));
-                assertTrue("DISK_UI feature state mismatch", control(prefix + feature + ":" + expected).waitForExists(5000));
+                assertTrue("DISK_UI feature state mismatch", scrolled(prefix + feature + ":" + expected).waitForExists(5000));
                 System.out.println("DISK_UI feature matches expected");
             }
         } else if (action.equals("check-compact")) {

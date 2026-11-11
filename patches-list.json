@@ -165,6 +165,33 @@
       "options": []
     },
     {
+      "name": "Jump to first message",
+      "description": "A button to jump to the start of any chat. Off until enabled in the disk settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Platform Indicator",
       "description": "Show which devices a user is connected from next to their avatar. Off until enabled in the disk settings.",
       "default": true,

@@ -27,7 +27,8 @@ class CatalogTests(unittest.TestCase):
             self.assertIsInstance(entry['id'], int)
             self.assertTrue(0 <= entry['id'] <= 32767)
             self.assertTrue(entry['evidence'])
-            self.assertTrue(entry['shape'])
+            # Image assets export a number (their asset ID), so they have no property path to check.
+            self.assertTrue(entry['shape'] or entry.get('asset') is True)
             self.assertTrue(all(isinstance(path, str) and all(path.split('.')) for path in entry['shape']))
             ids.append(entry['id'])
         self.assertEqual(len(ids), len(set(ids)))

@@ -9,6 +9,7 @@ const EXTRA_ROWS: ReadonlyArray<{ id: ExtraKey; title: string; description: stri
     { id: "quickDelete", title: "削除の確認を省く", description: "メッセージ削除の「本当に削除しますか？」を出さずに削除します" },
     { id: "noConfirmPin", title: "ピン留めの確認を省く", description: "ピン留め・解除の確認を出しません（NoConfirmPin by Skamt に基づく）" },
     { id: "alwaysTrust", title: "リンクとファイルを常に信頼", description: "外部リンクと危険なファイルの警告を出しません（AlwaysTrust by zt, Trwy に基づく）" },
+    { id: "jumpToTop", title: "最初のメッセージへ移動", description: "チャットの先頭へ移動するボタンを出します" },
 ]);
 
 const FEATURE_ROWS: ReadonlyArray<{ id: FeatureKey; title: string; description: string }> = Object.freeze([

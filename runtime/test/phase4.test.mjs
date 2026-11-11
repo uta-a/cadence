@@ -568,3 +568,63 @@ test("always trust answers trusted and not suspicious only while enabled, withou
     assert.equal(installAlwaysTrust({ default: Object.freeze(new Store()) }, { isSuspiciousDownload() {} }, () => true), false);
     assert.equal(installAlwaysTrust({ default: new Store() }, {}, () => true), false);
 });
+
+test("jump to top keeps Discord's button and its hooks, and adds a flipped jump to the first message", async () => {
+    const { build } = await import("esbuild");
+    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/jumpToTop";',
+        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
+    const host = { module: { exports: {} } };
+    vm.runInNewContext(out[0].text, host);
+    const { createJumpToTop } = host.module.exports;
+    const react = {
+        createElement(type, props, ...children) { return { type, props: { ...(props ?? {}), children: children.length > 1 ? children : children[0] } }; },
+        cloneElement(element, props) { return { ...element, props: { ...element.props, ...props } }; },
+    };
+    const hooks = [], jumps = [];
+    let shown = true, on = true, events = 0;
+    const original = props => shown ? { type: "Wrapper", props: { children: { type: "Button", props: { onPress: () => "present" } } } } : null;
+    const component = createJumpToTop({ react, original, native: () => ({ View: "View" }),
+        chatHeight: { useChatInputContainerHeight: i => { hooks.push(["input", i]); return 80; }, useSmallSuggestionBarHeight: i => { hooks.push(["bar", i]); return 10; } },
+        messageStore: () => ({ getMessages: () => ({ ready: true, hasMoreBefore: true, length: 50, last: () => ({ id: "999" }) }) }),
+        messageActions: () => ({ jumpToMessage(options) { jumps.push(options); } }),
+        pill: () => "Pill", icon: () => 42, enabled: () => on, onEvent: () => events++ });
+    let tree = component({ channelId: "c1", screenIndex: 0 });
+    assert.equal(tree.type, "Wrapper");
+    const group = tree.props.children;
+    assert.equal(group.type, "View");
+    const [flip, present] = group.props.children;
+    assert.deepEqual(plain(flip.props.style), { transform: [{ scaleY: -1 }] });
+    assert.equal(present.type, "Button");
+    flip.props.children.props.onPress();
+    assert.deepEqual(plain(jumps[0]), { channelId: "c1", messageId: "c1", flash: true, jumpType: "ANIMATED", returnMessageId: "999" });
+    assert.equal(events, 1);
+    shown = false;
+    tree = component({ channelId: "c1", screenIndex: 0 });
+    assert.equal(tree.props.style.bottom, 80 + 10 + 12, "Discord's pill above the input and suggestion bar");
+    assert.equal(tree.props.children.props.children.type, "Pill");
+    assert.equal(tree.props.children.props.children.props.icon, 42);
+    on = false;
+    assert.equal(component({ channelId: "c1", screenIndex: 0 }), null, "disabled: Discord's own result");
+    assert.equal(hooks.length, 6, "both hooks run on every render, enabled or not");
+    const empty = createJumpToTop({ react, original: () => null, native: () => ({ View: "View" }), chatHeight: {},
+        messageStore: () => ({ getMessages: () => ({ ready: true, hasMoreBefore: false, length: 1 }) }),
+        messageActions: () => ({ jumpToMessage() {} }), pill: () => "Pill", icon: () => 1, enabled: () => true });
+    assert.equal(empty({ channelId: "c2" }), null, "nothing to jump to in a one-message chat");
+    const throwing = createJumpToTop({ react, original: () => "orig", native: () => { throw new Error("x"); }, chatHeight: null,
+        messageStore: () => null, messageActions: () => ({}), pill: () => null, icon: () => null, enabled: () => true });
+    assert.equal(throwing({ channelId: "c3" }), "orig", "a failure returns Discord's own element");
+});
+
+test("every module captured with all features built is an observation target, so the observer never rejects the set", async () => {
+    const { build } = await import("esbuild");
+    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./core/modules"; export { MODULE_PROBES } from "./diagnostics/probes"; export * from "./diagnostics/observer"; export { FEATURE_IDS } from "./core/features";',
+        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
+    const host = { module: { exports: {} }, setTimeout() {} };
+    vm.runInNewContext(out[0].text, host);
+    const { createCoreModules, MODULE_PROBES, createMetroObserver, FEATURE_IDS } = host.module.exports;
+    const core = createCoreModules(() => {}, false, [...FEATURE_IDS]);
+    const probeIds = new Set(MODULE_PROBES.map(probe => probe.id));
+    for (const capture of core.captures) assert.ok(probeIds.has(capture.id), `capture ${capture.id} has no probe`);
+    assert.equal(new Set(core.captures.map(c => c.id)).size, core.captures.length, "no duplicate captures");
+    assert.doesNotThrow(() => createMetroObserver({}, MODULE_PROBES, () => {}, () => {}, core.captures));
+});

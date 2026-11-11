@@ -31,4 +31,10 @@ export const MODULE_PROBES: readonly ModuleProbe[] = [
     { name: "Intl", id: 1128, paths: ["intl", "t"] },
     { name: "MaskedLinkStore", id: 8894, paths: ["default"] },
     { name: "SuspiciousDownloadUtils", id: 8642, paths: ["isSuspiciousDownload"] },
+    { name: "JumpToPresentButton", id: 13192, paths: ["default"] },
+    { name: "ChatFloatingNavButton", id: 13193, paths: ["default"] },
+    // An image asset: module.exports is the asset ID number, so there is no property to inspect.
+    { name: "JumpArrowAsset", id: 13194, paths: [] },
+    { name: "ChatBottomManager", id: 9814, paths: ["useChatInputContainerHeight", "useSmallSuggestionBarHeight"] },
+    { name: "MessageStore", id: 6042, paths: ["default"] },
 ];

@@ -937,6 +937,127 @@
     "confidence": "high",
     "verified": false
   },
+  "JumpToPresentButton": {
+    "id": 13192,
+    "factory": 13193,
+    "shape": [
+      "default"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 431868,
+        "detail": "module 13192 -> factory 13193 (components_native/chat/JumpToPresentButton.tsx; 351.11 module 12920)"
+      },
+      {
+        "kind": "export",
+        "function": 13193,
+        "offset": 392,
+        "detail": "PutByIdStrict default = plain function component 64038 or compiler variant 64037; deps include 13193 pill and 13194 arrow asset"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "ChatFloatingNavButton": {
+    "id": 13193,
+    "factory": 13194,
+    "shape": [
+      "default"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 431902,
+        "detail": "module 13193 -> factory 13194 (modules/chat_input/native/ChatFloatingNavButton.tsx; 351.11 module 12921)"
+      },
+      {
+        "kind": "export",
+        "function": 13194,
+        "offset": 473,
+        "detail": "PutByIdStrict default"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "ChatBottomManager": {
+    "id": 9814,
+    "factory": 9815,
+    "shape": [
+      "useChatInputContainerHeight",
+      "useSmallSuggestionBarHeight"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 318966,
+        "detail": "module 9814 -> factory 9815 (modules/chat_input/native/useChatBottomManagerUIStore.tsx; 351.11 module 9683)"
+      },
+      {
+        "kind": "export",
+        "function": 9815,
+        "offset": 323,
+        "detail": "PutByIdStrict useChatInputContainerHeight"
+      },
+      {
+        "kind": "export",
+        "function": 9815,
+        "offset": 342,
+        "detail": "PutByIdStrictLong useSmallSuggestionBarHeight"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "MessageStore": {
+    "id": 6042,
+    "factory": 6043,
+    "shape": [
+      "default"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 194164,
+        "detail": "module 6042 -> factory 6043 (stores/MessageStore.tsx; 351.11 module 5532)"
+      },
+      {
+        "kind": "export",
+        "function": 6043,
+        "offset": 1190,
+        "detail": "PutByIdStrict default (store instance with getMessages)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "JumpArrowAsset": {
+    "id": 13194,
+    "factory": 13195,
+    "shape": [],
+    "asset": true,
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 431934,
+        "detail": "module 13194 -> factory 13195; registerAsset through AssetRegistry 1134; a dependency of JumpToPresentButton 13192 (351.11 module 12922)"
+      },
+      {
+        "kind": "export",
+        "function": 13195,
+        "offset": 54,
+        "detail": "PutByIdLoose module.exports = registered asset ID"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
   "_missing": {
     "runtimeVerification": "All14 descriptor identities have device observations. verified=false reserves full feature-hook approval; core Overview UI and owned settings write/readback/restart have separate capability evidence. Probes never evaluated accessors; UI lazy getters were evaluated only after navigation readiness. No store/send methods were called; unimplemented feature contracts and fault durability remain unverified.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",
