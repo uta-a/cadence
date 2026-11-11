@@ -45,6 +45,7 @@ export function installQuickConfirm(alerts: unknown, intlModule: unknown,
     }
 
     function show(this: unknown, ...args: unknown[]): unknown {
+        let confirm: (() => unknown) | null = null;
         try {
             const popup = args[0] as Record<string, unknown> | null;
             if (popup && typeof popup === "object" && typeof popup.onConfirm === "function") {
@@ -52,20 +53,17 @@ export function installQuickConfirm(alerts: unknown, intlModule: unknown,
                 const title = children && typeof children === "object" && children.props ? children.props.title : undefined;
                 const texts = [title, popup.body].filter((text): text is string => typeof text === "string");
                 const matches = (key: string) => { const text = label(key); return text !== null && texts.includes(text); };
-                if (enabled.quickDelete() && DELETE_KEYS.some(matches)) {
-                    onSkipped();
-                    return (popup.onConfirm as () => unknown)();
-                }
-                if (enabled.noConfirmPin()) {
+                if (enabled.quickDelete() && DELETE_KEYS.some(matches)) confirm = popup.onConfirm as () => unknown;
+                else if (enabled.noConfirmPin()) {
                     alertTexts(popup.children, texts);
-                    if (PIN_KEYS.some(matches)) {
-                        onSkipped();
-                        return (popup.onConfirm as () => unknown)();
-                    }
+                    if (PIN_KEYS.some(matches)) confirm = popup.onConfirm as () => unknown;
                 }
             }
-        } catch (_) { /* Show Discord's alert as usual. */ }
-        return Reflect.apply(original, this, args);
+        } catch (_) { confirm = null; }
+        if (!confirm) return Reflect.apply(original, this, args);
+        onSkipped();
+        // Once confirming has started, Discord's alert is not shown on top of it, even if the action fails.
+        try { return confirm(); } catch (_) { return undefined; }
     }
     Object.defineProperty(target, "show", { ...descriptor, value: show });
     return true;

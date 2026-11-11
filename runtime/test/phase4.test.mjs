@@ -501,7 +501,7 @@ test("quick confirm skips only Discord's own delete and pin alerts, only while e
     assert.equal(skipped, 4);
     const failing = alert({ body: "Delete this message?", onConfirm: () => { throw new Error("x"); } });
     del = true;
-    assert.equal(target.show(failing), "shown", "a failing confirm falls back to Discord's alert");
+    assert.equal(target.show(failing), undefined, "once confirming has started, Discord's alert is not shown on top of it");
     assert.equal(installQuickConfirm({ default: Object.freeze({ show() {} }) }, intl, { quickDelete: () => true, noConfirmPin: () => true }), false);
     assert.equal(installQuickConfirm({ default: target }, { intl: {}, t: {} }, { quickDelete: () => true, noConfirmPin: () => true }), false);
 });
@@ -584,7 +584,7 @@ test("jump to top keeps Discord's button and its hooks, and adds a flipped jump 
     let shown = true, on = true, events = 0;
     const original = props => shown ? { type: "Wrapper", props: { children: { type: "Button", props: { onPress: () => "present" } } } } : null;
     const component = createJumpToTop({ react, original, native: () => ({ View: "View" }),
-        chatHeight: { useChatInputContainerHeight: i => { hooks.push(["input", i]); return 80; }, useSmallSuggestionBarHeight: i => { hooks.push(["bar", i]); return 10; } },
+        chatHeight: () => ({ useChatInputContainerHeight: i => { hooks.push(["input", i]); return 80; }, useSmallSuggestionBarHeight: i => { hooks.push(["bar", i]); return 10; } }),
         messageStore: () => ({ getMessages: () => ({ ready: true, hasMoreBefore: true, length: 50, last: () => ({ id: "999" }) }) }),
         messageActions: () => ({ jumpToMessage(options) { jumps.push(options); } }),
         pill: () => "Pill", icon: () => 42, enabled: () => on, onEvent: () => events++ });
@@ -606,11 +606,11 @@ test("jump to top keeps Discord's button and its hooks, and adds a flipped jump 
     on = false;
     assert.equal(component({ channelId: "c1", screenIndex: 0 }), null, "disabled: Discord's own result");
     assert.equal(hooks.length, 6, "both hooks run on every render, enabled or not");
-    const empty = createJumpToTop({ react, original: () => null, native: () => ({ View: "View" }), chatHeight: {},
+    const empty = createJumpToTop({ react, original: () => null, native: () => ({ View: "View" }), chatHeight: () => ({}),
         messageStore: () => ({ getMessages: () => ({ ready: true, hasMoreBefore: false, length: 1 }) }),
         messageActions: () => ({ jumpToMessage() {} }), pill: () => "Pill", icon: () => 1, enabled: () => true });
     assert.equal(empty({ channelId: "c2" }), null, "nothing to jump to in a one-message chat");
-    const throwing = createJumpToTop({ react, original: () => "orig", native: () => { throw new Error("x"); }, chatHeight: null,
+    const throwing = createJumpToTop({ react, original: () => "orig", native: () => { throw new Error("x"); }, chatHeight: () => null,
         messageStore: () => null, messageActions: () => ({}), pill: () => null, icon: () => null, enabled: () => true });
     assert.equal(throwing({ channelId: "c3" }), "orig", "a failure returns Discord's own element");
 });
@@ -627,6 +627,24 @@ test("every module captured with all features built is an observation target, so
     for (const capture of core.captures) assert.ok(probeIds.has(capture.id), `capture ${capture.id} has no probe`);
     assert.equal(new Set(core.captures.map(c => c.id)).size, core.captures.length, "no duplicate captures");
     assert.doesNotThrow(() => createMetroObserver({}, MODULE_PROBES, () => {}, () => {}, core.captures));
+});
+
+test("MessageActions captured for Venus features is not hooked for Fake Nitro unless Fake Nitro is built", async () => {
+    const { build } = await import("esbuild");
+    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./core/modules";',
+        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
+    const host = { module: { exports: {} }, setTimeout() {} };
+    vm.runInNewContext(out[0].text, host);
+    const reports = [];
+    const core = host.module.exports.createCoreModules(event => reports.push(event), false, ["jumpToTop", "gestures"]);
+    const capture = core.captures.find(c => c.id === 7598);
+    assert.ok(capture, "7598 is captured for the Venus features");
+    const sendMessage = () => "sent";
+    const target = { sendMessage, default: undefined };
+    target.default = target;
+    capture.onExports(target, {});
+    assert.equal(target.sendMessage, sendMessage, "sendMessage is untouched without Fake Nitro");
+    assert.ok(!reports.some(r => String(r).includes("fake-nitro")));
 });
 
 async function gesturesApi() {
@@ -721,6 +739,12 @@ test("wrapped MessagesHandlers keeps instances, prototype and taps, and only rea
     f.g.doubleTap(original, null, [other, channel]);
     assert.equal(reacted, 1, "once it has been seen, a call outside a real double-tap (TalkBack) keeps Discord's behaviour");
     assert.equal(f.calls.filter(c => c[0] === "reply").length, 2);
+    assert.equal(f.g.wrapHandlers(() => ({})), null, "an arrow function can't be constructed: nothing is replaced");
+    class Sub extends Wrapped {}
+    assert.ok(new Sub({}) instanceof Sub, "new.target is kept for subclasses");
+    function Locked() { Object.defineProperty(this, "handleTapMessage", { value: () => "locked", writable: false }); }
+    const lockedInstance = new (f.g.wrapHandlers(Locked))();
+    assert.equal(lockedInstance.handleTapMessage(), "locked", "a read-only handler keeps Discord's instance");
 });
 
 test("full-quality images return the uploaded file for normal pictures and larger avatars, only while enabled", async () => {

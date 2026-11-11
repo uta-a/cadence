@@ -15,7 +15,7 @@ export interface JumpDependencies {
     readonly original: (...args: unknown[]) => unknown;
     readonly native: () => { View: unknown } | null;
     /** useChatBottomManagerUIStore (352.17: 9814); its hooks are called on every render, before the original. */
-    readonly chatHeight: unknown;
+    readonly chatHeight: () => unknown;
     readonly messageStore: () => unknown;
     readonly messageActions: () => unknown;
     readonly pill: () => unknown;
@@ -36,18 +36,24 @@ function call(owner: unknown, key: string, args: unknown[]): unknown {
 export function createJumpToTop(deps: JumpDependencies): (...args: unknown[]) => unknown {
     const { react } = deps;
     const label = deps.label ?? "最初のメッセージへ移動";
-    // Resolved once: the same hooks run on every render, or none at all.
-    const useInputHeight = deps.chatHeight && typeof (deps.chatHeight as Record<string, unknown>).useChatInputContainerHeight === "function"
-        ? (deps.chatHeight as Record<string, (...a: unknown[]) => unknown>).useChatInputContainerHeight : null;
-    const useSuggestionHeight = deps.chatHeight && typeof (deps.chatHeight as Record<string, unknown>).useSmallSuggestionBarHeight === "function"
-        ? (deps.chatHeight as Record<string, (...a: unknown[]) => unknown>).useSmallSuggestionBarHeight : null;
+    // Resolved once, at the first render (9814 may load after 13192): the same hooks run on every render, or none at all.
+    let hooks: { input: (...a: unknown[]) => unknown; bar: (...a: unknown[]) => unknown } | null | undefined;
+    function resolveHooks() {
+        if (hooks !== undefined) return hooks;
+        const height = deps.chatHeight() as Record<string, unknown> | null | undefined;
+        hooks = height && typeof height.useChatInputContainerHeight === "function" && typeof height.useSmallSuggestionBarHeight === "function"
+            ? { input: height.useChatInputContainerHeight as (...a: unknown[]) => unknown, bar: height.useSmallSuggestionBarHeight as (...a: unknown[]) => unknown }
+            : null;
+        return hooks;
+    }
     let reported = false;
 
     return function JumpToPresentButton(this: unknown, ...args: unknown[]): unknown {
         const props = args[0] as Record<string, unknown> | null | undefined;
         const screenIndex = props && typeof props === "object" ? props.screenIndex : undefined;
-        const inputHeight = useInputHeight && useSuggestionHeight ? useInputHeight(screenIndex) : undefined;
-        const suggestionHeight = useInputHeight && useSuggestionHeight ? useSuggestionHeight(screenIndex) : undefined;
+        const resolved = resolveHooks();
+        const inputHeight = resolved ? resolved.input(screenIndex) : undefined;
+        const suggestionHeight = resolved ? resolved.bar(screenIndex) : undefined;
         const result = Reflect.apply(deps.original, this, args);
         try {
             const channelId = props && typeof props.channelId === "string" ? props.channelId : undefined;

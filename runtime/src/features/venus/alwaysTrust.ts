@@ -10,6 +10,7 @@ export function installAlwaysTrust(maskedLinks: unknown, downloads: unknown, ena
     const holder = Object.getOwnPropertyDescriptor(maskedLinks, "default");
     const store = holder && "value" in holder ? holder.value : undefined;
     if (!store || typeof store !== "object" || Object.isFrozen(store)) return false;
+    if (!Object.getOwnPropertyDescriptor(store, "isTrustedDomain") && !Object.isExtensible(store)) return false;
     const isTrusted = Reflect.get(store, "isTrustedDomain") as unknown;
     const download = Object.getOwnPropertyDescriptor(downloads, "isSuspiciousDownload");
     if (typeof isTrusted !== "function" || !download || !("value" in download) || typeof download.value !== "function" ||

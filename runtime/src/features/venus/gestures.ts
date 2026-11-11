@@ -25,7 +25,7 @@ export interface GestureDependencies {
     readonly setTimeout: (fn: () => void, ms: number) => unknown;
     readonly clearTimeout: (handle: unknown) => void;
     readonly now: () => number;
-    readonly onEvent?: (event: "reply" | "edit" | "delete" | "fallback") => void;
+    readonly onEvent?: (event: "reply" | "edit" | "delete" | "delete-failed" | "fallback") => void;
 }
 
 type Message = { id?: unknown; author?: { id?: unknown }; state?: unknown; type?: unknown; channel_id?: unknown } | null | undefined;
@@ -36,7 +36,7 @@ export function createGestures(deps: GestureDependencies) {
         timer: undefined as unknown, pending: null as Message, channel: null as Channel, chatInputRef: null as unknown, pendingAt: 0,
         deleted: null as unknown, deletedAt: 0, handlers: null as Record<string, unknown> | null, tapping: 0, sawDoubleTap: false,
     };
-    function event(name: "reply" | "edit" | "delete" | "fallback"): void { try { deps.onEvent?.(name); } catch (_) { /* Diagnostics only. */ } }
+    function event(name: "reply" | "edit" | "delete" | "delete-failed" | "fallback"): void { try { deps.onEvent?.(name); } catch (_) { /* Diagnostics only. */ } }
     function cancel(): void {
         if (state.timer !== undefined) { try { deps.clearTimeout(state.timer); } catch (_) { /* Already fired. */ } }
         state.timer = undefined; state.pending = null; state.channel = null; state.chatInputRef = null;
@@ -84,7 +84,7 @@ export function createGestures(deps: GestureDependencies) {
         try {
             deps.haptic();
             const result = remove((channel && channel.id) || message!.channel_id, message!.id, false) as { catch?: (f: () => void) => void } | undefined;
-            if (result && typeof result.catch === "function") result.catch(() => {});
+            if (result && typeof result.catch === "function") result.catch(() => { event("delete-failed"); });
             event("delete");
             return true;
         } catch (_) { return false; }
@@ -92,8 +92,7 @@ export function createGestures(deps: GestureDependencies) {
     function deletePending(now: number): void {
         const message = state.pending, channel = state.channel;
         cancel();
-        state.deleted = message && message.id; state.deletedAt = now;
-        doDelete(message, channel);
+        if (doDelete(message, channel)) { state.deleted = message && message.id; state.deletedAt = now; }
     }
     function act(message: Message, channel: Channel, ref: unknown, fallback: () => unknown): void {
         if (!message || !channel) return;
@@ -141,9 +140,15 @@ export function createGestures(deps: GestureDependencies) {
     }
 
     /** MessagesHandlers defines its handlers on each instance in its constructor; wrap the instance after construction. */
-    function wrapHandlers(Handlers: (...args: unknown[]) => unknown): (...args: unknown[]) => unknown {
+    function wrapHandlers(Handlers: (...args: unknown[]) => unknown): ((...args: unknown[]) => unknown) | null {
+        if (!isConstructor(Handlers)) return null;
         function MessagesHandlers(this: unknown, ...args: unknown[]): unknown {
             const handlers = Reflect.construct(Handlers, args, new.target || MessagesHandlers) as Record<string, unknown>;
+            try { decorate(handlers); } catch (_) { /* Discord's own handlers. */ }
+            return handlers;
+        }
+        function decorate(handlers: Record<string, unknown>): void {
+            if (!handlers || typeof handlers !== "object") return;
             state.handlers = handlers;
             const single = handlers && handlers.handleTapMessage;
             if (typeof single === "function") handlers.handleTapMessage = function (this: unknown, ...tapArgs: unknown[]) {
@@ -158,7 +163,6 @@ export function createGestures(deps: GestureDependencies) {
                 state.tapping++;
                 try { return Reflect.apply(double, this, tapArgs); } finally { state.tapping--; }
             };
-            return handlers;
         }
         MessagesHandlers.prototype = (Handlers as { prototype?: unknown }).prototype;
         try { Object.setPrototypeOf(MessagesHandlers, Handlers); } catch (_) { /* Statics stay reachable through the prototype. */ }
@@ -166,6 +170,11 @@ export function createGestures(deps: GestureDependencies) {
     }
 
     return { doubleTap, tap, wrapHandlers, cancel, state };
+}
+
+function isConstructor(value: unknown): boolean {
+    if (typeof value !== "function") return false;
+    try { Reflect.construct(String, [], value as new (...args: unknown[]) => unknown); return true; } catch (_) { return false; }
 }
 
 /** Replace a plain-data function export with a wrapper; false (and nothing changed) when the shape is unexpected. */

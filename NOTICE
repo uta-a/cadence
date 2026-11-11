@@ -23,7 +23,20 @@ provided that such references:
 Venus Patches NOTICE
 ====================
 
-Parts of disk are ported from Venus Patches (https://github.com/VenusIsJaded/Venus-Patches, GPL-3.0),
-adapted from Discord 351.11 to Discord 352.17. Ported files say so at the top and are listed in
-docs/VENUS-PORT.md with the Venus feature they come from. Features that Venus credits to community
-plugins keep those credits (for example "Skip pin confirmation" is based on NoConfirmPin by Skamt).
+Parts of disk are ported from Venus Patches (https://github.com/VenusIsJaded/Venus-Patches,
+Copyright VenusIsJaded and contributors, GPL-3.0), file patches/src/main/resources/venus/bootstrap.js
+at commit 987b7a22d96d41a0ba80c060b485291e1c7bcc4b, which targets Discord 351.11. disk modified that
+code to run on Discord 352.17 (module IDs, export shapes and settings were changed). Ported files say
+so at the top and are listed in docs/VENUS-PORT.md with the Venus feature they come from.
+
+Features that Venus credits to community plugins keep those credits:
+
+  disk file (runtime/src/features/venus/)  Venus feature                    Based on
+  quickConfirm.ts                           Skip delete confirmation         (Venus)
+  quickConfirm.ts                           Skip pin confirmation            NoConfirmPin by Skamt
+  alwaysTrust.ts                            Always trust links and files     AlwaysTrust by zt and Trwy
+  jumpToTop.ts                              Jump to first message            (Venus)
+  gestures.ts                               Double-tap to reply              Geastures+ by kmmiio99o
+  fullImages.ts                             Load full-quality images         Uncompressed Discord Images by
+                                                                             Knewest; HighResProfileImages
+                                                                             by Kawtious

@@ -131,7 +131,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             const ok = replaceDefault(exports, original => createJumpToTop({
                 react: react as JumpReact, original: original as (...args: unknown[]) => unknown,
                 native: () => { const ui = resolveNative(); return ui ? { View: ui.View } : null; },
-                chatHeight: modules.get(9814),
+                chatHeight: () => modules.get(9814),
                 messageStore: () => dataProperty(modules.get(6042), "default"),
                 messageActions: () => dataProperty(modules.get(7598), "default"),
                 pill: () => dataProperty(modules.get(13193), "default"),
@@ -191,7 +191,11 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
         let ok: boolean | undefined;
         if (id === 8358) ok = wrapExport(exports, "handleAddDefaultDoubleTapReaction", original =>
             function (this: unknown, ...args: unknown[]) { return gestures.doubleTap(original, this, args); });
-        if (id === 11269) ok = wrapExport(exports, "MessagesHandlers", original => gestures.wrapHandlers(original));
+        if (id === 11269) {
+            const original = dataProperty(exports, "MessagesHandlers");
+            const wrapped = typeof original === "function" ? gestures.wrapHandlers(original as (...args: unknown[]) => unknown) : null;
+            ok = !!wrapped && wrapExport(exports, "MessagesHandlers", () => wrapped);
+        }
         if (id === 9868) ok = wrapExport(exports, "maybeShowDoubleTapReminderToast", original =>
             function (this: unknown, ...args: unknown[]) { return gestureOn() ? undefined : Reflect.apply(original, this, args); });
         if (id === 14023) ok = hideWhileGestures(exports, "DoubleTapEmojiEditNudge");
@@ -252,10 +256,10 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             }
             if (id === 18400) installUi(exports);
             if (id === 1267) report(installAnalyticsBlock(exports) ? "analytics blocked" : "analytics unavailable");
-            if (id === 7598) report(installSendMessageHook(exports, () => settings.isEnabled("fakeNitro"),
+            if (id === 7598 && features.includes("fakeNitro")) report(installSendMessageHook(exports, () => settings.isEnabled("fakeNitro"),
                 () => report("fake-nitro converted"), () => settings.get().nitro)
                 ? "fake-nitro installed" : "fake-nitro unavailable");
-            if ((id === 7598 || id === 7475) && modules.has(7598) && modules.has(7475) && !stickersInstalled) {
+            if (features.includes("fakeNitro") && (id === 7598 || id === 7475) && modules.has(7598) && modules.has(7475) && !stickersInstalled) {
                 stickersInstalled = true;
                 report(installStickerHooks(modules.get(7475), modules.get(7598), () => settings.isEnabled("fakeNitro"),
                     () => settings.get().nitro, () => report("fake-nitro sticker-linked")) ? "fake-nitro stickers installed" : "fake-nitro stickers unavailable");
