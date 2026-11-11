@@ -19,3 +19,11 @@ provided that such references:
 - Are accurate, factual, and non-misleading;
 - Do not suggest authorship by the Morphe project; and
 - Appear only in a secondary or descriptive context, not as part of the product or project name.
+
+Venus Patches NOTICE
+====================
+
+Parts of disk are ported from Venus Patches (https://github.com/VenusIsJaded/Venus-Patches, GPL-3.0),
+adapted from Discord 351.11 to Discord 352.17. Ported files say so at the top and are listed in
+docs/VENUS-PORT.md with the Venus feature they come from. Features that Venus credits to community
+plugins keep those credits (for example "Skip pin confirmation" is based on NoConfirmPin by Skamt).

@@ -227,10 +227,10 @@ test("feature switches persist schema2 features and isEnabled is off until ready
 test("feature captures exist only for built features, and install hooks on natural factory completion", () => {
     const { createCoreModules } = api({ setTimeout() {} });
     const ids = core => plain(core.captures.map(c => c.id).sort((a, b) => a - b));
-    assert.deepEqual(ids(createCoreModules(() => {})), [17, 19, 1164, 5183, 7522, 18400]);
+    assert.deepEqual(ids(createCoreModules(() => {})), [17, 19, 1128, 1164, 5183, 5941, 7522, 18400]);
     const events = [];
     const core = createCoreModules(value => events.push(value), false, ["fakeNitro", "platformIndicator", "disableAnalytics"]);
-    assert.deepEqual(ids(core), [17, 19, 504, 1164, 1267, 1395, 4953, 5183, 5744, 7085, 7475, 7522, 7598, 9515, 9524, 15449, 16280, 18400]);
+    assert.deepEqual(ids(core), [17, 19, 504, 1128, 1164, 1267, 1395, 4953, 5183, 5744, 5941, 7085, 7475, 7522, 7598, 9515, 9524, 15449, 16280, 18400]);
     const capture = new Map(core.captures.map(c => [c.id, c.onExports]));
     const analytics = { default: { track() { return new Promise(() => {}); } } };
     capture.get(1267)(analytics, {});
@@ -467,4 +467,62 @@ test("the picker list's lock follows the same answer, and the sticker is remembe
     const original = noChecker.getStickerSendability;
     assert.equal(installStickerHooks(noChecker, { default: { sendStickers() {} } }, () => true), false);
     assert.equal(noChecker.getStickerSendability, original, "nothing replaced without isSendableSticker");
+});
+
+test("quick confirm skips only Discord's own delete and pin alerts, only while enabled", async () => {
+    const { build } = await import("esbuild");
+    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/quickConfirm";',
+        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
+    const host = { module: { exports: {} } };
+    vm.runInNewContext(out[0].text, host);
+    const { installQuickConfirm } = host.module.exports;
+    const strings = { DEL: "Delete Message", DEL2: "Delete this message?", PIN: "Pin It. Pin It Good.", UNPIN: "Remove pinned message?" };
+    const intl = { intl: { string: token => strings[token] }, t: { AMvpS4: "DEL", "vXZ+Fo": "DEL2", WG5dyo: "PIN", NjEPp7: "UNPIN" } };
+    const shown = [];
+    const target = { show(popup) { shown.push(popup); return "shown"; }, close() {} };
+    let del = true, pin = false, skipped = 0;
+    assert.equal(installQuickConfirm({ default: target }, intl, { quickDelete: () => del, noConfirmPin: () => pin }, () => skipped++), true);
+    let confirmed = 0;
+    const alert = (fields) => ({ onConfirm: () => { confirmed++; return "confirmed"; }, ...fields });
+    assert.equal(target.show(alert({ body: "Delete this message?" })), "confirmed");
+    assert.equal(target.show(alert({ children: { props: { title: "Delete Message" } } })), "confirmed");
+    assert.equal(target.show(alert({ body: "Leave server?" })), "shown", "other alerts are untouched");
+    assert.equal(target.show(alert({ body: "Delete Messag" })), "shown", "no partial matching");
+    const pinAlert = alert({ children: { props: { children: [{ props: { children: "Pin It. Pin It Good." } }] } } });
+    assert.equal(target.show(pinAlert), "shown", "pin is off");
+    pin = true;
+    assert.equal(target.show(pinAlert), "confirmed");
+    assert.equal(target.show(alert({ body: "Remove pinned message?" })), "confirmed");
+    del = false; pin = false;
+    assert.equal(target.show(alert({ body: "Delete this message?" })), "shown", "disabled");
+    assert.equal(target.show(null), "shown");
+    assert.equal(confirmed, 4);
+    assert.equal(skipped, 4);
+    const failing = alert({ body: "Delete this message?", onConfirm: () => { throw new Error("x"); } });
+    del = true;
+    assert.equal(target.show(failing), "shown", "a failing confirm falls back to Discord's alert");
+    assert.equal(installQuickConfirm({ default: Object.freeze({ show() {} }) }, intl, { quickDelete: () => true, noConfirmPin: () => true }), false);
+    assert.equal(installQuickConfirm({ default: target }, { intl: {}, t: {} }, { quickDelete: () => true, noConfirmPin: () => true }), false);
+});
+
+test("extras are stored as an optional list of known IDs and omitted while none is enabled", async () => {
+    const { createSettingsController } = api();
+    let text = null;
+    const writes = [];
+    const storage = { read: async () => text, write: async value => { writes.push(JSON.parse(value)); text = value; } };
+    const c = createSettingsController(() => {}, () => storage);
+    await c.attach({});
+    assert.equal(c.isExtraEnabled("quickDelete"), false);
+    await c.setExtra("noConfirmPin", true);
+    await c.setExtra("quickDelete", true);
+    assert.deepEqual(writes.at(-1).extras, ["quickDelete", "noConfirmPin"], "a stable order");
+    await c.setExtra("quickDelete", false);
+    await c.setExtra("noConfirmPin", false);
+    assert.equal("extras" in writes.at(-1), false, "omitted when empty");
+    await assert.rejects(c.setExtra("unknown", true));
+    text = '{"version":2,"features":{},"preferences":{},"extras":["noConfirmPin","unknown","noConfirmPin",3]}';
+    const loaded = createSettingsController(() => {}, () => storage);
+    await loaded.attach({});
+    assert.deepEqual(plain(loaded.get().extras), ["noConfirmPin"]);
+    assert.equal(loaded.isExtraEnabled("noConfirmPin"), true);
 });

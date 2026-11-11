@@ -223,6 +223,8 @@
     "VrHeadsetIcon",
     "StickerSendability",
     "EmojiUtils",
-    "EmojiIntention"
+    "EmojiIntention",
+    "AlertActionCreators",
+    "Intl"
   ]
 }

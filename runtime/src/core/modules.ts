@@ -6,6 +6,7 @@ import type { ModuleCapture } from "../diagnostics/observer";
 import { installAnalyticsBlock } from "../features/analytics";
 import { installEmojiPickerUnlock, installSendMessageHook, installStickerHooks } from "../features/fakeNitro";
 import { createPlatformAvatar } from "../features/platformIndicator";
+import { installQuickConfirm } from "../features/venus/quickConfirm";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
 /** Data descriptors only; trusted RN lazy component getters are evaluated separately after navigation readiness. */
@@ -38,6 +39,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     let uiInstalled = false;
     let stickersInstalled = false;
     let pickerInstalled = false;
+    let confirmInstalled = false;
     let native: NativeUi | null | undefined;
     function report(value: string): void { try { onStatus(value); } catch (_) { /* Fixed diagnostics only. */ } }
     function navigationReady(): boolean {
@@ -138,7 +140,8 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
         };
         globalThis.setTimeout(attempt, 1000);
     }
-    const ids = [19, 17, 5183, 7522, 1164, 18400];
+    // 5941 AlertActionCreators and 1128 intl: ported Venus features, toggled in the disk settings (docs/VENUS-PORT.md).
+    const ids = [19, 17, 5183, 7522, 1164, 18400, 5941, 1128];
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
@@ -168,6 +171,13 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                 pickerInstalled = true;
                 report(installEmojiPickerUnlock(modules.get(4953), modules.get(1395), () => settings.isEnabled("fakeNitro"))
                     ? "fake-nitro picker installed" : "fake-nitro picker unavailable");
+            }
+            if ((id === 5941 || id === 1128) && modules.has(5941) && modules.has(1128) && !confirmInstalled) {
+                confirmInstalled = true;
+                report(installQuickConfirm(modules.get(5941), modules.get(1128), {
+                    quickDelete: () => settings.isExtraEnabled("quickDelete"),
+                    noConfirmPin: () => settings.isExtraEnabled("noConfirmPin"),
+                }, () => report("quick-confirm skipped")) ? "quick-confirm installed" : "quick-confirm unavailable");
             }
             if (id === 15449) installPlatformIndicator(exports);
             const icon = ICON_MODULES.find(item => item.id === id);

@@ -819,6 +819,66 @@
     "confidence": "high",
     "verified": false
   },
+  "AlertActionCreators": {
+    "id": 5941,
+    "factory": 5942,
+    "shape": [
+      "default",
+      "default.show"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 190810,
+        "detail": "module 5941 -> factory 5942 (actions/native/AlertActionCreators.tsx; 351.11 module 5400 in Venus Patches)"
+      },
+      {
+        "kind": "construction",
+        "function": 5942,
+        "offset": 124,
+        "detail": "default object shape: openLazy, close, show, confirm"
+      },
+      {
+        "kind": "export",
+        "function": 5942,
+        "offset": 195,
+        "detail": "PutByIdStrict exports.default (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "Intl": {
+    "id": 1128,
+    "factory": 1129,
+    "shape": [
+      "intl",
+      "t"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 35964,
+        "detail": "module 1128 -> factory 1129 (intl/index.native.tsx; same ID in 351.11)"
+      },
+      {
+        "kind": "export",
+        "function": 1129,
+        "offset": 516,
+        "detail": "PutByIdStrict intl"
+      },
+      {
+        "kind": "export",
+        "function": 1129,
+        "offset": 596,
+        "detail": "PutByIdStrict t (message keys AMvpS4, vXZ+Fo, WG5dyo, NjEPp7 are present as strings)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
   "_missing": {
     "runtimeVerification": "All14 descriptor identities have device observations. verified=false reserves full feature-hook approval; core Overview UI and owned settings write/readback/restart have separate capability evidence. Probes never evaluated accessors; UI lazy getters were evaluated only after navigation readiness. No store/send methods were called; unimplemented feature contracts and fault durability remain unverified.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",

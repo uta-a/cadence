@@ -2,7 +2,13 @@ import type { SettingsController, SettingsViewState } from "./settings-controlle
 import type { BuildFeature } from "./features";
 import { getLogs } from "./log";
 import { EMOJI_SIZES } from "./settings";
-import type { FeatureKey } from "./settings";
+import type { ExtraKey, FeatureKey } from "./settings";
+
+/** Ported Venus features; credits are kept in docs/VENUS-PORT.md and NOTICE. */
+const EXTRA_ROWS: ReadonlyArray<{ id: ExtraKey; title: string; description: string }> = Object.freeze([
+    { id: "quickDelete", title: "削除の確認を省く", description: "メッセージ削除の「本当に削除しますか？」を出さずに削除します" },
+    { id: "noConfirmPin", title: "ピン留めの確認を省く", description: "ピン留め・解除の確認を出しません（NoConfirmPin by Skamt に基づく）" },
+]);
 
 const FEATURE_ROWS: ReadonlyArray<{ id: FeatureKey; title: string; description: string }> = Object.freeze([
     { id: "fakeNitro", title: "Fake Nitro", description: "使えない絵文字を画像リンクとして送信します" },
@@ -113,6 +119,17 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                         h(native.Switch, { accessibilityLabel: "disk:nitro-masked", value: state.nitro.maskedLinks,
                             disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
                             onValueChange: (value: boolean) => { void controller.setNitro({ maskedLinks: value }).catch(() => {}); } }))) : null,
+                text("Venus から移植した機能", { accessibilityRole: "header", style: { color: colors.text, fontSize: 16, fontWeight: "600", marginTop: spacing * 1.5 } }),
+                ...EXTRA_ROWS.map(row => {
+                    const on = Array.isArray(state.extras) && state.extras.includes(row.id);
+                    return h(native.View, { key: row.id, style: { backgroundColor: colors.surface, padding: spacing, borderRadius: 12,
+                        flexDirection: "row", alignItems: "center", marginTop: spacing } },
+                        h(native.View, { style: { flex: 1 } }, text(row.title),
+                            text(row.description, { accessibilityLabel: `disk:extra:${row.id}:${on}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
+                        h(native.Switch, { accessibilityLabel: `disk:extra:${row.id}`, value: on,
+                            disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
+                            onValueChange: (value: boolean) => { void controller.setExtra(row.id, value).catch(() => {}); } }));
+                }),
                 text(features.includes("disableAnalytics") ? "Analytics：JS の track 送信を停止しています（Morphe で選択）" : "Analytics：このビルドでは停止していません",
                     { accessibilityLabel: "disk:feature:disableAnalytics", style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
                 text("情報", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginTop: spacing * 2 } }),

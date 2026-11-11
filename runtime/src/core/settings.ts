@@ -12,6 +12,13 @@ export type EmojiSize = typeof EMOJI_SIZES[number];
 /** Fake Nitro options. Optional in schema 2: older builds only read allowlisted keys and ignore this object. */
 export interface NitroOptions { readonly emojiSize: EmojiSize; readonly maskedLinks: boolean; }
 export const DEFAULT_NITRO: NitroOptions = Object.freeze({ emojiSize: 48, maskedLinks: false });
+/**
+ * Features ported from Venus Patches (docs/VENUS-PORT.md). Stored as the optional `extras` array of enabled IDs,
+ * omitted while none is on, so older builds and older settings files are unaffected. Unknown IDs are ignored.
+ */
+export const EXTRA_KEYS = Object.freeze(["quickDelete", "noConfirmPin"] as const);
+export type ExtraKey = typeof EXTRA_KEYS[number];
+export type ExtrasSnapshot = readonly ExtraKey[];
 
 export interface SettingsStorage {
     read(): Promise<string | null>;
@@ -22,6 +29,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
     let values: SettingsSnapshot = Object.freeze({ fakeNitro: false, platformIndicator: false });
     let preferences: PreferencesSnapshot = Object.freeze({ compact: false });
     let nitro: NitroOptions = DEFAULT_NITRO;
+    let extras: ExtrasSnapshot = Object.freeze([]);
     let initialized = false;
     let loading: Promise<void> | null = null;
     let revision = 0;
@@ -29,6 +37,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
     const listeners = new Set<(value: SettingsSnapshot) => void>();
     const preferenceListeners = new Set<(value: PreferencesSnapshot) => void>();
     const nitroListeners = new Set<(value: NitroOptions) => void>();
+    const extrasListeners = new Set<(value: ExtrasSnapshot) => void>();
 
     function report(error: unknown): void {
         try { onError(error); } catch (_) { /* Diagnostics cannot break the client. */ }
@@ -57,7 +66,12 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         });
     }
 
-    function parse(text: string): { features: SettingsSnapshot; preferences: PreferencesSnapshot; nitro: NitroOptions } {
+    function parseExtras(value: unknown): ExtrasSnapshot {
+        if (!Array.isArray(value)) return Object.freeze([]);
+        return Object.freeze(EXTRA_KEYS.filter(key => value.includes(key)));
+    }
+
+    function parse(text: string): { features: SettingsSnapshot; preferences: PreferencesSnapshot; nitro: NitroOptions; extras: ExtrasSnapshot } {
         const data: unknown = JSON.parse(text);
         if (!isRecord(data)) throw new Error("Invalid disk settings");
         if (!hasOwn(data, "version") || !hasOwn(data, "features") ||
@@ -74,13 +88,15 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
             }),
             preferences: Object.freeze({ compact: hasOwn(savedPreferences, "compact") && savedPreferences.compact === true }),
             nitro: data.version === 2 && hasOwn(data, "nitro") ? parseNitro(data.nitro) : DEFAULT_NITRO,
+            extras: data.version === 2 && hasOwn(data, "extras") ? parseExtras(data.extras) : Object.freeze([]),
         };
     }
 
     function save(): Promise<void> {
         revision++;
         // Persist even an unchanged choice: the previous write may have failed, or disk may still hold an old value.
-        const snapshot = JSON.stringify({ version: 2, features: values, preferences, nitro });
+        const snapshot = JSON.stringify(extras.length ? { version: 2, features: values, preferences, nitro, extras }
+            : { version: 2, features: values, preferences, nitro });
         // Queue before notifying: a listener may synchronously change a feature or preference.
         const pending = saveQueue.then(() => storage.write(snapshot));
         saveQueue = pending.catch(report);
@@ -92,6 +108,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         get(): SettingsSnapshot { return values; },
         getPreferences(): PreferencesSnapshot { return preferences; },
         getNitro(): NitroOptions { return nitro; },
+        getExtras(): ExtrasSnapshot { return extras; },
         /** Load once; failures keep the all-off defaults and are reported. A concurrent local change wins over disk. */
         load(): Promise<void> {
             if (initialized) return Promise.resolve();
@@ -105,7 +122,9 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
                         values = loaded.features;
                         preferences = loaded.preferences;
                         nitro = loaded.nitro;
+                        extras = loaded.extras;
                         notify(listeners, () => values);
+                        notify(extrasListeners, () => extras);
                         notify(preferenceListeners, () => preferences);
                         notify(nitroListeners, () => nitro);
                     }
@@ -147,6 +166,21 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
             const pending = save();
             if (changed) notify(nitroListeners, () => nitro);
             return pending;
+        },
+        setExtra(key: ExtraKey, enabled: boolean): Promise<void> {
+            if (!EXTRA_KEYS.includes(key) || typeof enabled !== "boolean")
+                return Promise.reject(new TypeError("Invalid disk extra feature"));
+            const changed = extras.includes(key) !== enabled;
+            const next = new Set<ExtraKey>(extras);
+            if (enabled) next.add(key); else next.delete(key);
+            extras = Object.freeze(EXTRA_KEYS.filter(item => next.has(item)));
+            const pending = save();
+            if (changed) notify(extrasListeners, () => extras);
+            return pending;
+        },
+        subscribeExtras(listener: (value: ExtrasSnapshot) => void): () => void {
+            extrasListeners.add(listener);
+            return () => { extrasListeners.delete(listener); };
         },
         subscribeNitro(listener: (value: NitroOptions) => void): () => void {
             nitroListeners.add(listener);

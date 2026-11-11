@@ -27,4 +27,6 @@ export const MODULE_PROBES: readonly ModuleProbe[] = [
     { name: "StickerSendability", id: 7475, paths: ["StickerSendability", "getStickerSendability", "isSendableSticker"] },
     { name: "EmojiUtils", id: 4953, paths: ["default", "default.getEmojiUnavailableReason", "default.getEmojiUnavailableReasons"] },
     { name: "EmojiIntention", id: 1395, paths: ["EmojiIntention"] },
+    { name: "AlertActionCreators", id: 5941, paths: ["default", "default.show"] },
+    { name: "Intl", id: 1128, paths: ["intl", "t"] },
 ];
