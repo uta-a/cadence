@@ -13,6 +13,7 @@ const EXTRA_ROWS: ReadonlyArray<{ id: ExtraKey; title: string; description: stri
     { id: "alwaysTrust", title: "リンクとファイルを常に信頼", description: "外部リンクと危険なファイルの警告を出しません（AlwaysTrust by zt, Trwy に基づく）" },
     { id: "jumpToTop", title: "最初のメッセージへ移動", description: "チャットの先頭へ移動するボタンを出します" },
     { id: "gestures", title: "ダブルタップで返信", description: "ダブルタップで返信、自分のメッセージは編集します（Geastures+ by kmmiio99o の移植）" },
+    { id: "hiddenChannels", title: "非表示チャンネルの情報", description: "サーバー長押しから読み込み済みの情報を確認します。履歴取得や移動はしません" },
     { id: "serverInfo", title: "サーバー情報", description: "サーバーアイコンの長押しメニューから、読み込み済みの情報を表示します" },
     { id: "voiceDownload", title: "ボイスメッセージを保存", description: "音声の下に保存ボタンを追加します。変更後はチャンネルを開き直してください" },
     { id: "quietReplies", title: "返信のメンションを初期オフ", description: "サーバーとグループDMの返信を通知なしで開始します。返信欄で個別にオンに戻せます" },

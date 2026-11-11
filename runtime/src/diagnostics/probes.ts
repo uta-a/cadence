@@ -60,6 +60,8 @@ export const MODULE_PROBES: readonly ModuleProbe[] = [
     { name: "ReadAllReadStateStore", id: 6803, paths: ["default"] },
     { name: "ReadAllReadStateActionCreators", id: 7238, paths: ["bulkAck"] },
     { name: "ReadAllReadStateConstants", id: 6737, paths: ["CHANNEL", "GUILD_EVENT"] },
+    { name: "PermissionStore", id: 4935, paths: ["default"] },
+    { name: "SharedPermissions", id: 1098, paths: ["Permissions.VIEW_CHANNEL"] },
     { name: "ChannelStore", id: 4855, paths: ["default"] },
     { name: "MessagesItemChannel", id: 17494, paths: ["MessagesItemChannelFast", "MessagesItemChannelFlash", "MessagesItemChannelLegend"] },
     { name: "UserProfileAvatar", id: 8778, paths: ["default"] },

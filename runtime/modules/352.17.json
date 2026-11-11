@@ -55,6 +55,14 @@
     "id": 6737, "factory": 6738, "shape": ["CHANNEL", "GUILD_EVENT"],
     "evidence": [{"kind":"registration","function":0,"offset":216710,"detail":"modules/read_states/ReadStateConstants.tsx"},{"kind":"export","function":6738,"offset":41,"detail":"CHANNEL; GUILD_EVENT at 58"}], "confidence":"high", "verified":false
   },
+  "PermissionStore": {
+    "id":4935,"factory":4936,"shape":["default"],
+    "evidence":[{"kind":"registration","function":0,"offset":157816,"detail":"stores/PermissionStore.tsx; Venus 4845"},{"kind":"export","function":4936,"offset":882,"detail":"default store; only reads real can(VIEW_CHANNEL, channel), never replaces the method"}],"confidence":"high","verified":false
+  },
+  "SharedPermissions": {
+    "id":1098,"factory":1099,"shape":["Permissions.VIEW_CHANNEL"],
+    "evidence":[{"kind":"registration","function":0,"offset":35020,"detail":"../discord_common/js/shared/Constants.tsx"},{"kind":"export","function":1099,"offset":12771,"detail":"Permissions"},{"kind":"construction","function":1099,"offset":3329,"detail":"VIEW_CHANNEL property; no guessed numeric permission bit"}],"confidence":"high","verified":false
+  },
   "ChannelStore": {
     "id":4855,"factory":4856,"shape":["default"],
     "evidence":[{"kind":"registration","function":0,"offset":155146,"detail":"ChannelStore; used only if already loaded while rendering"},{"kind":"export","function":4856,"offset":1229,"detail":"default store"}],"confidence":"high","verified":false

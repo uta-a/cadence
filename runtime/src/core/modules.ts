@@ -17,6 +17,7 @@ import { createReadAll } from "../features/venus/readAll";
 import { installQuietReplies, pendingReplyState } from "../features/venus/quietReplies";
 import { createVoiceDownload } from "../features/venus/voiceDownload";
 import { installServerInfo } from "../features/venus/serverInfo";
+import { installHiddenChannels } from "../features/venus/hiddenChannels";
 import type { JumpReact } from "../features/venus/jumpToTop";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
@@ -62,6 +63,17 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             const ref = Reflect.apply(getter, exports, []), isReady = dataProperty(ref, "isReady");
             return typeof isReady === "function" && Reflect.apply(isReady, ref, []) === true;
         } catch (_) { return false; }
+    }
+    /** Read-only information dialogs, only requested by a user action. RN Alert is a lazy getter/class. */
+    function showNativeInfo(title: string, message: string): boolean {
+        if (!navigationReady()) return false;
+        const rn = modules.get(17);
+        const alert = rn && typeof rn === "object" ? Reflect.get(rn, "Alert") : undefined;
+        if (!alert || (typeof alert !== "object" && typeof alert !== "function")) return false;
+        const show = Reflect.get(alert, "alert");
+        if (typeof show !== "function") return false;
+        Reflect.apply(show, alert, [title, message, [{ text: "閉じる" }], { cancelable: true }]);
+        return true;
     }
     /** RN lazy getters are only read once root navigation is ready; the result (or failure) is cached. */
     function resolveNative(): NativeUi | null {
@@ -338,7 +350,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     if (features.includes("readAll")) ids.push(17778, 17768);
     if (features.includes("quietReplies")) ids.push(10119, 7785);
     if (features.includes("voiceDownload")) ids.push(8165, 11269);
-    if (features.includes("serverInfo")) ids.push(17772);
+    if (features.includes("serverInfo") || features.includes("hiddenChannels")) ids.push(17772);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, 4855, 10659, 11110, 14049, 17499, 9196, 8165, 17494, 8778,
@@ -408,19 +420,32 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                         const store = dataProperty(onDemand(4877), "default"), get = dataProperty(store, "getGuild");
                         return typeof get === "function" ? Reflect.apply(get, store, [id]) : undefined;
                     },
-                    show: (title, message) => {
-                        if (!navigationReady()) return false;
-                        const rn = modules.get(17);
-                        const alert = rn && typeof rn === "object" ? Reflect.get(rn, "Alert") : undefined;
-                        if (!alert || (typeof alert !== "object" && typeof alert !== "function")) return false;
-                        const show = Reflect.get(alert, "alert");
-                        if (typeof show !== "function") return false;
-                        Reflect.apply(show, alert, [title, message, [{ text: "閉じる" }], { cancelable: true }]);
-                        return true;
-                    },
+                    show: showNativeInfo,
                     onEvent: event => report(`server-info ${event}`),
                 });
                 if (!ok) report("server-info unavailable");
+            }
+            if (id === 17772 && features.includes("hiddenChannels")) {
+                let permission: { store: object; can: (...args: unknown[]) => unknown; bit: unknown } | undefined;
+                const ok = installHiddenChannels(exports, {
+                    enabled: () => settings.isExtraEnabled("hiddenChannels"),
+                    tables: guildId => {
+                        permission = undefined;
+                        const store = dataProperty(onDemand(4935), "default"), can = dataProperty(store, "can");
+                        const bit = dataProperty(dataProperty(onDemand(1098), "Permissions"), "VIEW_CHANNEL");
+                        if (!store || typeof store !== "object" || typeof can !== "function" || bit == null) return null;
+                        const channels = dataProperty(onDemand(4855), "default");
+                        const full = dataProperty(channels, "getMutableGuildChannelsForGuild");
+                        const basic = dataProperty(channels, "getMutableBasicGuildChannelsForGuild");
+                        if (typeof full !== "function" && typeof basic !== "function") return null;
+                        permission = { store, can: can as (...args: unknown[]) => unknown, bit };
+                        return { full: typeof full === "function" ? Reflect.apply(full, channels, [guildId]) : undefined,
+                            basic: typeof basic === "function" ? Reflect.apply(basic, channels, [guildId]) : undefined };
+                    },
+                    canView: channel => permission ? Reflect.apply(permission.can, permission.store, [permission.bit, channel]) : undefined,
+                    show: showNativeInfo, onEvent: event => report(`hidden-channels ${event}`),
+                });
+                if (!ok) report("hidden-channels unavailable");
             }
             if (features.includes("gestures")) installGesture(id, exports);
             if (voiceDownload && id === 8165 && !voiceDownload.installRows(exports)) report("voice-download unavailable");

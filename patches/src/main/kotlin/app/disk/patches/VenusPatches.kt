@@ -48,6 +48,12 @@ val loadFullQualityImages = venusFeature(
 )
 
 @Suppress("unused")
+val showHiddenChannels = venusFeature(
+    "hiddenChannels", "Show hidden channels",
+    "Inspect cached hidden-channel metadata from the server icon's hold menu. Read-only; permissions, navigation and message fetches remain unchanged. Off until enabled in the disk settings.",
+)
+
+@Suppress("unused")
 val serverInformation = venusFeature(
     "serverInfo", "Server info",
     "Show loaded server metadata from the server icon's hold menu. No extra member requests. Off until enabled in the disk settings.",

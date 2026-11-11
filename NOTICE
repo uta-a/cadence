@@ -41,6 +41,7 @@ Features that Venus credits to community plugins keep those credits:
   voiceDownload.ts                          Download voice messages          VoiceDownload
   serverInfo.ts                             Server info                      (Venus)
   platformPlacements.ts                     Show device indicators           PlatformIndicators
+  hiddenChannels.ts                         Show hidden channels             (Venus; read-only adaptation)
   gestures.ts                               Double-tap to reply              Geastures+ by kmmiio99o
   fullImages.ts                             Load full-quality images         Uncompressed Discord Images by
                                                                              Knewest; HighResProfileImages

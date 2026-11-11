@@ -35,6 +35,15 @@
 | 高画質で画像を読み込む（patch: Load full-quality images） | Load full-quality images（Uncompressed Discord Images by Knewest、HighResProfileImages by Kawtious） | ImageUtils 1498、AvatarUtils 1417 | 実機確認済み: チャットの画像が元ファイルのURLで読み込まれた（`full-images image`）。Venusの場所別・GIFの設定は省き、チャットと全画面とアイコンをまとめて1つのスイッチにした（GIFはDiscordのまま） |
 | すべて既読にする（patch: Read all） | Read all（ReadAllNotificationsButton の移植） | useGuildsBarProps 17778、GuildsBarConstants 17768。押したときに読む: GuildReadStateStore 6846、SortedGuildStore 6733、LurkingStore 4936、GuildStore 4877、ReadStateStore 6803、ReadStateTypes 6737、markGuildsAsRead 15243、Constants 1087、PrivateChannelReadStateStore 15096、PrivateChannelSortStore 7354、MessageRequestUtils 6844、ReadStateActionCreators 7238 | 実機確認済み: サーバー一覧のDMボタンの下にボタンが出る。タップでサーバーの未読マークが消え、長押し→DMで未読バッジ4件が消えることを確認（`read-all cleared`）。設定オフ／オンも再起動なしで反映。未読がないときは`nothing`になる。Venusの長押しシートとトーストは使わず、AndroidのAlert（ボタン3つ、外側タップで閉じる）と、消せたときの✓表示にした |
 
+### Show hidden channels（読み取り専用の情報表示）
+
+- `runtime/src/features/venus/hiddenChannels.ts` はVenusの`hiddenMetadata`、`hiddenDirectory`、`hiddenDetails`を参考にした安全側の移植。個別patch `Show hidden channels` と初期オフの`hiddenChannels`設定。
+- **Venusと同じネイティブ一覧への混在表示ではない。** サーバー長押しメニューに項目を追加し、読み込み済みのメタデータをダイアログへ表示する。PermissionStore.can、標準チャンネル一覧、未読集計、入室、履歴取得は一切変更しない。
+- ユーザー操作時のみChannelStore **4855**のfull/basicテーブルとPermissionStore **4935**を読む。共有Constants **1098**の実際の`Permissions.VIEW_CHANNEL`を使い、権限が明確にfalseの項目だけを表示する。判定不能・例外は非表示として推測しない。
+- チャンネル名が未取得ならその旨を表示。表示40件、走査は各テーブル2,000件まで。DM・スレッド・別サーバーの項目は含めない。追加通信・チャンネルへの移動ボタン・メッセージ取得はなし。
+- pipaで初期オフ・設定保存・メニュー・空の情報画面を確認。試験サーバーに実際の拒否権限の項目がないため、**非表示項目を含む実機の表示は未確認**。単体テストでは明確な拒否、未知の判定、full優先、件数制限、既存処理の維持を確認した。
+- `hidden-channels opened`、FATAL/TypeError/ReferenceErrorなし。証跡は`work/phase4-device/hidden-channel-metadata.png`。Node **135件**、Python **24件**、型検査、Gradleテスト、smoke APKビルド成功。
+
 ### Platform Indicatorの場所別拡張
 
 - `runtime/src/features/venus/platformPlacements.ts` はVenusの`platformName`、`platformHeader`、`platformDmRow`、`placePlatformTree`を移植。既存の独自Avatar表示と組み合わせた。
