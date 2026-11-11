@@ -1,6 +1,8 @@
 package app.disk.patches
 
 import app.disk.patches.dex.AdvertisingId
+import app.disk.patches.dex.MethodStub
+import app.disk.patches.dex.PrivacyStubs
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.rawResourcePatch
 
@@ -47,4 +49,24 @@ val disableAdvertisingId = bytecodePatch(
 ) {
     compatibleWith(discord)
     execute { AdvertisingId.disable(this) }
+}
+
+@Suppress("unused")
+val disableSentry = bytecodePatch(
+    name = "Disable crash reporting",
+    description = "Never start the Sentry SDK, so crash and error reports are not sent.",
+    default = true,
+) {
+    compatibleWith(discord)
+    execute { MethodStub.apply(this, PrivacyStubs.sentry) }
+}
+
+@Suppress("unused")
+val disableAppsFlyer = bytecodePatch(
+    name = "Disable install attribution",
+    description = "Never start AppsFlyer or send its events.",
+    default = true,
+) {
+    compatibleWith(discord)
+    execute { MethodStub.apply(this, PrivacyStubs.appsFlyer) }
 }

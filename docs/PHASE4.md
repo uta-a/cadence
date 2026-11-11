@@ -41,7 +41,10 @@ Fake Nitro・Platform Indicator・Privacy（JS analyticsの停止と広告IDの�
 
 - **JS analytics**（`runtime/src/features/analytics.ts`）: module 1267の`default.track`を、何もせず解決済みPromiseを返す関数に置き換える。元の`track`は呼ばない。`trackNetworkAction`などの別exportと、trackMakerの2つ目の経路は未確認のため、設定画面では「JS の track 送信を停止」と範囲を限定して表示する。
 - **広告ID**（`patches/.../dex/AdvertisingId.kt`）: `AdsModule.getGoogleAdvertisingId(Promise)`の本体を、既存の`resolveWithNullId(promise)`呼び出しと`return-void`に置き換える。置き換え前に、元の命令列と`resolveWithNullId`の命令列が352.17と完全に一致することを確かめ、一致しなければpatchを止める。
-- **未実装**: Sentryは、全初期化経路の合流点がSDK内部のメソッドであり、JS側Sentryの送信経路が未確認。AppsFlyerは、初期化が複数の処理を兼ねる`Ld6/a;->invoke()`のswitchの1分岐にあり、さらに`bundle pin`がこのメソッドの全体を固定して照合しているため、単純には置き換えられない。どちらも追加の検証が必要。
+- **Sentry**（`Disable crash reporting`、`patches/.../dex/MethodStub.kt`）: Manifestの自動初期化・JSからの`RNSentryModuleImpl.initNativeSdk`・Discord独自のcrash reporting（`Lu5/b;->call()`）の3経路は、すべてSDKの`Lio/sentry/android/core/e1;->b(Context, k0, c4)V`に合流する。この先頭に`return-void`を入れ、SDKを初期化しない（Sentryの静的APIは既定の何もしない状態のまま）。元の本体は到達しないコードとして残す。
+- **AppsFlyer**（`Disable install attribution`）: `start`の全オーバーロードが合流する`AFa1uSDK.start(Context, String, AppsFlyerRequestListener)`と、`logEvent`の2つのオーバーロードの先頭に`return-void`を入れる。`init`は送信しないので残す。
+- どちらも、対象メソッドの命令列・レジスタ・try blockのSHA-256を352.17の実測値と照合してから書き換え、違えばpatchを止める。`bundle pin`が照合しているメソッド（`Ld6/a;->invoke()`・`Lu5/b;->call()`等）には触れない。
+- **未確認**: 端末の通信をプロキシで見て、Sentry・AppsFlyer・analytics宛ての通信がないこと。Discord独自のnative crash reporting（`libcrash-reporting`）が単独で送信するかどうか。
 
 ## 設定の保存に失敗したとき
 
