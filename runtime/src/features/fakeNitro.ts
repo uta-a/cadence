@@ -114,6 +114,21 @@ export function stickerUrl(id: string, extension: string): string {
 
 interface Remembered { readonly extension: string; readonly name: string; }
 
+/**
+ * The text that Discord's own sendStickers would send, or null when it cannot be known. The sticker picker
+ * (150051:416) passes the result of chatInputValidateContentLength here, not the text; the original treats any
+ * non-string as a message object (`{...content, tts}`), so a boolean or a missing value means no text.
+ */
+export function stickerText(content: unknown): string | null {
+    if (typeof content === "string") return content;
+    if (content === undefined || content === null || typeof content === "boolean") return "";
+    if (typeof content === "object" && !Array.isArray(content)) {
+        const text = (content as Record<string, unknown>).content;
+        return typeof text === "string" ? text : null;
+    }
+    return null;
+}
+
 export function installStickerHooks(sendability: unknown, actions: unknown, enabled: () => boolean,
     options: () => ConvertOptions = () => DEFAULT_OPTIONS, onConverted: () => void = () => {}): boolean {
     if (!sendability || typeof sendability !== "object" || !actions || typeof actions !== "object") return false;
@@ -155,8 +170,9 @@ export function installStickerHooks(sendability: unknown, actions: unknown, enab
 
     function sendStickers(this: unknown, ...args: unknown[]): unknown {
         try {
-            const [channelId, stickerIds, content = "", options_, tts = false] = args;
-            if (enabled() && Array.isArray(stickerIds) && stickerIds.length > 0 && typeof content === "string" &&
+            const [channelId, stickerIds, content, options_, tts = false] = args;
+            const body = stickerText(content);
+            if (enabled() && Array.isArray(stickerIds) && stickerIds.length > 0 && body !== null &&
                 stickerIds.every(id => typeof id === "string" && remembered.has(id))) {
                 const masked = options().maskedLinks === true;
                 const links = (stickerIds as string[]).map(id => {
@@ -165,7 +181,7 @@ export function installStickerHooks(sendability: unknown, actions: unknown, enab
                     const label = sticker.name.replace(/[^A-Za-z0-9_ -]/g, "").trim().slice(0, 64) || "sticker";
                     return masked ? `[${label}](${url})` : url;
                 }).join("\n");
-                const text = content.trim() ? `${content}\n${links}` : links;
+                const text = body.trim() ? `${body}\n${links}` : links;
                 const send = target && typeof target === "object" ? Reflect.get(target, "sendMessage") : undefined;
                 if (text.length <= MAX_CONTENT_LENGTH && typeof send === "function") {
                     const message = { content: text, tts: tts === true, invalidEmojis: [], validNonShortcutEmojis: [] };

@@ -2,7 +2,7 @@
 
 Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator、プライバシー保護をオフラインで追加する。
 
-> 開発中（**Phase 4: 機能を実装中**。Fake Nitroのピッカー・スタンプは実機未確認、Platform Indicatorの他の表示箇所は未実装）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
+> 開発中（**Phase 4: 機能を実装中**。Platform Indicatorの残りの表示箇所と場所ごとの設定が未実装）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
 
 **開発対象:** Discord **352.17 - Stable**（APKM）。Fake Nitro（入力した絵文字のリンク変換）、Platform Indicator（アバターのバッジ）、Privacy（JS analytics・広告ID・Sentry・AppsFlyerの停止）を実装した。詳細は[Phase 4記録](docs/PHASE4.md)と[調査記録](docs/PHASE4-RESEARCH.md)。
 
@@ -18,8 +18,8 @@ Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator�
 | Metro観測・core接続 | 実機で14/14候補のdescriptorを観測 | 観測はgetterを評価しない。UIだけはnavigation readiness後にRN getterを使い、Overview初回consumer前に入口を接続。store/send呼出しなし |
 | 設定コア・保存アダプター | UI・保存・再起動後の復元を実機確認 | schema2のコンパクト表示を切替→書込/read-back→cold restartで復元。検証値はオフへ戻して再起動後も確認。失敗・競合・再試行は単体テスト |
 | 診断ログ・ビルド機能表 | 実機確認済み | 最大80件のメモリログを設定画面から表示。Morpheで選んだ機能patchを`finalize`でランタイムへ埋め込む |
-| Fake Nitro | 入力した絵文字は実機確認済み | Discordが送れないと判定した絵文字だけをCDN画像リンクに変換。画像サイズ・名前付きリンクの設定、ピッカーでの選択、Nitro限定スタンプのリンク送信を実装（ピッカー・スタンプは実機未確認） |
-| Platform Indicator | 実機確認済み | design-systemのAvatarにバッジを重ねる。別部品のアバター（DMの行・メッセージ横）には出ない |
+| Fake Nitro | 実機確認済み | Discordが送れないと判定した絵文字だけをCDN画像リンクに変換。ピッカーでの選択、アニメ絵文字、Nitro限定スタンプのリンク送信を実機で確認。画像サイズ・名前付きリンクの設定あり |
+| Platform Indicator | 実機確認済み | design-systemのAvatarにバッジを重ねる。DM一覧の行・カード・チャットのヘッダーで確認。メッセージ横のアバターには出ない |
 | Privacy | JS analytics・広告ID・Sentry・AppsFlyerを停止 | `track`をno-opに、`getGoogleAdvertisingId`を既存の`null`応答に置換。SentryとAppsFlyerはSDKの入口を`return-void`に。Sentry・AppsFlyer宛ての接続がなくなったことをホスト名で確認 |
 
 Phase 3（設定UI・保存）の詳細は [Phase 3記録](docs/PHASE3.md)。`bundle pin` は OTA がコミット済みの

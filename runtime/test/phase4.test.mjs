@@ -370,10 +370,17 @@ test("remembered stickers are sent as links through sendMessage; anything else u
     assert.equal(f.sends[1][1][1].content, `[dance](${f.stickerUrl("10", "gif")})`);
     assert.equal(f.target.sendStickers("ch", ["13"], ""), "sticker-result", "a sticker that was never upgraded");
     assert.equal(f.target.sendStickers("ch", ["10", "13"], ""), "sticker-result", "a mixed send is left to Discord");
-    assert.equal(f.target.sendStickers("ch", ["10"], { content: "object" }), "sticker-result", "non-string content");
+    assert.equal(f.target.sendStickers("ch", ["10"], { other: 1 }), "sticker-result", "an object without text is left to Discord");
+    assert.equal(f.target.sendStickers("ch", ["10"], 5), "sticker-result", "an unknown content type is left to Discord");
+    f.setMasked(false);
+    // The real picker passes the validation result (not the text) as the third argument.
+    f.target.sendStickers("ch", ["10"], true, { location: "STICKER_REPLY" });
+    assert.equal(f.sends.at(-1)[1][1].content, f.stickerUrl("10", "gif"));
+    f.target.sendStickers("ch", ["10"], { content: "from object" });
+    assert.equal(f.sends.at(-1)[1][1].content, `from object\n${f.stickerUrl("10", "gif")}`);
     f.setEnabled(false);
     assert.equal(f.target.sendStickers("ch", ["10"], ""), "sticker-result", "disabled");
-    assert.equal(f.stickerSends.length, 4);
+    assert.equal(f.stickerSends.length, 5);
     assert.equal(f.stickerSends[0][0], f.target);
     assert.equal(f.converted, 1, "the fixed diagnostic is reported once");
 });

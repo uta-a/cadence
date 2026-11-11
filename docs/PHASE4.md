@@ -26,10 +26,13 @@ Fake Nitro・Platform Indicator・Privacy（JS analyticsの停止と広告IDの�
 - Discordのparserは、送れない絵文字を`message.invalidEmojis`に入れつつ`content`には`<:name:id>`を残す。その絵文字だけをCDNの画像リンク（`https://cdn.discordapp.com/emojis/{id}.{webp|gif}?size=48&name={name}`）に置き換え、`invalidEmojis`から除く。使える絵文字はそのまま送る。
 - 前後に空白がなければ空白を補う。変換後が2000文字を超える場合、形が想定外の場合、設定が読めない場合は、元のmessageのまま元関数を呼ぶ。呼び出し元のmessageは書き換えない。Discordが内部で`sendMessage`を再度呼んでも、2回目は変換しない（冪等）。
 - **設定**: 画像サイズ（48/64/96/128）と名前付きリンク（`[name](URL)`）を、disk設定画面のFake Nitroの下で選べる。設定ファイルはschema 2のまま、任意の`nitro`オブジェクトとして保存する（旧ビルドはallowlistのキーしか読まないので無視する。旧ビルドで設定を保存すると`nitro`は消え、既定値に戻る）。不正な値は読み込み時に既定値（48・オフ）に戻し、保存時は拒否する。
-- **スタンプ**（`installStickerHooks`）: スタンプピッカー（function 105918）は、`getStickerSendability`（module 7475）の結果が`SENDABLE`のときだけ送信へ進む。Fake Nitroがオンのとき、Nitro限定（`SENDABLE_WITH_PREMIUM`）でPNG・APNG・GIF形式のスタンプだけを`SENDABLE`と返し、そのIDを最大64件記憶する。`sendStickers`は、送るスタンプがすべて記憶済みのときだけ、`https://media.discordapp.net/stickers/{id}.{png|gif}?size=160`を通常のメッセージとして送る。それ以外（Lottie、送信不可、混在、文字列でない本文、オフ）はDiscordの元の処理のまま。Discord自身が送信可能と答えるようになったスタンプ（Nitro加入後など）や、オフの間に判定されたスタンプは記憶から外し、本物のスタンプとして送る。名前付きリンクのラベルはスタンプ名から英数字・`_`・`-`・空白だけを残し（他人が付けた名前でメンションや書式が入らないように）、空なら`sticker`にする。
-  - 制約: 偽装したスタンプと通常のスタンプを一度に送る場合と、本文が文字列でない場合は元の送信に回すので、サーバーに拒否されて何も起きないように見える。ピッカーでは、偽装したスタンプのロック表示が消え、並び順が変わることがある。
+- **スタンプ**（`installStickerHooks`）: スタンプピッカー（function 105918）は、`getStickerSendability`（module 7475）の結果が`SENDABLE`のときだけ送信へ進む。Fake Nitroがオンのとき、Nitro限定（`SENDABLE_WITH_PREMIUM`）でPNG・APNG・GIF形式のスタンプだけを`SENDABLE`と返し、そのIDを最大64件記憶する。`sendStickers`は、送るスタンプがすべて記憶済みのときだけ、`https://media.discordapp.net/stickers/{id}.{png|gif}?size=160`を通常のメッセージとして送る。それ以外（Lottie、送信不可、混在、オフ）はDiscordの元の処理のまま。本文は、元の`sendStickers`と同じ扱いにする（文字列はそのまま、真偽値・未指定は本文なし、`content`を持つobjectはその`content`）。スタンプピッカー（150051:416）は本文の代わりに`chatInputValidateContentLength`の結果を渡すので、この扱いが必要。Discord自身が送信可能と答えるようになったスタンプ（Nitro加入後など）や、オフの間に判定されたスタンプは記憶から外し、本物のスタンプとして送る。名前付きリンクのラベルはスタンプ名から英数字・`_`・`-`・空白だけを残し（他人が付けた名前でメンションや書式が入らないように）、空なら`sticker`にする。
+  - 制約: 偽装したスタンプと通常のスタンプを一度に送る場合と、本文の形が分からない場合は元の送信に回すので、サーバーに拒否されて何も起きないように見える。ピッカーでは、偽装したスタンプのロック表示が消え、並び順が変わることがある。
 - **ピッカー**（`installEmojiPickerUnlock`）: 絵文字ピッカーはmodule 4953の`default.getEmojiUnavailableReason(s)`でロックを判定する。Fake Nitroがオンで、用途が`EmojiIntention.CHAT`のときだけ、`bypassPremiumEmojiEntitlement: true`を付けた引数のコピーで元関数を呼ぶ（Nitroの判定だけを省き、サーバー側の制限は残る）。送信時の判定（parserの`isEmojiPremiumLocked`）は同じ実装をclosure経由で呼ぶのでこの影響を受けず、選んだ絵文字は送信時にリンクへ変換される。リアクションとカスタムステータスはリンクにできないので対象外。
-- **実機未確認**: スタンプとピッカーは、ログインした端末での確認が必要。テスト端末XIG07（未ログイン）では起動とエラー0件までを確認した。
+- **実機確認（2026-11-11、pipa、ユーザーの許可を得て`peer-account`とのDMに送信・撮影）**: Devサーバーにテスト用のアニメ絵文字`:emoji_2:`とスタンプ`disk_test`を追加した（許可済み）。
+  - ピッカー: チャットの絵文字ピッカーに、それまで出ていなかった「Dev」欄が現れ、`:emoji_1:`と`:emoji_2:`をロックなしで選べた。選んだ絵文字は入力欄に入り、送信時に`fake-nitro converted`でリンクに変換され、画像として表示された。アニメ絵文字も同様。スタンプの関連絵文字を選ぶピッカー（用途がCHATでない）ではロック表示のままで、設計どおり。
+  - スタンプ: 1回目はリンクにならず、スタンプのまま送られてサーバーに拒否された（自分にだけ見える失敗表示とClydeの通知。相手には届いていない）。原因は上記の本文の扱いで、修正後は`fake-nitro sticker-linked`を記録し、スタンプ画像のリンクとして送られて表示された。スタンプ一覧のロック表示は残る（一覧は`isSendableSticker`が元の判定を内部参照で呼ぶため）。
+  - Platform Indicator: DM一覧の**行**、上部のカード、チャットのヘッダーにバッジが出た。相手がPCとモバイルの両方で接続すると「PC M」と並んだ。
 
 ### Platform Indicator（`runtime/src/features/platformIndicator.ts`）
 
@@ -39,7 +42,7 @@ Fake Nitro・Platform Indicator・Privacy（JS analyticsの停止と広告IDの�
 - アイコンは、自然にロード済みのDiscordのアイコン部品（ScreenIcon等）を使い、未ロードなら文字（PC/M/W/VR）で代替する。
 - hookの数を一定にするため、PresenceStoreの購読を行うかどうかは最初のrenderで決める（PresenceStoreとfluxは起動直後にロード済み）。RNの部品は毎回取りに行くので、navigationの準備前に描画されたAvatarにも後からバッジが出る。設定がオフでも購読は続ける（オンにした瞬間に表示するため）。
 - 差し替え後のコンポーネントには、元のmemoオブジェクトの静的プロパティ（`displayName`等）を写す。React 19では`ref`は通常のpropsとして元の要素へ渡る。
-- 表示範囲: このAvatar部品を使う箇所だけ。実機ではDM一覧上部のカードとチャットヘッダーで表示を確認した。DMの行やメッセージ横のアバターは別の部品で、表示されない。
+- 表示範囲: このAvatar部品を使う箇所だけ。実機ではDM一覧の行・上部のカード・チャットヘッダーで表示を確認した（DM一覧の行（module 17498）はdesign-systemのbarrel module 1202経由で同じAvatarを描く）。メッセージ横のアバターには出ない。
 
 ### Privacy
 
@@ -81,7 +84,8 @@ smoke版APK（SHA-256 `19850e32a1d24675bd603da8633b096b2a14739be4da2dc5167412b96
 ## 端末に残した変更
 
 - Devサーバーのテスト用カスタム絵文字`:emoji_1:`（ユーザーの許可を得て追加）
-- `peer-account`とのDMへのテスト送信1通（許可済み）
+- `peer-account`とのDMへのテスト送信（許可済み）: 2026-11-10に1通、2026-11-11にピッカーの絵文字・アニメ絵文字・スタンプのリンクの計3通と、失敗したスタンプ1通（相手には届いていない）
+- Devサーバーのテスト用アニメ絵文字`:emoji_2:`とスタンプ`disk_test`（許可済み）
 - Fake NitroとPlatform Indicatorはオンのまま
 
 ## ローカル検証
