@@ -21,7 +21,7 @@ export const DEFAULT_PLATFORM: PlatformOptions = Object.freeze({ avatars: true, 
  * Features ported from Venus Patches (docs/VENUS-PORT.md). Stored as the optional `extras` array of enabled IDs,
  * omitted while none is on, so older builds and older settings files are unaffected. Unknown IDs are ignored.
  */
-export const EXTRA_KEYS = Object.freeze(["quickDelete", "noConfirmPin", "alwaysTrust", "jumpToTop", "gestures", "gestureTripleDelete", "fullImages", "readAll", "quietReplies", "voiceDownload", "serverInfo", "hiddenChannels"] as const);
+export const EXTRA_KEYS = Object.freeze(["quickDelete", "noConfirmPin", "alwaysTrust", "jumpToTop", "gestures", "gestureTripleDelete", "fullImages", "readAll", "quietReplies", "voiceDownload", "serverInfo", "hiddenChannels", "messageHistory"] as const);
 export type ExtraKey = typeof EXTRA_KEYS[number];
 export type ExtrasSnapshot = readonly ExtraKey[];
 

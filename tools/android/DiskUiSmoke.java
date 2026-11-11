@@ -54,6 +54,25 @@ public class DiskUiSmoke extends UiAutomatorTestCase {
             getUiDevice().waitForIdle();
             assertTrue("DISK_UI overview entry missing after back", control("disk").waitForExists(5000));
             System.out.println("DISK_UI hardware back preserved overview");
+        } else if (action.equals("open-history")) {
+            UiObject entry = scrolled("disk:history:open");
+            assertTrue("DISK_UI history entry missing", entry.waitForExists(5000)); entry.click();
+            assertTrue("DISK_UI history panel missing", control("disk:history:count").waitForExists(5000));
+            System.out.println("DISK_UI history panel visible");
+        } else if (action.equals("check-history")) {
+            String expected = getParams().getString("expected", "false");
+            assertTrue("DISK_UI invalid expected value", expected.equals("true") || expected.equals("false"));
+            UiObject count = control("disk:history:count"); assertTrue("DISK_UI history count missing", count.waitForExists(5000));
+            assertEquals("DISK_UI history count mismatch", expected.equals("false"), count.getText().equals("保持件数: 0"));
+            System.out.println("DISK_UI history count matches expected");
+        } else if (action.equals("clear-history")) {
+            control("disk:history:clear").click();
+            assertTrue("DISK_UI history did not clear", control("disk:history:empty").waitForExists(5000));
+            System.out.println("DISK_UI history cleared");
+        } else if (action.equals("close-history")) {
+            control("disk:history:back").click();
+            assertTrue("DISK_UI settings missing after history", new UiObject(new UiSelector().packageName("com.discord").text("disk 設定")).waitForExists(5000));
+            System.out.println("DISK_UI history closed");
         } else if (action.equals("toggle-platform") || action.equals("check-platform")) {
             String place = getParams().getString("feature", "");
             assertTrue("DISK_UI invalid platform location", place.equals("avatars") || place.equals("dmList") || place.equals("dmHeader")
@@ -71,7 +90,7 @@ public class DiskUiSmoke extends UiAutomatorTestCase {
             }
         } else if (action.equals("toggle-feature") || action.equals("check-feature")) {
             String feature = getParams().getString("feature", "");
-            boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin") || feature.equals("alwaysTrust") || feature.equals("jumpToTop") || feature.equals("gestures") || feature.equals("gestureTripleDelete") || feature.equals("fullImages") || feature.equals("readAll") || feature.equals("quietReplies") || feature.equals("voiceDownload") || feature.equals("serverInfo") || feature.equals("hiddenChannels");
+            boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin") || feature.equals("alwaysTrust") || feature.equals("jumpToTop") || feature.equals("gestures") || feature.equals("gestureTripleDelete") || feature.equals("fullImages") || feature.equals("readAll") || feature.equals("quietReplies") || feature.equals("voiceDownload") || feature.equals("serverInfo") || feature.equals("hiddenChannels") || feature.equals("messageHistory");
             assertTrue("DISK_UI invalid feature", extra || feature.equals("fakeNitro") || feature.equals("platformIndicator"));
             String prefix = extra ? "disk:extra:" : "disk:feature:";
             if (action.equals("toggle-feature")) {

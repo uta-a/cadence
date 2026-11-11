@@ -48,6 +48,12 @@ val loadFullQualityImages = venusFeature(
 )
 
 @Suppress("unused")
+val keepDeletedMessages = venusFeature(
+    "messageHistory", "Keep deleted messages",
+    "Keep bounded, session-only snapshots of loaded deleted/edited text in disk's history viewer. Normal Discord deletions still happen. Off until enabled; disabling or logout clears history.",
+)
+
+@Suppress("unused")
 val showHiddenChannels = venusFeature(
     "hiddenChannels", "Show hidden channels",
     "Inspect cached hidden-channel metadata from the server icon's hold menu. Read-only; permissions, navigation and message fetches remain unchanged. Off until enabled in the disk settings.",

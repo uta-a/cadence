@@ -55,9 +55,13 @@
     "id": 6737, "factory": 6738, "shape": ["CHANNEL", "GUILD_EVENT"],
     "evidence": [{"kind":"registration","function":0,"offset":216710,"detail":"modules/read_states/ReadStateConstants.tsx"},{"kind":"export","function":6738,"offset":41,"detail":"CHANNEL; GUILD_EVENT at 58"}], "confidence":"high", "verified":false
   },
+  "Dispatcher": {
+    "id":584,"factory":585,"shape":["default"],
+    "evidence":[{"kind":"registration","function":0,"offset":18940,"detail":"Dispatcher.tsx creates the flux Dispatcher instance"},{"kind":"export","function":585,"offset":216,"detail":"default dispatcher"},{"kind":"implementation","function":21445,"offset":17,"detail":"addInterceptor appends callback to JS array; no native call. History callback always returns false"},{"kind":"implementation","function":21444,"offset":48,"detail":"interceptors run before store handlers and only a true return consumes an action"}],"confidence":"high","verified":false
+  },
   "PermissionStore": {
     "id":4935,"factory":4936,"shape":["default"],
-    "evidence":[{"kind":"registration","function":0,"offset":157816,"detail":"stores/PermissionStore.tsx; Venus 4845"},{"kind":"export","function":4936,"offset":882,"detail":"default store; only reads real can(VIEW_CHANNEL, channel), never replaces the method"}],"confidence":"high","verified":false
+    "evidence":[{"kind":"registration","function":0,"offset":157816,"detail":"stores/PermissionStore.tsx; Venus 4845"},{"kind":"export","function":4936,"offset":882,"detail":"default store; only reads real can(VIEW_CHANNEL, channel), never replaces the method"},{"kind":"implementation","function":32787,"offset":9,"detail":"canBasicChannel(permission, channel) reads basicPermissions when present; basic-only metadata never falls back to guessed denial"}],"confidence":"high","verified":false
   },
   "SharedPermissions": {
     "id":1098,"factory":1099,"shape":["Permissions.VIEW_CHANNEL"],

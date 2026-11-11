@@ -10,7 +10,7 @@ export interface HiddenSnapshot { channels: HiddenChannel[]; checked: number; un
 export interface HiddenChannelsDeps {
     enabled(): boolean;
     tables(guildId: string): { full?: unknown; basic?: unknown } | null;
-    canView(channel: unknown): unknown;
+    canView(channel: unknown, basic: boolean): unknown;
     show(title: string, body: string): boolean;
     onEvent?(event: "installed" | "opened" | "unavailable"): void;
 }
@@ -18,28 +18,28 @@ const TYPES = new Set([0, 2, 4, 5, 13, 15, 16]);
 const TYPE_LABELS: Record<number, string> = { 0: "テキスト", 2: "ボイス", 4: "カテゴリ", 5: "アナウンス", 13: "ステージ", 15: "フォーラム", 16: "メディア" };
 function object(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object" && !Array.isArray(value); }
 export function hiddenSnapshot(guildId: string, tables: { full?: unknown; basic?: unknown } | null,
-    canView: (channel: unknown) => unknown): HiddenSnapshot | null {
+    canView: (channel: unknown, basic: boolean) => unknown): HiddenSnapshot | null {
     if (!/^\d{17,20}$/.test(guildId) || !tables || (!object(tables.full) && !object(tables.basic))) return null;
-    const records = new Map<string, unknown>();
+    const records = new Map<string, { channel: unknown; basic: boolean }>();
     let truncated = false, unknown = 0;
     // Full records win over basic metadata. Inspect at most 2,000 entries per table, with no API requests.
-    for (const table of [tables.basic, tables.full]) {
+    for (const [table, basic] of [[tables.basic, true], [tables.full, false]] as const) {
         if (!object(table)) continue;
         const keys = Object.keys(table);
         if (keys.length > 2000) truncated = true;
         for (const key of keys.slice(0, 2000)) {
             const descriptor = Object.getOwnPropertyDescriptor(table, key);
             if (!descriptor || !("value" in descriptor)) { unknown++; continue; }
-            records.set(key, descriptor.value);
+            records.set(key, { channel: descriptor.value, basic });
         }
     }
     const channels: HiddenChannel[] = [];
     let checked = 0;
-    for (const [id, channel] of records) {
+    for (const [id, { channel, basic }] of records) {
         try {
             if (!object(channel) || channel.guild_id !== guildId || channel.id !== id || !/^\d{17,20}$/.test(id)
                 || typeof channel.type !== "number" || !TYPES.has(channel.type)) continue;
-            const visible = canView(channel);
+            const visible = canView(channel, basic);
             if (visible !== true && visible !== false) { unknown++; continue; }
             checked++;
             if (visible) continue;

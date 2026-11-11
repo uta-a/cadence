@@ -29,7 +29,9 @@ test("full records override basic metadata, unsupported channels are skipped and
     Object.defineProperty(basic, "accessor", { enumerable: true, get() { accessors++; throw new Error("getter"); } });
     const full = { [id]: channel(id, { name: "full", position: 0 }), thread: channel("thread", { type: 11 }),
         wrong: channel("wrong", { guild_id: "another" }) };
-    const snapshot = hiddenSnapshot(guild, { full, basic }, () => false);
+    const kinds = [];
+    const snapshot = hiddenSnapshot(guild, { full, basic }, (value, isBasic) => { kinds.push([value.name, isBasic]); return false; });
+    assert.deepEqual(kinds, [["full", false], ["voice", true]], "basic and full records must use their matching permission API");
     assert.deepEqual(Array.from(snapshot.channels, c => c.name), ["full", "voice"]);
     assert.equal(snapshot.unknown, 1); assert.equal(accessors, 0);
     assert.equal(hiddenSnapshot("bad", { full }, () => false), null);

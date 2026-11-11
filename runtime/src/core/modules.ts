@@ -18,6 +18,7 @@ import { installQuietReplies, pendingReplyState } from "../features/venus/quietR
 import { createVoiceDownload } from "../features/venus/voiceDownload";
 import { installServerInfo } from "../features/venus/serverInfo";
 import { installHiddenChannels } from "../features/venus/hiddenChannels";
+import { createMessageHistory } from "../features/venus/messageHistory";
 import type { JumpReact } from "../features/venus/jumpToTop";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
@@ -46,6 +47,25 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     const modules = new Map<number, unknown>();
     const settings = createSettingsController(status => report(`settings ${status}`));
     const icons: Partial<Record<Platform, unknown>> = {};
+    const history = features.includes("messageHistory") ? createMessageHistory({
+        enabled: () => settings.isExtraEnabled("messageHistory"),
+        owner: () => {
+            const store = dataProperty(modules.get(1392), "default"), get = dataProperty(store, "getCurrentUser");
+            const user = typeof get === "function" ? Reflect.apply(get, store, []) : undefined;
+            return user && typeof user === "object" ? Reflect.get(user, "id") : undefined;
+        },
+        message: (channelId, messageId) => {
+            const store = dataProperty(modules.get(6042), "default"), get = dataProperty(store, "getMessage");
+            return typeof get === "function" ? Reflect.apply(get, store, [channelId, messageId]) : undefined;
+        },
+        guild: channelId => {
+            const store = dataProperty(modules.get(4855), "default"), get = dataProperty(store, "getChannel");
+            const channel = typeof get === "function" ? Reflect.apply(get, store, [channelId]) : undefined;
+            return channel && typeof channel === "object" ? Reflect.get(channel, "guild_id") : undefined;
+        },
+        now: () => Date.now(), onEvent: event => report(`message-history ${event}`),
+    }) : null;
+    if (history) settings.subscribe(() => { if (!settings.isExtraEnabled("messageHistory")) history.clear(); });
     let requireModule: ((id: number) => unknown) | undefined;
     let smokeScheduled = false;
     let uiInstalled = false;
@@ -112,7 +132,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             const descriptor = exports && typeof exports === "object" ? Object.getOwnPropertyDescriptor(exports, "default") : undefined;
             if (!descriptor || !("value" in descriptor) || typeof descriptor.value !== "function") throw new Error("Overview export immutable");
             if (!replaceDefault(exports, original => createSettingsOverview(react as ReactApi, resolveNative, original, settings,
-                value => report(`ui ${value}`), navigationReady, features))) throw new Error("Overview export immutable");
+                value => report(`ui ${value}`), navigationReady, features, history ?? undefined))) throw new Error("Overview export immutable");
             uiInstalled = true;
             report("ui installed");
         } catch (_) { report("ui unavailable"); }
@@ -351,6 +371,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     if (features.includes("quietReplies")) ids.push(10119, 7785);
     if (features.includes("voiceDownload")) ids.push(8165, 11269);
     if (features.includes("serverInfo") || features.includes("hiddenChannels")) ids.push(17772);
+    if (history) ids.push(584, 6042, 1392, 4855);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, 4855, 10659, 11110, 14049, 17499, 9196, 8165, 17494, 8778,
@@ -368,6 +389,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                 } catch (_) { void settings.attach(undefined); }
             }
             if (id === 18400) installUi(exports);
+            if (id === 584 && history && !history.install(exports)) report("message-history unavailable");
             if (id === 1267) report(installAnalyticsBlock(exports) ? "analytics blocked" : "analytics unavailable");
             if (id === 7598 && features.includes("fakeNitro")) report(installSendMessageHook(exports, () => settings.isEnabled("fakeNitro"),
                 () => report("fake-nitro converted"), () => settings.get().nitro)
@@ -426,7 +448,8 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                 if (!ok) report("server-info unavailable");
             }
             if (id === 17772 && features.includes("hiddenChannels")) {
-                let permission: { store: object; can: (...args: unknown[]) => unknown; bit: unknown } | undefined;
+                let permission: { store: object; can: (...args: unknown[]) => unknown;
+                    basic: unknown; bit: unknown } | undefined;
                 const ok = installHiddenChannels(exports, {
                     enabled: () => settings.isExtraEnabled("hiddenChannels"),
                     tables: guildId => {
@@ -438,11 +461,15 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                         const full = dataProperty(channels, "getMutableGuildChannelsForGuild");
                         const basic = dataProperty(channels, "getMutableBasicGuildChannelsForGuild");
                         if (typeof full !== "function" && typeof basic !== "function") return null;
-                        permission = { store, can: can as (...args: unknown[]) => unknown, bit };
+                        permission = { store, can: can as (...args: unknown[]) => unknown,
+                            basic: dataProperty(store, "canBasicChannel"), bit };
                         return { full: typeof full === "function" ? Reflect.apply(full, channels, [guildId]) : undefined,
                             basic: typeof basic === "function" ? Reflect.apply(basic, channels, [guildId]) : undefined };
                     },
-                    canView: channel => permission ? Reflect.apply(permission.can, permission.store, [permission.bit, channel]) : undefined,
+                    canView: (channel, basic) => {
+                        const can = basic ? permission?.basic : permission?.can;
+                        return permission && typeof can === "function" ? Reflect.apply(can, permission.store, [permission.bit, channel]) : undefined;
+                    },
                     show: showNativeInfo, onEvent: event => report(`hidden-channels ${event}`),
                 });
                 if (!ok) report("hidden-channels unavailable");

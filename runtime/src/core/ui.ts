@@ -1,4 +1,6 @@
 import type { SettingsController, SettingsViewState } from "./settings-controller";
+import type { HistorySource } from "../features/venus/messageHistory";
+import { createHistoryPanel } from "../features/venus/historyUi";
 import type { BuildFeature } from "./features";
 import { getLogs } from "./log";
 import { EMOJI_SIZES, PLATFORM_PLACES, DEFAULT_PLATFORM } from "./settings";
@@ -13,6 +15,7 @@ const EXTRA_ROWS: ReadonlyArray<{ id: ExtraKey; title: string; description: stri
     { id: "alwaysTrust", title: "リンクとファイルを常に信頼", description: "外部リンクと危険なファイルの警告を出しません（AlwaysTrust by zt, Trwy に基づく）" },
     { id: "jumpToTop", title: "最初のメッセージへ移動", description: "チャットの先頭へ移動するボタンを出します" },
     { id: "gestures", title: "ダブルタップで返信", description: "ダブルタップで返信、自分のメッセージは編集します（Geastures+ by kmmiio99o の移植）" },
+    { id: "messageHistory", title: "削除・編集前の本文を保持", description: "読み込み済み本文をこの起動中だけ保持します。オフ・再起動・ログアウトで消去します" },
     { id: "hiddenChannels", title: "非表示チャンネルの情報", description: "サーバー長押しから読み込み済みの情報を確認します。履歴取得や移動はしません" },
     { id: "serverInfo", title: "サーバー情報", description: "サーバーアイコンの長押しメニューから、読み込み済みの情報を表示します" },
     { id: "voiceDownload", title: "ボイスメッセージを保存", description: "音声の下に保存ボタンを追加します。変更後はチャンネルを開き直してください" },
@@ -38,13 +41,15 @@ export interface NativeUi { View: unknown; Text: unknown; Pressable: unknown; Sc
 /** Wrap only Overview. Keep its element mounted; the disk page lives in an independent native Modal. */
 export function createSettingsOverview(react: ReactApi, resolveNative: () => NativeUi | null, original: unknown,
     controller: SettingsController, onStatus: (status: string) => void = () => {}, navigationReady: () => boolean = () => true,
-    features: readonly BuildFeature[] = []) {
+    features: readonly BuildFeature[] = [], history?: HistorySource) {
     const colors = { background: "#1E1F22", surface: "#2B2D31", text: "#F2F3F5", secondary: "#B5BAC1", accent: "#5865F2", warning: "#F0B132" };
     const h = (type: unknown, props: unknown, ...children: unknown[]) => react.createElement(type, props, ...children);
     function report(value: string): void { try { onStatus(value); } catch (_) { /* Diagnostics only. */ } }
+    const HistoryPanel = history ? createHistoryPanel(react, resolveNative, history) : null;
     return function DiskSettingsOverview(props: Record<string, unknown>) {
         const [open, setOpen] = react.useState(false);
         const [showLogs, setShowLogs] = react.useState(false);
+        const [showHistory, setShowHistory] = react.useState(false);
         const [state, setState] = react.useState<SettingsViewState>(() => controller.get());
         const [ready, setReady] = react.useState(() => navigationReady());
         react.useEffect(() => {
@@ -158,18 +163,21 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                             disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
                             onValueChange: (value: boolean) => { void controller.setExtra(row.id, value).catch(() => {}); } }));
                 }),
+                history ? button("メッセージ履歴を表示", () => setShowHistory(true), "disk:history:open") : null,
                 text(features.includes("disableAnalytics") ? "Analytics：JS の track 送信を停止しています（Morphe で選択）" : "Analytics：このビルドでは停止していません",
                     { accessibilityLabel: "disk:feature:disableAnalytics", style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
                 text("情報", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginTop: spacing * 2 } }),
                 text("disk 0.0.1 / Discord 352.17", { style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
                 text(`組み込み機能: ${features.length ? features.join(", ") : "なし"}`, { accessibilityLabel: "disk:features", style: { color: colors.secondary, fontSize: 14, marginTop: 8 } }),
-                text("アカウント情報やメッセージは保存しません。", { style: { color: colors.secondary, fontSize: 14, marginTop: 8 } }),
+                text(history ? "設定は端末内に保存します。履歴機能がオンの間だけ本文をメモリに保持し、ファイルには保存しません。" : "アカウント情報やメッセージは保存しません。", { style: { color: colors.secondary, fontSize: 14, marginTop: 8 } }),
                 button(showLogs ? "診断ログを閉じる" : "診断ログを表示", () => setShowLogs(value => !value), "disk:logs"),
                 showLogs ? text(getLogs().join("\n") || "ログはありません", { accessibilityLabel: "disk:log-content", selectable: true,
                     style: { color: colors.secondary, fontSize: 12, fontFamily: "monospace" } }) : null));
         return h(react.Fragment, null, originalElement,
             h(native.View, { key: "disk-entry", style: { display: open ? "none" : "flex", backgroundColor: colors.surface, borderTopWidth: 1, borderColor: "#3F4147" } },
                 button("disk", () => setOpen(true))),
-            h(native.Modal, { key: "disk-modal", visible: open, animationType: "slide", onRequestClose: () => setOpen(false) }, page));
+            h(native.Modal, { key: "disk-modal", visible: open, animationType: "slide", onRequestClose: () => setOpen(false) }, page),
+            HistoryPanel ? h(native.Modal, { key: "disk-history-modal", visible: open && showHistory, animationType: "slide",
+                onRequestClose: () => setShowHistory(false) }, h(HistoryPanel, { onClose: () => setShowHistory(false) })) : null);
     };
 }

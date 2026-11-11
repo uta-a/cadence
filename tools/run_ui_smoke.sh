@@ -6,9 +6,9 @@ SERIAL="${1:?Usage: tools/run_ui_smoke.sh SERIAL ACTION [true|false] [fakeNitro|
 ACTION="${2:?Missing action}"
 EXPECTED="${3:-false}"
 FEATURE="${4:-}"
-case "$ACTION" in open-disk|toggle-compact|check-compact|check-saved|close-disk|show-logs|toggle-feature|check-feature|toggle-platform|check-platform) ;; *) echo 'Unsupported action' >&2; exit 2;; esac
+case "$ACTION" in open-disk|toggle-compact|check-compact|check-saved|close-disk|show-logs|toggle-feature|check-feature|toggle-platform|check-platform|open-history|check-history|clear-history|close-history) ;; *) echo 'Unsupported action' >&2; exit 2;; esac
 case "$EXPECTED" in true|false) ;; *) exit 2;; esac
-case "$FEATURE" in ""|fakeNitro|platformIndicator|quickDelete|noConfirmPin|alwaysTrust|jumpToTop|gestures|gestureTripleDelete|fullImages|readAll|quietReplies|voiceDownload|serverInfo|hiddenChannels|avatars|dmList|dmHeader|memberList|profile|messages) ;; *) exit 2;; esac
+case "$FEATURE" in ""|fakeNitro|platformIndicator|quickDelete|noConfirmPin|alwaysTrust|jumpToTop|gestures|gestureTripleDelete|fullImages|readAll|quietReplies|voiceDownload|serverInfo|hiddenChannels|messageHistory|avatars|dmList|dmHeader|memberList|profile|messages) ;; *) exit 2;; esac
 SDK="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 JAVA="${JAVA_HOME:?Set JAVA_HOME to JDK21}"
 OUT="$ROOT/work/phase3-ui-smoke"

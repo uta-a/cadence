@@ -35,11 +35,21 @@
 | 高画質で画像を読み込む（patch: Load full-quality images） | Load full-quality images（Uncompressed Discord Images by Knewest、HighResProfileImages by Kawtious） | ImageUtils 1498、AvatarUtils 1417 | 実機確認済み: チャットの画像が元ファイルのURLで読み込まれた（`full-images image`）。Venusの場所別・GIFの設定は省き、チャットと全画面とアイコンをまとめて1つのスイッチにした（GIFはDiscordのまま） |
 | すべて既読にする（patch: Read all） | Read all（ReadAllNotificationsButton の移植） | useGuildsBarProps 17778、GuildsBarConstants 17768。押したときに読む: GuildReadStateStore 6846、SortedGuildStore 6733、LurkingStore 4936、GuildStore 4877、ReadStateStore 6803、ReadStateTypes 6737、markGuildsAsRead 15243、Constants 1087、PrivateChannelReadStateStore 15096、PrivateChannelSortStore 7354、MessageRequestUtils 6844、ReadStateActionCreators 7238 | 実機確認済み: サーバー一覧のDMボタンの下にボタンが出る。タップでサーバーの未読マークが消え、長押し→DMで未読バッジ4件が消えることを確認（`read-all cleared`）。設定オフ／オンも再起動なしで反映。未読がないときは`nothing`になる。Venusの長押しシートとトーストは使わず、AndroidのAlert（ボタン3つ、外側タップで閉じる）と、消せたときの✓表示にした |
 
+### Keep deleted messages（起動中の本文履歴）
+
+- `messageHistory.ts` はVenusの`rememberEdit`、`rememberDeleted`、`dispatchEvent`を参考にした移植。個別patch `Keep deleted messages` と初期オフの`messageHistory`設定。専用画面は`historyUi.ts`。
+- **削除済みの吹き出しをチャット内へ復元する機能ではない。** 削除・編集前の読み込み済み本文をdiskの履歴画面へ保持する。Dispatcher **584**のJS `addInterceptor`で処理前に読み取り、常にfalseを返してDiscordの元アクションをそのまま通す。MessageStoreの内容や削除・未読・通知処理を書き換えない。
+- メモリ内のみで最大200件、本文は各4,000文字、合計262,144 UTF-16単位まで。一括削除も200件までを記録。画像・音声・添付ファイルの実体は保持しない。編集は`edited_timestamp`があり、本文が変わったときだけ記録する。
+- 機能オフ、ログアウト、アカウント変更時は消去。プロセス再起動で復元しない。チャンネル削除と把握できているサーバーからの離脱でも対応する履歴を消す。保持件数の上限で古いものを捨てる。手動の全消去も可能。
+- pipaで自分の試験メッセージを送信・編集・削除し、ビューアで編集前`disk-history-before`、編集後・削除前`disk-history-beforeafter`を確認。履歴2件→一括消去→0件を確認。別の試験メッセージを削除して再び履歴ありを確認してから強制停止・起動し、0件になることも確認した。試験後は機能をオフへ戻した。
+- `message-history edited` / `deleted`を確認。ログには本文、名前、IDを出さない。証跡は`work/phase4-device/history-edited-deleted.png`。単体テストではアカウント変更、ログアウト、容量制限、例外時も元処理を通すこと、ビューアの消去とフック数を確認した。相手アカウントからの削除通知・実ログアウト・一括削除の実機試験は未実施。
+- Node **143件**、Python **24件**、型検査、Gradleテスト、smoke APKビルド成功。Venusのディスク永続化・チャットへの再挿入・添付保持は未移植。
+
 ### Show hidden channels（読み取り専用の情報表示）
 
 - `runtime/src/features/venus/hiddenChannels.ts` はVenusの`hiddenMetadata`、`hiddenDirectory`、`hiddenDetails`を参考にした安全側の移植。個別patch `Show hidden channels` と初期オフの`hiddenChannels`設定。
 - **Venusと同じネイティブ一覧への混在表示ではない。** サーバー長押しメニューに項目を追加し、読み込み済みのメタデータをダイアログへ表示する。PermissionStore.can、標準チャンネル一覧、未読集計、入室、履歴取得は一切変更しない。
-- ユーザー操作時のみChannelStore **4855**のfull/basicテーブルとPermissionStore **4935**を読む。共有Constants **1098**の実際の`Permissions.VIEW_CHANNEL`を使い、権限が明確にfalseの項目だけを表示する。判定不能・例外は非表示として推測しない。
+- ユーザー操作時のみChannelStore **4855**のfull/basicテーブルとPermissionStore **4935**を読む。共有Constants **1098**の実際の`Permissions.VIEW_CHANNEL`を使い、権限が明確にfalseの項目だけを表示する。basic専用レコードには`canBasicChannel`を使い、APIがなければ判定不能として省く。判定不能・例外は非表示として推測しない。
 - チャンネル名が未取得ならその旨を表示。表示40件、走査は各テーブル2,000件まで。DM・スレッド・別サーバーの項目は含めない。追加通信・チャンネルへの移動ボタン・メッセージ取得はなし。
 - pipaで初期オフ・設定保存・メニュー・空の情報画面を確認。試験サーバーに実際の拒否権限の項目がないため、**非表示項目を含む実機の表示は未確認**。単体テストでは明確な拒否、未知の判定、full優先、件数制限、既存処理の維持を確認した。
 - `hidden-channels opened`、FATAL/TypeError/ReferenceErrorなし。証跡は`work/phase4-device/hidden-channel-metadata.png`。Node **135件**、Python **24件**、型検査、Gradleテスト、smoke APKビルド成功。
