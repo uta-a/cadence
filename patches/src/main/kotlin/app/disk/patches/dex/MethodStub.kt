@@ -8,6 +8,8 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.instruction.BuilderInstruction10x
 import com.android.tools.smali.dexlib2.iface.ClassDef
 import com.android.tools.smali.dexlib2.iface.Method
+import com.android.tools.smali.dexlib2.iface.instruction.OffsetInstruction
+import com.android.tools.smali.dexlib2.iface.instruction.SwitchPayload
 
 /**
  * Makes a `void` method return immediately (docs/PHASE4.md, Privacy). The original body is kept as unreachable
@@ -22,6 +24,8 @@ internal data class MethodStub(
     val parameters: List<String>,
     val accessFlags: Int,
     val digest: String,
+    /** Instruction count of the original body; a stubbed body has exactly one more. */
+    val instructions: Int,
 ) {
     enum class State { ORIGINAL, STUBBED }
 
@@ -40,6 +44,8 @@ internal data class MethodStub(
         if (isStubbed(method)) return State.STUBBED
         val actual = BundlePin.semanticDigest(method)
         if (actual != digest) throw PatchException("$type->$name does not match Discord $DISCORD_VERSION: $actual")
+        // The leading return-void is inserted at index 0: nothing may jump back there or start a try block there.
+        if (entryIsTargeted(method)) throw PatchException("$type->$name branches to its first instruction")
         return State.ORIGINAL
     }
 
@@ -56,7 +62,32 @@ internal data class MethodStub(
 
     private fun isStubbed(method: Method): Boolean {
         val implementation = method.implementation ?: throw PatchException("$type->$name has no code")
-        return implementation.instructions.firstOrNull()?.opcode == Opcode.RETURN_VOID && implementation.instructions.count() > 1
+        return implementation.instructions.firstOrNull()?.opcode == Opcode.RETURN_VOID &&
+            implementation.instructions.count() == instructions + 1
+    }
+
+    internal fun entryIsTargeted(method: Method): Boolean {
+        val implementation = method.implementation ?: return false
+        if (implementation.tryBlocks.any { block -> block.startCodeAddress == 0 || block.exceptionHandlers.any { it.handlerCodeAddress == 0 } })
+            return true
+        var pc = 0
+        val switches = mutableMapOf<Int, Int>()
+        val payloads = mutableMapOf<Int, SwitchPayload>()
+        val targets = mutableSetOf<Int>()
+        for (instruction in implementation.instructions) {
+            if (instruction is OffsetInstruction) {
+                targets += pc + instruction.codeOffset
+                if (instruction.opcode == Opcode.PACKED_SWITCH || instruction.opcode == Opcode.SPARSE_SWITCH)
+                    switches[pc + instruction.codeOffset] = pc
+            }
+            if (instruction is SwitchPayload) payloads[pc] = instruction
+            pc += instruction.codeUnits
+        }
+        for ((at, payload) in payloads) {
+            val origin = switches[at] ?: continue
+            payload.switchElements.forEach { targets += origin + it.offset }
+        }
+        return 0 in targets
     }
 
     companion object {
@@ -82,7 +113,7 @@ internal object PrivacyStubs {
         MethodStub(
             "Lio/sentry/android/core/e1;", "b",
             listOf(CONTEXT, "Lio/sentry/android/core/k0;", "Lio/sentry/c4;"), PUBLIC_STATIC,
-            "4df256255ab533d5d3bcc5184a23bb542a62a958f8be8ee11b386f7d82070181",
+            "4df256255ab533d5d3bcc5184a23bb542a62a958f8be8ee11b386f7d82070181", 75,
         ),
     )
 
@@ -91,17 +122,17 @@ internal object PrivacyStubs {
         MethodStub(
             "Lcom/appsflyer/internal/AFa1uSDK;", "start",
             listOf(CONTEXT, "Ljava/lang/String;", "Lcom/appsflyer/attribution/AppsFlyerRequestListener;"), PUBLIC_FINAL,
-            "e74469792801ddb56819f0d545b0b8be4eb62052174e52fb9142f15929994c04",
+            "e74469792801ddb56819f0d545b0b8be4eb62052174e52fb9142f15929994c04", 200,
         ),
         MethodStub(
             "Lcom/appsflyer/internal/AFa1uSDK;", "logEvent",
             listOf(CONTEXT, "Ljava/lang/String;", "Ljava/util/Map;"), PUBLIC_FINAL,
-            "761b4ecdc15342e11bc21dfdf55f3e288397ffe1fde0b686ee400eebb561edcd",
+            "761b4ecdc15342e11bc21dfdf55f3e288397ffe1fde0b686ee400eebb561edcd", 8,
         ),
         MethodStub(
             "Lcom/appsflyer/internal/AFa1uSDK;", "logEvent",
             listOf(CONTEXT, "Ljava/lang/String;", "Ljava/util/Map;", "Lcom/appsflyer/attribution/AppsFlyerRequestListener;"), PUBLIC_FINAL,
-            "4a9aabd2bb28e6f84ec12396e2464049bee6b15814815c72ef62676b1bb562b7",
+            "4a9aabd2bb28e6f84ec12396e2464049bee6b15814815c72ef62676b1bb562b7", 97,
         ),
     )
 }

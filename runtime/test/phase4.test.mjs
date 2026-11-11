@@ -335,7 +335,7 @@ function stickerFixture() {
     };
     let enabled = true, masked = false, converted = 0;
     const ok = installStickerHooks(sendability, { default: target }, () => enabled, () => ({ emojiSize: 48, maskedLinks: masked }), () => converted++);
-    return { ok, sendability, target, sends, stickerSends, stickerUrl, setEnabled: v => { enabled = v; }, setMasked: v => { masked = v; },
+    return { ok, sendability, target, sends, stickerSends, stickerUrl, results, setEnabled: v => { enabled = v; }, setMasked: v => { masked = v; },
         get converted() { return converted; } };
 }
 const sticker = (id, format_type = 1, name = "pog") => ({ id, format_type, name, guild_id: "1" });
@@ -416,4 +416,31 @@ test("picker unlock bypasses only the Nitro check, only for CHAT, only while ena
     assert.equal(installEmojiPickerUnlock({ default: target }, { EmojiIntention: {} }, () => true), false);
     assert.equal(installEmojiPickerUnlock({ default: Object.freeze({ getEmojiUnavailableReason() {}, getEmojiUnavailableReasons() {} }) },
         { EmojiIntention: { CHAT: 6 } }, () => true), false);
+});
+
+test("a remembered sticker is forgotten once Discord itself no longer needs Nitro for it", () => {
+    const f = stickerFixture();
+    assert.equal(f.sendability.getStickerSendability(sticker("10")), 0);
+    assert.equal(f.target.sendStickers("ch", ["10"]), "message-result", "linked while it needs Nitro");
+    f.results.set("10", 0); // Discord now answers SENDABLE by itself, e.g. after subscribing
+    assert.equal(f.sendability.getStickerSendability(sticker("10")), 0);
+    assert.equal(f.target.sendStickers("ch", ["10"]), "sticker-result", "sent as a real sticker again");
+
+    const g = stickerFixture();
+    g.sendability.getStickerSendability(sticker("11"));
+    g.setEnabled(false);
+    assert.equal(g.sendability.getStickerSendability(sticker("11")), 1);
+    g.setEnabled(true);
+    assert.equal(g.target.sendStickers("ch", ["11"]), "sticker-result", "a check while the feature was off forgets it");
+});
+
+test("masked sticker labels keep only plain characters", () => {
+    const f = stickerFixture();
+    f.setMasked(true);
+    f.sendability.getStickerSendability(sticker("10", 1, "@everyone `x` *b* <#1>"));
+    f.target.sendStickers("ch", ["10"]);
+    assert.equal(f.sends[0][1][1].content, `[everyone x b 1](${f.stickerUrl("10", "png")})`);
+    f.sendability.getStickerSendability(sticker("11", 1, "【】!!"));
+    f.target.sendStickers("ch", ["11"]);
+    assert.equal(f.sends[1][1][1].content, `[sticker](${f.stickerUrl("11", "png")})`);
 });

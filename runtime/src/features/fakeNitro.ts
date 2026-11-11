@@ -136,9 +136,14 @@ export function installStickerHooks(sendability: unknown, actions: unknown, enab
     function getStickerSendability(this: unknown, ...args: unknown[]): unknown {
         const result = Reflect.apply(originalSendability, this, args);
         try {
-            if (result !== PREMIUM || !enabled()) return result;
             const sticker = args[0] as Record<string, unknown> | null;
             const id = sticker && typeof sticker === "object" ? sticker.id : undefined;
+            // Forget a sticker as soon as Discord's own answer is no longer "needs Nitro" (or the feature is off),
+            // so a sticker the user can now send is sent as a real sticker again.
+            if (result !== PREMIUM || !enabled()) {
+                if (typeof id === "string") remembered.delete(id);
+                return result;
+            }
             const extension = sticker && typeof sticker.format_type === "number" ? STICKER_LINK_FORMATS[sticker.format_type] : undefined;
             if (typeof id !== "string" || !/^[0-9]{1,25}$/.test(id) || !extension) return result;
             remembered.delete(id);
@@ -156,7 +161,9 @@ export function installStickerHooks(sendability: unknown, actions: unknown, enab
                 const masked = options().maskedLinks === true;
                 const links = (stickerIds as string[]).map(id => {
                     const sticker = remembered.get(id)!, url = stickerUrl(id, sticker.extension);
-                    return masked ? `[${sticker.name.replace(/[[\]()\\]/g, "")}](${url})` : url;
+                    // Sticker names are chosen by other people: keep a plain allowlist so no markdown or mention survives.
+                    const label = sticker.name.replace(/[^A-Za-z0-9_ -]/g, "").trim().slice(0, 64) || "sticker";
+                    return masked ? `[${label}](${url})` : url;
                 }).join("\n");
                 const text = content.trim() ? `${content}\n${links}` : links;
                 const send = target && typeof target === "object" ? Reflect.get(target, "sendMessage") : undefined;

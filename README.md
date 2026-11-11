@@ -68,7 +68,7 @@ HBC の実行テストには `work/hermes/hermes`、実バンドルの検証に�
 python3 -I -m unittest discover -s tools/tests -v
 ```
 
-ローカル検証結果: Kotlin **55件成功（skipなし）**、解析ツール **20件成功（入力を指定した場合）**、ランタイム **94件成功**、TypeScript型検査・HBC98・MPPビルド成功。
+ローカル検証結果: Kotlin **57件成功（skipなし）**、解析ツール **20件成功（入力を指定した場合）**、ランタイム **96件成功**、TypeScript型検査・HBC98・MPPビルド成功。
 解析ツールの全件実行には `HERMESC`・`HERMES_SOURCE`・`DISK_BUNDLE` の指定が必要（tools の README を参照）。
 モジュール ID 表はすべて `verified: false`（一覧の記載だけで機能フックを承認しない）。実機での観測と、各機能の限定的な実行確認は別の[実機receipt](runtime/modules/352.17-observed.json)に記録し、機能はそれぞれ実行時に形を検査してから接続する。単一のRN初期化gateは採用せず、依存ごとに接続条件を確認する。
 

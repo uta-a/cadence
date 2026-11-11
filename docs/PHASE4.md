@@ -25,8 +25,9 @@ Fake Nitro・Platform Indicator・Privacy（JS analyticsの停止と広告IDの�
 - `MessageActions`（module 7598）の`default.sendMessage`を、元関数を保持した関数で差し替える。
 - Discordのparserは、送れない絵文字を`message.invalidEmojis`に入れつつ`content`には`<:name:id>`を残す。その絵文字だけをCDNの画像リンク（`https://cdn.discordapp.com/emojis/{id}.{webp|gif}?size=48&name={name}`）に置き換え、`invalidEmojis`から除く。使える絵文字はそのまま送る。
 - 前後に空白がなければ空白を補う。変換後が2000文字を超える場合、形が想定外の場合、設定が読めない場合は、元のmessageのまま元関数を呼ぶ。呼び出し元のmessageは書き換えない。Discordが内部で`sendMessage`を再度呼んでも、2回目は変換しない（冪等）。
-- **設定**: 画像サイズ（48/64/96/128）と名前付きリンク（`[name](URL)`）を、disk設定画面のFake Nitroの下で選べる。設定ファイルはschema 2のまま、任意の`nitro`オブジェクトとして保存する（旧ビルドはallowlistのキーしか読まないので無視する）。不正な値は読み込み時に既定値（48・オフ）に戻し、保存時は拒否する。
-- **スタンプ**（`installStickerHooks`）: スタンプピッカー（function 105918）は、`getStickerSendability`（module 7475）の結果が`SENDABLE`のときだけ送信へ進む。Fake Nitroがオンのとき、Nitro限定（`SENDABLE_WITH_PREMIUM`）でPNG・APNG・GIF形式のスタンプだけを`SENDABLE`と返し、そのIDを最大64件記憶する。`sendStickers`は、送るスタンプがすべて記憶済みのときだけ、`https://media.discordapp.net/stickers/{id}.{png|gif}?size=160`を通常のメッセージとして送る。それ以外（Lottie、送信不可、混在、文字列でない本文、オフ）はDiscordの元の処理のまま。
+- **設定**: 画像サイズ（48/64/96/128）と名前付きリンク（`[name](URL)`）を、disk設定画面のFake Nitroの下で選べる。設定ファイルはschema 2のまま、任意の`nitro`オブジェクトとして保存する（旧ビルドはallowlistのキーしか読まないので無視する。旧ビルドで設定を保存すると`nitro`は消え、既定値に戻る）。不正な値は読み込み時に既定値（48・オフ）に戻し、保存時は拒否する。
+- **スタンプ**（`installStickerHooks`）: スタンプピッカー（function 105918）は、`getStickerSendability`（module 7475）の結果が`SENDABLE`のときだけ送信へ進む。Fake Nitroがオンのとき、Nitro限定（`SENDABLE_WITH_PREMIUM`）でPNG・APNG・GIF形式のスタンプだけを`SENDABLE`と返し、そのIDを最大64件記憶する。`sendStickers`は、送るスタンプがすべて記憶済みのときだけ、`https://media.discordapp.net/stickers/{id}.{png|gif}?size=160`を通常のメッセージとして送る。それ以外（Lottie、送信不可、混在、文字列でない本文、オフ）はDiscordの元の処理のまま。Discord自身が送信可能と答えるようになったスタンプ（Nitro加入後など）や、オフの間に判定されたスタンプは記憶から外し、本物のスタンプとして送る。名前付きリンクのラベルはスタンプ名から英数字・`_`・`-`・空白だけを残し（他人が付けた名前でメンションや書式が入らないように）、空なら`sticker`にする。
+  - 制約: 偽装したスタンプと通常のスタンプを一度に送る場合と、本文が文字列でない場合は元の送信に回すので、サーバーに拒否されて何も起きないように見える。ピッカーでは、偽装したスタンプのロック表示が消え、並び順が変わることがある。
 - **ピッカー**（`installEmojiPickerUnlock`）: 絵文字ピッカーはmodule 4953の`default.getEmojiUnavailableReason(s)`でロックを判定する。Fake Nitroがオンで、用途が`EmojiIntention.CHAT`のときだけ、`bypassPremiumEmojiEntitlement: true`を付けた引数のコピーで元関数を呼ぶ（Nitroの判定だけを省き、サーバー側の制限は残る）。送信時の判定（parserの`isEmojiPremiumLocked`）は同じ実装をclosure経由で呼ぶのでこの影響を受けず、選んだ絵文字は送信時にリンクへ変換される。リアクションとカスタムステータスはリンクにできないので対象外。
 - **実機未確認**: スタンプとピッカーは、ログインした端末での確認が必要。テスト端末XIG07（未ログイン）では起動とエラー0件までを確認した。
 
@@ -46,7 +47,7 @@ Fake Nitro・Platform Indicator・Privacy（JS analyticsの停止と広告IDの�
 - **広告ID**（`patches/.../dex/AdvertisingId.kt`）: `AdsModule.getGoogleAdvertisingId(Promise)`の本体を、既存の`resolveWithNullId(promise)`呼び出しと`return-void`に置き換える。置き換え前に、元の命令列と`resolveWithNullId`の命令列が352.17と完全に一致することを確かめ、一致しなければpatchを止める。
 - **Sentry**（`Disable crash reporting`、`patches/.../dex/MethodStub.kt`）: Manifestの自動初期化・JSからの`RNSentryModuleImpl.initNativeSdk`・Discord独自のcrash reporting（`Lu5/b;->call()`）の3経路は、すべてSDKの`Lio/sentry/android/core/e1;->b(Context, k0, c4)V`に合流する。この先頭に`return-void`を入れ、SDKを初期化しない（Sentryの静的APIは既定の何もしない状態のまま）。元の本体は到達しないコードとして残す。
 - **AppsFlyer**（`Disable install attribution`）: `start`の全オーバーロードが合流する`AFa1uSDK.start(Context, String, AppsFlyerRequestListener)`と、`logEvent`の2つのオーバーロードの先頭に`return-void`を入れる。`init`は送信しないので残す。
-- どちらも、対象メソッドの命令列・レジスタ・try blockのSHA-256を352.17の実測値と照合してから書き換え、違えばpatchを止める。`bundle pin`が照合しているメソッド（`Ld6/a;->invoke()`・`Lu5/b;->call()`等）には触れない。
+- どちらも、対象メソッドの命令列・レジスタ・try blockのSHA-256と命令数を352.17の実測値と照合してから書き換え、違えばpatchを止める。先頭の命令へ分岐やtry blockが入るメソッドは拒否する（先頭に入れた`return-void`へ戻ってくる経路を作らないため）。適用済みと判定するのは、先頭が`return-void`で命令数がちょうど元より1つ多い場合だけ。`bundle pin`が照合しているメソッド（`Ld6/a;->invoke()`・`Lu5/b;->call()`等）には触れない。
 - **通信での確認（2026-11-11、接続先のホスト名のみ）**: ユーザーの判断により、証明書は入れず、Mac上のCONNECTプロキシで接続先の`host:port`だけを記録した（中身は復号しない）。端末はログインしていないテスト端末XIG07（Android 16）で、端末のシステムプロキシを一時的に設定し、確認後に元の`null`へ戻した。同じ署名鍵で、privacy系patchなし（`disk`のみ）の対照ビルドと全patchビルドを順に上書きし、それぞれ起動から75秒間を比べた。
   - 対照ビルド: `o64374.ingest.sentry.io`・`o4505093097586688.ingest.us.sentry.io`（Sentry）と、`*.appsflyersdk.com`の5ホスト（`launches`・`conversions`・`attr`・`dlsdk`・`cdn-settings`）へ接続した。
   - 全patchビルド: Sentry・AppsFlyer宛ての接続は0件。Discordの接続は`discord.com`・`gateway.discord.gg`・`cdn.discordapp.com`・`latency.discord.media`のみ。
@@ -71,6 +72,10 @@ smoke版APK（SHA-256 `19850e32a1d24675bd603da8633b096b2a14739be4da2dc5167412b96
 
 ## 独立レビュー
 
+2回目（ブランチ`feat/phase4-remaining`）: P1なし。P2のスタンプの記憶が残り続ける点と、名前付きリンクのラベルの無害化を修正した。P3のうち、適用済み判定を命令数で厳密にすることと、先頭命令への分岐の拒否をコードとテストに入れ、スタンプの制約と旧ビルドでの`nitro`の扱いを記録した。
+
+1回目:
+
 読み取り専用の独立レビューでP1（必須）の指摘はなかった。P2のうち、起動直後に描画されたAvatarにバッジが出ない点と、元のmemoの静的プロパティが失われる点を修正した。機能選択の受け渡しは実際のAPKで確認済みであることと、保存失敗時の扱い、analyticsの停止範囲を資料と画面の文言に反映した。オフ時は元のAvatar要素をそのまま返す（レイアウトを変えない）ため、オン・オフの切り替え時にはAvatarが再マウントされる。
 
 ## 端末に残した変更
@@ -81,8 +86,8 @@ smoke版APK（SHA-256 `19850e32a1d24675bd603da8633b096b2a14739be4da2dc5167412b96
 
 ## ローカル検証
 
-- Node: 94件成功（変換・冪等性・失敗時の元動作・hook数・機能別capture・設定画面の機能行を含む）。TypeScript型検査成功。
-- Kotlin: 55件成功（Sentry・AppsFlyerの命令列ガードと置き換え、広告IDの命令列ガード・置き換え・DEX往復・改変の拒否、機能選択のcontext分離を含む）。
+- Node: 96件成功（変換・冪等性・失敗時の元動作・hook数・機能別capture・設定画面の機能行を含む）。TypeScript型検査成功。
+- Kotlin: 57件成功（Sentry・AppsFlyerの命令列ガードと置き換え、広告IDの命令列ガード・置き換え・DEX往復・改変の拒否、機能選択のcontext分離を含む）。
 - Python: 20件成功（追加したmoduleの登録位置・命令境界を実バンドルで照合）。
 - Kotlinの実DEXを使うテストは、`work/352.17/dex`がない環境ではskipされる。この環境ではskip 0件。
 - 機能選択の受け渡しは、Morphe CLIで実際にビルドしたAPKで確認した（単体テストは`Any()`のcontextを使うため）。通常版APKでpreludeを復元し、生成したランタイムに`["fakeNitro", "platformIndicator", "disableAnalytics"]`を埋めたものと完全一致すること、smoke引数が`!1`であること、DEXの置き換えと`bundle pin`を確認した。

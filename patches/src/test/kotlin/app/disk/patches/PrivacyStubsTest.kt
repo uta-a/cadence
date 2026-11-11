@@ -101,6 +101,24 @@ class PrivacyStubsTest {
     }
 
     @Test
+    fun `no target is entered by a branch or try block at its first instruction`() = withDex { classOf ->
+        for (target in all) {
+            val method = target.find(classOf)
+            assertEquals(false, target.entryIsTargeted(method), "${target.type}->${target.name}")
+            assertEquals(target.instructions, method.implementation!!.instructions.count())
+        }
+    }
+
+    @Test
+    fun `a body that only starts with return-void but has another length is not treated as stubbed`() = withDex { classOf ->
+        val target = PrivacyStubs.appsFlyer[1]
+        val method = MutableMethod(target.find(classOf))
+        method.implementation!!.addInstruction(0, BuilderInstruction10x(Opcode.RETURN_VOID))
+        method.implementation!!.addInstruction(1, BuilderInstruction10x(Opcode.NOP))
+        assertFailsWith<PatchException> { target.classify(method) }
+    }
+
+    @Test
     fun `the stubs do not touch methods pinned by the bundle pin`() {
         val pinned = setOf("Ld6/a;", "Ldl/o;", "Lu5/b;", "Lw6/z;", "Lcom/discord/bundle_updater/BundleUpdaterManager;")
         assertTrue(all.none { it.type in pinned })
