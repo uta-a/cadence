@@ -220,6 +220,7 @@
   "notObserved": [
     "ScreenIcon",
     "MobilePhoneIcon",
-    "VrHeadsetIcon"
+    "VrHeadsetIcon",
+    "StickerSendability"
   ]
 }

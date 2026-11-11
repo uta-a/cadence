@@ -99,3 +99,79 @@ export function installSendMessageHook(exports: unknown, enabled: () => boolean,
     Object.defineProperty(target, "sendMessage", { ...descriptor, value: sendMessage });
     return true;
 }
+
+// Stickers (docs/PHASE4.md). The sticker picker (function 105918) passes a sticker on to sending only when
+// `getStickerSendability` (module 7475, read from the export at call time) returns SENDABLE. While Fake Nitro is on,
+// a Nitro-only sticker in an image format is reported as SENDABLE and remembered; `sendStickers` then sends a link
+// for remembered stickers instead. Everything else keeps Discord's own result and the original send.
+
+const STICKER_LINK_FORMATS: Readonly<Record<number, string>> = Object.freeze({ 1: "png", 2: "png", 4: "gif" });
+const REMEMBERED_LIMIT = 64;
+
+export function stickerUrl(id: string, extension: string): string {
+    return `https://media.discordapp.net/stickers/${id}.${extension}?size=160`;
+}
+
+interface Remembered { readonly extension: string; readonly name: string; }
+
+export function installStickerHooks(sendability: unknown, actions: unknown, enabled: () => boolean,
+    options: () => ConvertOptions = () => DEFAULT_OPTIONS, onConverted: () => void = () => {}): boolean {
+    if (!sendability || typeof sendability !== "object" || !actions || typeof actions !== "object") return false;
+    const enumHolder = Object.getOwnPropertyDescriptor(sendability, "StickerSendability");
+    const values = enumHolder && "value" in enumHolder ? enumHolder.value as Record<string, unknown> : undefined;
+    const SENDABLE = values?.SENDABLE, PREMIUM = values?.SENDABLE_WITH_PREMIUM;
+    if (typeof SENDABLE !== "number" || typeof PREMIUM !== "number") return false;
+    const getter = Object.getOwnPropertyDescriptor(sendability, "getStickerSendability");
+    const holder = Object.getOwnPropertyDescriptor(actions, "default");
+    const target = holder && "value" in holder ? holder.value : undefined;
+    const sender = target && typeof target === "object" ? Object.getOwnPropertyDescriptor(target, "sendStickers") : undefined;
+    for (const descriptor of [getter, sender])
+        if (!descriptor || !("value" in descriptor) || typeof descriptor.value !== "function" || (!descriptor.writable && !descriptor.configurable))
+            return false;
+    const originalSendability = getter!.value as (...args: unknown[]) => unknown;
+    const originalSend = sender!.value as (...args: unknown[]) => unknown;
+    const remembered = new Map<string, Remembered>();
+    let reported = false;
+
+    function getStickerSendability(this: unknown, ...args: unknown[]): unknown {
+        const result = Reflect.apply(originalSendability, this, args);
+        try {
+            if (result !== PREMIUM || !enabled()) return result;
+            const sticker = args[0] as Record<string, unknown> | null;
+            const id = sticker && typeof sticker === "object" ? sticker.id : undefined;
+            const extension = sticker && typeof sticker.format_type === "number" ? STICKER_LINK_FORMATS[sticker.format_type] : undefined;
+            if (typeof id !== "string" || !/^[0-9]{1,25}$/.test(id) || !extension) return result;
+            remembered.delete(id);
+            remembered.set(id, { extension, name: typeof sticker!.name === "string" ? sticker!.name : "sticker" });
+            if (remembered.size > REMEMBERED_LIMIT) remembered.delete(remembered.keys().next().value as string);
+            return SENDABLE;
+        } catch (_) { return result; }
+    }
+
+    function sendStickers(this: unknown, ...args: unknown[]): unknown {
+        try {
+            const [channelId, stickerIds, content = "", options_, tts = false] = args;
+            if (enabled() && Array.isArray(stickerIds) && stickerIds.length > 0 && typeof content === "string" &&
+                stickerIds.every(id => typeof id === "string" && remembered.has(id))) {
+                const masked = options().maskedLinks === true;
+                const links = (stickerIds as string[]).map(id => {
+                    const sticker = remembered.get(id)!, url = stickerUrl(id, sticker.extension);
+                    return masked ? `[${sticker.name.replace(/[[\]()\\]/g, "")}](${url})` : url;
+                }).join("\n");
+                const text = content.trim() ? `${content}\n${links}` : links;
+                const send = target && typeof target === "object" ? Reflect.get(target, "sendMessage") : undefined;
+                if (text.length <= MAX_CONTENT_LENGTH && typeof send === "function") {
+                    const message = { content: text, tts: tts === true, invalidEmojis: [], validNonShortcutEmojis: [] };
+                    const result = Reflect.apply(send, target, [channelId, message, undefined, options_]);
+                    if (!reported) { reported = true; try { onConverted(); } catch (_) { /* Diagnostics only. */ } }
+                    return result;
+                }
+            }
+        } catch (_) { /* Fall through to Discord's own send. */ }
+        return Reflect.apply(originalSend, this, args);
+    }
+
+    Object.defineProperty(sendability, "getStickerSendability", { ...getter, value: getStickerSendability });
+    Object.defineProperty(target, "sendStickers", { ...sender, value: sendStickers });
+    return true;
+}

@@ -24,4 +24,5 @@ export const MODULE_PROBES: readonly ModuleProbe[] = [
     { name: "MobilePhoneIcon", id: 7085, paths: ["MobilePhoneIcon"] },
     { name: "GlobeEarthIcon", id: 9524, paths: ["GlobeEarthIcon"] },
     { name: "VrHeadsetIcon", id: 16280, paths: ["VrHeadsetIcon"] },
+    { name: "StickerSendability", id: 7475, paths: ["StickerSendability", "getStickerSendability"] },
 ];

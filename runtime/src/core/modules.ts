@@ -4,7 +4,7 @@ import { createSettingsOverview } from "./ui";
 import type { NativeUi, ReactApi } from "./ui";
 import type { ModuleCapture } from "../diagnostics/observer";
 import { installAnalyticsBlock } from "../features/analytics";
-import { installSendMessageHook } from "../features/fakeNitro";
+import { installSendMessageHook, installStickerHooks } from "../features/fakeNitro";
 import { createPlatformAvatar } from "../features/platformIndicator";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
@@ -36,6 +36,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     let requireModule: ((id: number) => unknown) | undefined;
     let smokeScheduled = false;
     let uiInstalled = false;
+    let stickersInstalled = false;
     let native: NativeUi | null | undefined;
     function report(value: string): void { try { onStatus(value); } catch (_) { /* Fixed diagnostics only. */ } }
     function navigationReady(): boolean {
@@ -138,7 +139,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     }
     const ids = [19, 17, 5183, 7522, 1164, 18400];
     if (features.includes("disableAnalytics")) ids.push(1267);
-    if (features.includes("fakeNitro")) ids.push(7598);
+    if (features.includes("fakeNitro")) ids.push(7598, 7475);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
     const captures: ModuleCapture[] = ids.map(id => ({ id,
         onExports(exports, context) {
@@ -157,6 +158,11 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             if (id === 7598) report(installSendMessageHook(exports, () => settings.isEnabled("fakeNitro"),
                 () => report("fake-nitro converted"), () => settings.get().nitro)
                 ? "fake-nitro installed" : "fake-nitro unavailable");
+            if ((id === 7598 || id === 7475) && modules.has(7598) && modules.has(7475) && !stickersInstalled) {
+                stickersInstalled = true;
+                report(installStickerHooks(modules.get(7475), modules.get(7598), () => settings.isEnabled("fakeNitro"),
+                    () => settings.get().nitro, () => report("fake-nitro sticker-linked")) ? "fake-nitro stickers installed" : "fake-nitro stickers unavailable");
+            }
             if (id === 15449) installPlatformIndicator(exports);
             const icon = ICON_MODULES.find(item => item.id === id);
             if (icon) {

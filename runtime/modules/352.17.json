@@ -686,6 +686,48 @@
     "confidence": "high",
     "verified": false
   },
+  "StickerSendability": {
+    "id": 7475,
+    "factory": 7476,
+    "shape": [
+      "StickerSendability",
+      "getStickerSendability"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 241176,
+        "detail": "module 7475 -> factory 7476"
+      },
+      {
+        "kind": "construction",
+        "function": 7476,
+        "offset": 34,
+        "detail": "CreateClosure 42462 getStickerSendability(sticker, user, channel)"
+      },
+      {
+        "kind": "export",
+        "function": 7476,
+        "offset": 222,
+        "detail": "PutByIdStrict StickerSendability enum (SENDABLE 0, SENDABLE_WITH_PREMIUM 1, NONSENDABLE 2, SENDABLE_WITH_BOOSTED_GUILD 3); source modules/stickers/StickerSendability.tsx"
+      },
+      {
+        "kind": "export",
+        "function": 7476,
+        "offset": 228,
+        "detail": "PutByIdStrict getStickerSendability (plain data)"
+      },
+      {
+        "kind": "consumer",
+        "function": 105918,
+        "offset": 28,
+        "detail": "Sticker picker onPress reads getStickerSendability from the export at call time; only SENDABLE reaches onPressSticker at 685"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
   "_missing": {
     "runtimeVerification": "All14 descriptor identities have device observations. verified=false reserves full feature-hook approval; core Overview UI and owned settings write/readback/restart have separate capability evidence. Probes never evaluated accessors; UI lazy getters were evaluated only after navigation readiness. No store/send methods were called; unimplemented feature contracts and fault durability remain unverified.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",

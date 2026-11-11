@@ -230,7 +230,7 @@ test("feature captures exist only for built features, and install hooks on natur
     assert.deepEqual(ids(createCoreModules(() => {})), [17, 19, 1164, 5183, 7522, 18400]);
     const events = [];
     const core = createCoreModules(value => events.push(value), false, ["fakeNitro", "platformIndicator", "disableAnalytics"]);
-    assert.deepEqual(ids(core), [17, 19, 504, 1164, 1267, 5183, 5744, 7085, 7522, 7598, 9515, 9524, 15449, 16280, 18400]);
+    assert.deepEqual(ids(core), [17, 19, 504, 1164, 1267, 5183, 5744, 7085, 7475, 7522, 7598, 9515, 9524, 15449, 16280, 18400]);
     const capture = new Map(core.captures.map(c => [c.id, c.onExports]));
     const analytics = { default: { track() { return new Promise(() => {}); } } };
     capture.get(1267)(analytics, {});
@@ -321,4 +321,70 @@ test("Fake Nitro options persist in schema 2, default safely, and reject invalid
         assert.equal(fresh.get().phase, "ready");
         assert.deepEqual(plain(fresh.get().nitro), expected);
     }
+});
+
+function stickerFixture() {
+    const { installStickerHooks, stickerUrl } = api();
+    const StickerSendability = { SENDABLE: 0, SENDABLE_WITH_PREMIUM: 1, NONSENDABLE: 2, SENDABLE_WITH_BOOSTED_GUILD: 3 };
+    const results = new Map([["10", 1], ["11", 1], ["12", 2], ["13", 0], ["14", 1]]);
+    const sendability = { StickerSendability, getStickerSendability(sticker) { return results.get(sticker.id); } };
+    const sends = [], stickerSends = [];
+    const target = {
+        sendMessage(...args) { sends.push([this, args]); return "message-result"; },
+        sendStickers(...args) { stickerSends.push([this, args]); return "sticker-result"; },
+    };
+    let enabled = true, masked = false, converted = 0;
+    const ok = installStickerHooks(sendability, { default: target }, () => enabled, () => ({ emojiSize: 48, maskedLinks: masked }), () => converted++);
+    return { ok, sendability, target, sends, stickerSends, stickerUrl, setEnabled: v => { enabled = v; }, setMasked: v => { masked = v; },
+        get converted() { return converted; } };
+}
+const sticker = (id, format_type = 1, name = "pog") => ({ id, format_type, name, guild_id: "1" });
+
+test("only Nitro-only image stickers are reported sendable, and only while enabled", () => {
+    const f = stickerFixture();
+    assert.equal(f.ok, true);
+    assert.equal(f.sendability.getStickerSendability(sticker("10")), 0, "premium PNG becomes SENDABLE");
+    assert.equal(f.sendability.getStickerSendability(sticker("11", 3)), 1, "Lottie cannot be linked as an image");
+    assert.equal(f.sendability.getStickerSendability(sticker("12")), 2, "NONSENDABLE stays");
+    assert.equal(f.sendability.getStickerSendability(sticker("13")), 0);
+    f.setEnabled(false);
+    assert.equal(f.sendability.getStickerSendability(sticker("14")), 1, "disabled: Discord's own result");
+});
+
+test("remembered stickers are sent as links through sendMessage; anything else uses the original sendStickers", () => {
+    const f = stickerFixture();
+    f.sendability.getStickerSendability(sticker("10", 4, "dance"));
+    assert.equal(f.target.sendStickers("ch", ["10"], "hi", { location: "STICKER_REPLY" }), "message-result");
+    assert.equal(f.sends.length, 1);
+    const [self, [channel, message, third, options]] = f.sends[0];
+    assert.equal(self, f.target);
+    assert.equal(channel, "ch");
+    assert.equal(message.content, `hi\n${f.stickerUrl("10", "gif")}`);
+    assert.equal(message.tts, false);
+    assert.deepEqual(plain(message.invalidEmojis), []);
+    assert.equal(third, undefined);
+    assert.deepEqual(plain(options), { location: "STICKER_REPLY" });
+    assert.equal(f.converted, 1);
+    f.setMasked(true);
+    f.target.sendStickers("ch", ["10"]);
+    assert.equal(f.sends[1][1][1].content, `[dance](${f.stickerUrl("10", "gif")})`);
+    assert.equal(f.target.sendStickers("ch", ["13"], ""), "sticker-result", "a sticker that was never upgraded");
+    assert.equal(f.target.sendStickers("ch", ["10", "13"], ""), "sticker-result", "a mixed send is left to Discord");
+    assert.equal(f.target.sendStickers("ch", ["10"], { content: "object" }), "sticker-result", "non-string content");
+    f.setEnabled(false);
+    assert.equal(f.target.sendStickers("ch", ["10"], ""), "sticker-result", "disabled");
+    assert.equal(f.stickerSends.length, 4);
+    assert.equal(f.stickerSends[0][0], f.target);
+    assert.equal(f.converted, 1, "the fixed diagnostic is reported once");
+});
+
+test("sticker hooks refuse unexpected shapes without changing anything", () => {
+    const { installStickerHooks } = api();
+    const original = () => 1, send = () => {};
+    const good = { StickerSendability: { SENDABLE: 0, SENDABLE_WITH_PREMIUM: 1 }, getStickerSendability: original };
+    assert.equal(installStickerHooks({ getStickerSendability: original }, { default: { sendStickers: send } }, () => true), false);
+    const frozen = Object.freeze({ sendStickers: send });
+    assert.equal(installStickerHooks(good, { default: frozen }, () => true), false);
+    assert.equal(good.getStickerSendability, original, "nothing is replaced when any target is unusable");
+    assert.equal(installStickerHooks(good, null, () => true), false);
 });
