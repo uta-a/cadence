@@ -11,6 +11,50 @@
     "shapeNotation": "Dot-separated paths relative to require(id). All descriptor observations are recorded separately; this is NOT blanket approval of method contracts or feature hooks. confidence rates static identity, not method contracts or hook safety.",
     "offsetUnit": "decimal byte offset within function; registration offsets are within global function 0"
   },
+  "ReadAllSortedGuildStore": {
+    "id": 6733, "factory": 6734, "shape": ["default"],
+    "evidence": [{"kind":"registration","function":0,"offset":216576,"detail":"stores/SortedGuildStore.tsx"},{"kind":"export","function":6734,"offset":796,"detail":"default"}], "confidence":"high", "verified":false
+  },
+  "ReadAllGuildStore": {
+    "id": 4877, "factory": 4878, "shape": ["default"],
+    "evidence": [{"kind":"registration","function":0,"offset":155872,"detail":"stores/GuildStore.tsx"},{"kind":"export","function":4878,"offset":440,"detail":"default"}], "confidence":"high", "verified":false
+  },
+  "ReadAllLurkingStore": {
+    "id": 4936, "factory": 4937, "shape": ["default"],
+    "evidence": [{"kind":"registration","function":0,"offset":157850,"detail":"modules/lurker_mode/LurkingStore.tsx"},{"kind":"export","function":4937,"offset":399,"detail":"default"}], "confidence":"high", "verified":false
+  },
+  "ReadAllGuildReadStateStore": {
+    "id": 6846, "factory": 6847, "shape": ["default"],
+    "evidence": [{"kind":"registration","function":0,"offset":220194,"detail":"stores/GuildReadStateStore.tsx"},{"kind":"export","function":6847,"offset":1061,"detail":"default"}], "confidence":"high", "verified":false
+  },
+  "ReadAllMarkGuildsAsRead": {
+    "id": 15243, "factory": 15244, "shape": ["default"],
+    "evidence": [{"kind":"registration","function":0,"offset":500360,"detail":"modules/guild/markGuildsAsRead.tsx"},{"kind":"export","function":15244,"offset":198,"detail":"default"}], "confidence":"high", "verified":false
+  },
+  "ReadAllPrivateChannelReadStateStore": {
+    "id": 15096, "factory": 15097, "shape": ["default"],
+    "evidence": [{"kind":"registration","function":0,"offset":495430,"detail":"stores/PrivateChannelReadStateStore.tsx"},{"kind":"export","function":15097,"offset":387,"detail":"default"}], "confidence":"high", "verified":false
+  },
+  "ReadAllPrivateChannelSortStore": {
+    "id": 7354, "factory": 7355, "shape": ["default"],
+    "evidence": [{"kind":"registration","function":0,"offset":237118,"detail":"stores/views/PrivateChannelSortStore.tsx"},{"kind":"export","function":7355,"offset":544,"detail":"default"}], "confidence":"high", "verified":false
+  },
+  "ReadAllMessageRequestUtils": {
+    "id": 6844, "factory": 6845, "shape": ["filterOutMessageRequestsAndSpamById"],
+    "evidence": [{"kind":"registration","function":0,"offset":220126,"detail":"modules/message_request/MessageRequestUtils.tsx"},{"kind":"export","function":6845,"offset":128,"detail":"filterOutMessageRequestsAndSpamById"}], "confidence":"high", "verified":false
+  },
+  "ReadAllReadStateStore": {
+    "id": 6803, "factory": 6804, "shape": ["default"],
+    "evidence": [{"kind":"registration","function":0,"offset":218744,"detail":"stores/ReadStateStore.tsx"},{"kind":"export","function":6804,"offset":3268,"detail":"default"}], "confidence":"high", "verified":false
+  },
+  "ReadAllReadStateActionCreators": {
+    "id": 7238, "factory": 7239, "shape": ["bulkAck"],
+    "evidence": [{"kind":"registration","function":0,"offset":233230,"detail":"actions/ReadStateActionCreators.tsx"},{"kind":"export","function":7239,"offset":222,"detail":"bulkAck"}], "confidence":"high", "verified":false
+  },
+  "ReadAllReadStateConstants": {
+    "id": 6737, "factory": 6738, "shape": ["CHANNEL", "GUILD_EVENT"],
+    "evidence": [{"kind":"registration","function":0,"offset":216710,"detail":"modules/read_states/ReadStateConstants.tsx"},{"kind":"export","function":6738,"offset":41,"detail":"CHANNEL; GUILD_EVENT at 58"}], "confidence":"high", "verified":false
+  },
   "RootNavigation": {
     "id": 5183, "factory": 5184, "shape": ["getRootNavigationRef"],
     "evidence": [

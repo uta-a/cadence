@@ -3,8 +3,8 @@
 //
 // useGuildsBarProps (17778; 17439 in 351.11) returns {listProps, listDataProps}. The button lives in the SEPARATOR row
 // (GuildsBarConstants 17768 FastListRenderSections.SEPARATOR, 6), below the DM button and above the line, so the native
-// list's sections and keys stay as they are; only that row grows, through the list's own itemSize. No React hook is
-// added to useGuildsBarProps, so its hook count never changes. A tap marks servers as read; holding it offers servers,
+// list's sections and keys stay as they are; only that row grows, through the list's own itemSize. Two settings hooks
+// run unconditionally after the original hook. A tap marks servers as read; holding it offers servers,
 // DMs, or both. Stores are resolved only when the button is pressed.
 
 export type ReadAllMode = "guilds" | "dms" | "both";
@@ -96,13 +96,16 @@ export function unreadDmIds(get: (id: number) => unknown): string[] | null {
     strings(call(method(privateSort, "getPrivateChannelIds")), ids, seen);
     const result = ids.filter(id => call(unread, id) === true);
     const filter = own(get(6844), "filterOutMessageRequestsAndSpamById");
-    if (typeof filter === "function") {
-        try { const kept = filter(result); if (Array.isArray(kept)) return kept.filter(id => typeof id === "string"); } catch (_) { /* Unfiltered. */ }
-    }
-    return result;
+    // Never acknowledge requests/spam when the exclusion API is missing or incompatible.
+    if (typeof filter !== "function") return null;
+    try {
+        const kept = filter(result);
+        if (!Array.isArray(kept) || !kept.every(id => typeof id === "string" && result.includes(id))) return null;
+        return Array.from(new Set(kept)) as string[];
+    } catch (_) { return null; }
 }
 
-/** Marks servers and/or DMs as read through Discord's own actions. Returns how many were cleared, or null if unavailable. */
+/** Submits Discord's read actions. Counts submitted entries, not confirmed server-side acknowledgements. */
 export function markAsRead(mode: ReadAllMode, get: (id: number) => unknown): { guilds: number; dms: number; failed: boolean } {
     let guilds = 0, dms = 0, failed = false;
     if (mode !== "dms") {

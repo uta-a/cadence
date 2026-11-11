@@ -805,6 +805,13 @@ test("read all adds its row to the server bar's separator only, and marks server
     assert.deepEqual(plain(markAsRead("dms", get)), { guilds: 0, dms: 1, failed: false });
     assert.deepEqual(plain(calls), [["dms", ["d1:m-d1:0"]]], "no last message, read, or request: not acknowledged");
     assert.equal(markAsRead("both", () => undefined).failed, true, "stores not loaded");
+    for (const filter of [undefined, () => { throw new Error("unavailable"); }, () => null,
+        () => ["request-channel"], () => [42]]) {
+        calls.length = 0;
+        const unavailableFilter = id => id === 6844 ? { filterOutMessageRequestsAndSpamById: filter } : get(id);
+        assert.deepEqual(plain(markAsRead("dms", unavailableFilter)), { guilds: 0, dms: 0, failed: true });
+        assert.equal(calls.length, 0, "an unavailable or incompatible filter must never acknowledge DMs");
+    }
 
     let on = true, events = [];
     const react = { createElement: (type, props, ...children) => ({ type, props, children }), useState: v => [v, () => {}], useEffect() {} };

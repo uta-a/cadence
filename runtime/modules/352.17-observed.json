@@ -218,6 +218,17 @@
     }
   },
   "notObserved": [
+    "ReadAllSortedGuildStore",
+    "ReadAllGuildStore",
+    "ReadAllLurkingStore",
+    "ReadAllGuildReadStateStore",
+    "ReadAllMarkGuildsAsRead",
+    "ReadAllPrivateChannelReadStateStore",
+    "ReadAllPrivateChannelSortStore",
+    "ReadAllMessageRequestUtils",
+    "ReadAllReadStateStore",
+    "ReadAllReadStateActionCreators",
+    "ReadAllReadStateConstants",
     "ScreenIcon",
     "MobilePhoneIcon",
     "VrHeadsetIcon",
