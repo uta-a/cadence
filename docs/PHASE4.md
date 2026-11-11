@@ -44,7 +44,10 @@ Fake Nitro・Platform Indicator・Privacy（JS analyticsの停止と広告IDの�
 - **Sentry**（`Disable crash reporting`、`patches/.../dex/MethodStub.kt`）: Manifestの自動初期化・JSからの`RNSentryModuleImpl.initNativeSdk`・Discord独自のcrash reporting（`Lu5/b;->call()`）の3経路は、すべてSDKの`Lio/sentry/android/core/e1;->b(Context, k0, c4)V`に合流する。この先頭に`return-void`を入れ、SDKを初期化しない（Sentryの静的APIは既定の何もしない状態のまま）。元の本体は到達しないコードとして残す。
 - **AppsFlyer**（`Disable install attribution`）: `start`の全オーバーロードが合流する`AFa1uSDK.start(Context, String, AppsFlyerRequestListener)`と、`logEvent`の2つのオーバーロードの先頭に`return-void`を入れる。`init`は送信しないので残す。
 - どちらも、対象メソッドの命令列・レジスタ・try blockのSHA-256を352.17の実測値と照合してから書き換え、違えばpatchを止める。`bundle pin`が照合しているメソッド（`Ld6/a;->invoke()`・`Lu5/b;->call()`等）には触れない。
-- **未確認**: 端末の通信をプロキシで見て、Sentry・AppsFlyer・analytics宛ての通信がないこと。Discord独自のnative crash reporting（`libcrash-reporting`）が単独で送信するかどうか。
+- **通信での確認（2026-11-11、接続先のホスト名のみ）**: ユーザーの判断により、証明書は入れず、Mac上のCONNECTプロキシで接続先の`host:port`だけを記録した（中身は復号しない）。端末はログインしていないテスト端末XIG07（Android 16）で、端末のシステムプロキシを一時的に設定し、確認後に元の`null`へ戻した。同じ署名鍵で、privacy系patchなし（`disk`のみ）の対照ビルドと全patchビルドを順に上書きし、それぞれ起動から75秒間を比べた。
+  - 対照ビルド: `o64374.ingest.sentry.io`・`o4505093097586688.ingest.us.sentry.io`（Sentry）と、`*.appsflyersdk.com`の5ホスト（`launches`・`conversions`・`attr`・`dlsdk`・`cdn-settings`）へ接続した。
+  - 全patchビルド: Sentry・AppsFlyer宛ての接続は0件。Discordの接続は`discord.com`・`gateway.discord.gg`・`cdn.discordapp.com`・`latency.discord.media`のみ。
+  - 限界: システムプロキシなので他のアプリの接続も混ざる（Discord以外のホストは記録から除外した）。analyticsは`discord.com`と同じホストなので、この方法では判定できない。未ログインの起動75秒間だけで、ログイン後や長時間の利用は見ていない。Discord独自のnative crash reporting（`libcrash-reporting`）が単独で送信するかは、クラッシュを起こしていないので未確認。
 
 ## 設定の保存に失敗したとき
 

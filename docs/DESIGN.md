@@ -474,7 +474,7 @@ Phase 0 準備 ─→ Phase 1 解析 ─→ Phase 2 注入 ─→ Phase 3 core �
 
 **完了条件:** 3 機能すべてが実機で動き、オフにすると Discord の元の動作に戻る。
 
-**現状:** Fake Nitro（入力した絵文字のリンク変換）、Platform Indicator（design-systemのAvatarへのバッジ）、Privacy（JS analyticsの停止・広告IDの無効化）を実装し、実機で確認した。Fake NitroとPlatform Indicatorは設定でオフにすると元の関数・元のAvatarをそのまま使う。未実装はFake Nitroのピッカー・スタンプ・オプションと、Sentry・AppsFlyerの停止。[Phase 4記録](PHASE4.md)を参照。
+**現状:** Fake Nitro（入力した絵文字のリンク変換）、Platform Indicator（design-systemのAvatarへのバッジ）、Privacy（JS analyticsの停止・広告IDの無効化・Sentry/AppsFlyerの停止）を実装し、実機で確認した。Sentry・AppsFlyerは接続先ホスト名の比較で、通信がなくなったことを確認した。Fake NitroとPlatform Indicatorは設定でオフにすると元の関数・元のAvatarをそのまま使う。未実装はFake Nitroのピッカー・スタンプ・オプションと、Platform Indicatorの他の表示箇所。analyticsの停止は通信では未確認。[Phase 4記録](PHASE4.md)を参照。
 
 ### Phase 5: リリース (v0.1)
 | タスク | 内容 |

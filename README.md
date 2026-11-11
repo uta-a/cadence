@@ -2,9 +2,9 @@
 
 Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator、プライバシー保護をオフラインで追加する。
 
-> 開発中（**Phase 4: 機能を実装し実機で確認済み**。Sentry・AppsFlyerの停止は未実装）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
+> 開発中（**Phase 4: 機能を実装し実機で確認済み**。Fake Nitroのピッカー・スタンプ、Platform Indicatorの他の表示箇所は未実装）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
 
-**開発対象:** Discord **352.17 - Stable**（APKM）。Fake Nitro（入力した絵文字のリンク変換）、Platform Indicator（アバターのバッジ）、Privacy（JS analyticsの停止・広告IDの無効化）を実装した。詳細は[Phase 4記録](docs/PHASE4.md)と[調査記録](docs/PHASE4-RESEARCH.md)。
+**開発対象:** Discord **352.17 - Stable**（APKM）。Fake Nitro（入力した絵文字のリンク変換）、Platform Indicator（アバターのバッジ）、Privacy（JS analytics・広告ID・Sentry・AppsFlyerの停止）を実装した。詳細は[Phase 4記録](docs/PHASE4.md)と[調査記録](docs/PHASE4-RESEARCH.md)。
 
 ## 現在の状態
 
@@ -20,7 +20,7 @@ Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator�
 | 診断ログ・ビルド機能表 | 実機確認済み | 最大80件のメモリログを設定画面から表示。Morpheで選んだ機能patchを`finalize`でランタイムへ埋め込む |
 | Fake Nitro | 実機確認済み（入力した絵文字） | Discordが送れないと判定した絵文字だけをCDN画像リンクに変換。許可を得たDMへの送信で確認。ピッカー・スタンプは未実装 |
 | Platform Indicator | 実機確認済み | design-systemのAvatarにバッジを重ねる。別部品のアバター（DMの行・メッセージ横）には出ない |
-| Privacy | JS analytics・広告IDを実装 | `track`をno-opに、`getGoogleAdvertisingId`を既存の`null`応答に置換。Sentry・AppsFlyerは未実装 |
+| Privacy | JS analytics・広告ID・Sentry・AppsFlyerを停止 | `track`をno-opに、`getGoogleAdvertisingId`を既存の`null`応答に置換。SentryとAppsFlyerはSDKの入口を`return-void`に。Sentry・AppsFlyer宛ての接続がなくなったことをホスト名で確認 |
 
 Phase 3（設定UI・保存）の詳細は [Phase 3記録](docs/PHASE3.md)。`bundle pin` は OTA がコミット済みの
 端末でも APK 同梱バンドルを読む想定だが、その条件では実機未検証。ガードは対象メソッドの固定であり、
@@ -38,7 +38,7 @@ GITHUB_ACTOR=<user> GITHUB_TOKEN=$(gh auth token) \
 
 `buildAndroid` は Morphe Manager が必要とする `classes.dex` を追加する。`build` や `generatePatchesList` は DEX なしで `.mpp` を書き直すので、`buildAndroid` を最後に実行する。
 
-Morphe Manager で選ぶパッチは `disk`（`bundle pin` は依存として自動で入る）と、`Fake Nitro`・`Platform Indicator`・`Disable analytics`・`Disable advertising ID`（いずれも既定で選択）。Fake NitroとPlatform Indicatorは、Discordの設定画面下部の「disk」から有効にするまでオフ。
+Morphe Manager で選ぶパッチは `disk`（`bundle pin` は依存として自動で入る）と、`Fake Nitro`・`Platform Indicator`・`Disable analytics`・`Disable advertising ID`・`Disable crash reporting`・`Disable install attribution`（いずれも既定で選択）。Fake NitroとPlatform Indicatorは、Discordの設定画面下部の「disk」から有効にするまでオフ。
 
 ランタイムだけをビルドする場合:
 
@@ -68,7 +68,7 @@ HBC の実行テストには `work/hermes/hermes`、実バンドルの検証に�
 python3 -I -m unittest discover -s tools/tests -v
 ```
 
-ローカル検証結果: Kotlin **49件成功（skipなし）**、解析ツール **20件成功（入力を指定した場合）**、ランタイム **88件成功**、TypeScript型検査・HBC98・MPPビルド成功。
+ローカル検証結果: Kotlin **55件成功（skipなし）**、解析ツール **20件成功（入力を指定した場合）**、ランタイム **88件成功**、TypeScript型検査・HBC98・MPPビルド成功。
 解析ツールの全件実行には `HERMESC`・`HERMES_SOURCE`・`DISK_BUNDLE` の指定が必要（tools の README を参照）。
 モジュール ID 表はすべて `verified: false`（一覧の記載だけで機能フックを承認しない）。実機での観測と、各機能の限定的な実行確認は別の[実機receipt](runtime/modules/352.17-observed.json)に記録し、機能はそれぞれ実行時に形を検査してから接続する。単一のRN初期化gateは採用せず、依存ごとに接続条件を確認する。
 
