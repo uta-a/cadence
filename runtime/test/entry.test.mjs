@@ -15,8 +15,8 @@ test("entry logs through the native host before console exists and keeps the rec
         calls.push([message, level, this.__disk === host.__disk]);
     } });
     run(host);
-    assert.deepEqual(calls, [["[disk] loaded 0.0.1 (native)", 1, true], ["[disk] observer installed (native)", 1, true]]);
-    assert.equal(host.__disk.revision, "0.0.1");
+    assert.deepEqual(calls, [["[disk] loaded 0.1.0 (native)", 1, true], ["[disk] observer installed (native)", 1, true]]);
+    assert.equal(host.__disk.revision, "0.1.0");
     assert.ok(Object.isFrozen(host.__disk));
 });
 
@@ -28,7 +28,7 @@ test("entry uses console only as fallback and does not announce twice", () => {
     const marker = host.__disk;
     run(host);
     assert.equal(host.__disk, marker);
-    assert.deepEqual(calls, ["[disk] loaded 0.0.1 (console)", "[disk] observer installed (console)"]);
+    assert.deepEqual(calls, ["[disk] loaded 0.1.0 (console)", "[disk] observer installed (console)"]);
 });
 
 test("throwing native logging falls back to console without losing the marker", () => {
@@ -36,15 +36,15 @@ test("throwing native logging falls back to console without losing the marker", 
     const host = context({ nativeLoggingHook() { throw new Error("host unavailable"); },
         console: { log(message) { calls.push(message); } } });
     assert.doesNotThrow(() => run(host));
-    assert.deepEqual(calls, ["[disk] loaded 0.0.1 (console)", "[disk] observer installed (console)"]);
-    assert.equal(host.__disk.revision, "0.0.1");
+    assert.deepEqual(calls, ["[disk] loaded 0.1.0 (console)", "[disk] observer installed (console)"]);
+    assert.equal(host.__disk.revision, "0.1.0");
 });
 
 test("missing loggers or failures in both diagnostics never abort the entry", () => {
     for (const host of [context(), context({ nativeLoggingHook: false, console: { log: null } }),
         context({ nativeLoggingHook() { throw new Error("native"); }, console: { log() { throw new Error("console"); } } })]) {
         assert.doesNotThrow(() => run(host));
-        assert.equal(host.__disk.revision, "0.0.1");
+        assert.equal(host.__disk.revision, "0.1.0");
     }
 });
 

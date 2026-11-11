@@ -4,8 +4,8 @@ import { parseBuildFeatures } from "./core/features";
 import { createMetroObserver } from "./diagnostics/observer";
 import { createCoreModules } from "./core/modules";
 import { MODULE_PROBES } from "./diagnostics/probes";
+import { REVISION } from "./core/version";
 
-const REVISION = "0.0.1";
 if (!globalThis.__disk) {
     const features = parseBuildFeatures("/*__DISK_FEATURES__*/");
     globalThis.__disk = Object.freeze({ revision: REVISION, features });

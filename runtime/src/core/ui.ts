@@ -3,6 +3,7 @@ import type { HistorySource } from "../features/venus/messageHistory";
 import { createHistoryPanel } from "../features/venus/historyUi";
 import type { BuildFeature } from "./features";
 import { getLogs } from "./log";
+import { REVISION } from "./version";
 import { EMOJI_SIZES, PLATFORM_PLACES, DEFAULT_PLATFORM } from "./settings";
 const PLATFORM_LABELS = { avatars: "その他のアバター", dmList: "DM一覧の行", dmHeader: "DMヘッダー", memberList: "メンバー一覧",
     profile: "プロフィール名", messages: "メッセージの名前" };
@@ -167,7 +168,7 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                 text(features.includes("disableAnalytics") ? "Analytics：JS の track 送信を停止しています（Morphe で選択）" : "Analytics：このビルドでは停止していません",
                     { accessibilityLabel: "disk:feature:disableAnalytics", style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
                 text("情報", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginTop: spacing * 2 } }),
-                text("disk 0.0.1 / Discord 352.17", { style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
+                text(`disk ${REVISION} / Discord 352.17`, { style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
                 text(`組み込み機能: ${features.length ? features.join(", ") : "なし"}`, { accessibilityLabel: "disk:features", style: { color: colors.secondary, fontSize: 14, marginTop: 8 } }),
                 text(history ? "設定は端末内に保存します。履歴機能がオンの間だけ本文をメモリに保持し、ファイルには保存しません。" : "アカウント情報やメッセージは保存しません。", { style: { color: colors.secondary, fontSize: 14, marginTop: 8 } }),
                 button(showLogs ? "診断ログを閉じる" : "診断ログを表示", () => setShowLogs(value => !value), "disk:logs"),
