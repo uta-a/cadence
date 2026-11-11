@@ -41,6 +41,13 @@ val doubleTapToReply = venusFeature(
 )
 
 @Suppress("unused")
+val loadFullQualityImages = venusFeature(
+    "fullImages", "Load full-quality images",
+    "Load uploaded pictures and profile pictures in full quality (based on Uncompressed Discord Images by Knewest and " +
+        "HighResProfileImages by Kawtious). Off until enabled in the disk settings.",
+)
+
+@Suppress("unused")
 val skipPinConfirmation = venusFeature(
     "noConfirmPin", "Skip pin confirmation",
     "Pin and unpin without a confirmation (based on NoConfirmPin by Skamt). Off until enabled in the disk settings.",

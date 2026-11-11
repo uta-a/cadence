@@ -1,4 +1,4 @@
-export const FEATURE_IDS = Object.freeze(["fakeNitro", "platformIndicator", "disableAnalytics", "quickDelete", "noConfirmPin", "alwaysTrust", "jumpToTop", "gestures"] as const);
+export const FEATURE_IDS = Object.freeze(["fakeNitro", "platformIndicator", "disableAnalytics", "quickDelete", "noConfirmPin", "alwaysTrust", "jumpToTop", "gestures", "fullImages"] as const);
 export type BuildFeature = typeof FEATURE_IDS[number];
 
 /** Kotlin replaces the quoted marker with an array literal. Unpatched local/test bundles fail closed to no features. */

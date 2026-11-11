@@ -244,6 +244,8 @@
     "LongPressMessageActionSheetUtils",
     "HapticUtils",
     "Constants",
-    "UserStore"
+    "UserStore",
+    "ImageUtils",
+    "AvatarUtils"
   ]
 }

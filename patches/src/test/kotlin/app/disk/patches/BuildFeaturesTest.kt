@@ -45,7 +45,7 @@ class BuildFeaturesTest {
 
     @Test
     fun `runtime feature patches depend on the runtime and are selected by default`() {
-        for (patch in listOf(fakeNitro, platformIndicator, disableAnalytics, skipDeleteConfirmation, skipPinConfirmation, alwaysTrustLinksAndFiles, jumpToFirstMessage, doubleTapToReply)) {
+        for (patch in listOf(fakeNitro, platformIndicator, disableAnalytics, skipDeleteConfirmation, skipPinConfirmation, alwaysTrustLinksAndFiles, jumpToFirstMessage, doubleTapToReply, loadFullQualityImages)) {
             assertTrue(patch.default)
             assertTrue(patch.dependencies.contains(diskRuntime))
             assertEquals("com.discord", patch.compatibility!!.single().packageName)

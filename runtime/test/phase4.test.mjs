@@ -722,3 +722,31 @@ test("wrapped MessagesHandlers keeps instances, prototype and taps, and only rea
     assert.equal(reacted, 1, "once it has been seen, a call outside a real double-tap (TalkBack) keeps Discord's behaviour");
     assert.equal(f.calls.filter(c => c[0] === "reply").length, 2);
 });
+
+test("full-quality images return the uploaded file for normal pictures and larger avatars, only while enabled", async () => {
+    const { build } = await import("esbuild");
+    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/fullImages";',
+        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
+    const host = { module: { exports: {} } };
+    vm.runInNewContext(out[0].text, host);
+    const { installFullImages, fullImageUrl, fullAvatarUrl } = host.module.exports;
+    const src = "https://media.discordapp.net/attachments/1/2/a.png?ex=1&is=2&hm=3&width=200&height=100&format=webp";
+    assert.equal(fullImageUrl(src, 400, 200), "https://media.discordapp.net/attachments/1/2/a.png?ex=1&is=2&hm=3");
+    assert.equal(fullImageUrl(src.replace("a.png", "a.gif"), 400, 200), null, "GIFs keep Discord's copy");
+    assert.equal(fullImageUrl(src, 5000, 200), null, "too big for a phone");
+    assert.equal(fullImageUrl("https://example.com/attachments/a.png", 1, 1), null);
+    assert.equal(fullAvatarUrl("https://cdn.discordapp.com/avatars/1/a.webp?size=64", false), "https://cdn.discordapp.com/avatars/1/a.webp?size=512");
+    assert.equal(fullAvatarUrl("https://cdn.discordapp.com/banners/1/a.webp?size=2048", true), "https://cdn.discordapp.com/banners/1/a.webp?size=2048");
+    let on = false;
+    const resized = (s, w, h) => `resized:${s}`;
+    const images = { getMobileOptimizedSrc: resized, default: { getMobileOptimizedSrc: resized } };
+    const avatar = () => "https://cdn.discordapp.com/avatars/1/a.webp?size=64";
+    const avatars = { getUserAvatarURL: avatar, getUserAvatarSource: () => ({ uri: avatar() }), default: { getUserAvatarURL: avatar } };
+    assert.ok(installFullImages(images, avatars, () => on) >= 4);
+    assert.equal(images.getMobileOptimizedSrc(src, 400, 200), `resized:${src}`, "off: Discord's copy");
+    on = true;
+    assert.equal(images.default.getMobileOptimizedSrc(src, 400, 200), "https://media.discordapp.net/attachments/1/2/a.png?ex=1&is=2&hm=3");
+    assert.equal(avatars.getUserAvatarURL(), "https://cdn.discordapp.com/avatars/1/a.webp?size=512");
+    assert.equal(avatars.getUserAvatarSource().uri, "https://cdn.discordapp.com/avatars/1/a.webp?size=512");
+    assert.equal(installFullImages(Object.freeze({ getMobileOptimizedSrc: resized }), {}, () => true), 0);
+});

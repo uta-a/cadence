@@ -10,6 +10,7 @@ import { installQuickConfirm } from "../features/venus/quickConfirm";
 import { installAlwaysTrust } from "../features/venus/alwaysTrust";
 import { createJumpToTop } from "../features/venus/jumpToTop";
 import { createGestures, wrapExport } from "../features/venus/gestures";
+import { installFullImages } from "../features/venus/fullImages";
 import type { JumpReact } from "../features/venus/jumpToTop";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
@@ -45,6 +46,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     let pickerInstalled = false;
     let confirmInstalled = false;
     let trustInstalled = false;
+    let fullImagesInstalled = false;
     let native: NativeUi | null | undefined;
     function report(value: string): void { try { onStatus(value); } catch (_) { /* Fixed diagnostics only. */ } }
     function navigationReady(): boolean {
@@ -230,6 +232,8 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     // Double-tap to reply: DoubleTapToReactUtils 8358, MessagesHandlers 11269, reminder toast 9868, edit nudge 14023,
     // chat input banner 13207, canReplyToMessage 8365, replyToMessage 11370, canEditMessage 11371,
     // LongPressMessageActionSheetUtils 10117, haptics 5244, constants 1087, UserStore 1392, MessageActions 7598.
+    // Load full-quality images: ImageUtils 1498 and AvatarUtils 1417 (same IDs in 351.11).
+    if (features.includes("fullImages")) ids.push(1498, 1417);
     if (features.includes("gestures")) ids.push(8358, 11269, 9868, 14023, 13207, 8365, 11370, 11371, 10117, 5244, 1087, 1392, 7598);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
@@ -274,6 +278,12 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                     ? "always-trust installed" : "always-trust unavailable");
             }
             if (id === 13192) installJumpToTop(exports);
+            if ((id === 1498 || id === 1417) && modules.has(1498) && modules.has(1417) && !fullImagesInstalled) {
+                fullImagesInstalled = true;
+                const wrapped = installFullImages(modules.get(1498), modules.get(1417), () => settings.isExtraEnabled("fullImages"),
+                    kind => report(`full-images ${kind}`));
+                report(wrapped > 0 ? "full-images installed" : "full-images unavailable");
+            }
             if (features.includes("gestures")) installGesture(id, exports);
             if (id === 15449) installPlatformIndicator(exports);
             const icon = ICON_MODULES.find(item => item.id === id);

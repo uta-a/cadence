@@ -1341,6 +1341,66 @@
     "confidence": "high",
     "verified": false
   },
+  "ImageUtils": {
+    "id": 1498,
+    "factory": 1499,
+    "shape": [
+      "getMobileOptimizedSrc",
+      "default.getMobileOptimizedSrc"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 47488,
+        "detail": "module 1498 -> factory 1499 (utils/native/ImageUtils.tsx; same ID in 351.11)"
+      },
+      {
+        "kind": "construction",
+        "function": 1499,
+        "offset": 169,
+        "detail": "default object shape: getMobileOptimizedSrc, getPaletteForAvatarMobile"
+      },
+      {
+        "kind": "export",
+        "function": 1499,
+        "offset": 240,
+        "detail": "PutById getMobileOptimizedSrc (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "AvatarUtils": {
+    "id": 1417,
+    "factory": 1418,
+    "shape": [
+      "getUserAvatarURL",
+      "default.getUserAvatarURL"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 44944,
+        "detail": "module 1417 -> factory 1418 (utils/AvatarUtils.tsx; same ID in 351.11)"
+      },
+      {
+        "kind": "construction",
+        "function": 1418,
+        "offset": 488,
+        "detail": "default object with the avatar and banner URL helpers"
+      },
+      {
+        "kind": "export",
+        "function": 1418,
+        "offset": 802,
+        "detail": "PutById getUserAvatarURL (plain data; banner and guild member helpers follow)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
   "_missing": {
     "runtimeVerification": "All14 descriptor identities have device observations. verified=false reserves full feature-hook approval; core Overview UI and owned settings write/readback/restart have separate capability evidence. Probes never evaluated accessors; UI lazy getters were evaluated only after navigation readiness. No store/send methods were called; unimplemented feature contracts and fault durability remain unverified.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",

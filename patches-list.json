@@ -219,6 +219,33 @@
       "options": []
     },
     {
+      "name": "Load full-quality images",
+      "description": "Load uploaded pictures and profile pictures in full quality (based on Uncompressed Discord Images by Knewest and HighResProfileImages by Kawtious). Off until enabled in the disk settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Platform Indicator",
       "description": "Show which devices a user is connected from next to their avatar. Off until enabled in the disk settings.",
       "default": true,
