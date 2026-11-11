@@ -31,8 +31,13 @@
 | ピン留めの確認を省く（patch: Skip pin confirmation） | Skip pin confirmation（NoConfirmPin by Skamt） | 同上 | 実機確認済み: ピン留めと解除が確認なしで行われた |
 | リンクとファイルを常に信頼（patch: Always trust links and files） | Always trust links and files（AlwaysTrust by zt and Trwy） | MaskedLinkStore 8894、SuspiciousDownloadUtils 8642 | 実機確認済み: 名前付きリンク`[disk-trust](https://example.org/…)`で、オフでは「Discordを退出」が出て、オンでは直接ブラウザが開いた。ファイルの警告は実機未確認 |
 | 最初のメッセージへ移動（patch: Jump to first message） | Jump to first message（`jumpButton`） | JumpToPresentButton 13192、ピル 13193、矢印画像 13194、入力欄の高さ 9814、MessageStore 6042、MessageActions 7598 | 実機確認済み: DMで上へスクロールすると「最新へ移動」の横に上向きのボタンが出て、押すと先頭（2025-04-19）へ移動した |
+| ダブルタップで返信（patch: Double-tap to reply） | Double-tap to reply（Geastures+ by kmmiio99o の移植） | DoubleTapToReactUtils 8358、MessagesHandlers 11269、通知・バナー 9868/14023/13207、canReply 8365、replyToMessage 11370、canEdit 11371、handleEdit 10117、haptics 5244、定数 1087、UserStore 1392 | 実機確認済み: 相手のメッセージで返信、自分のメッセージで編集、トリプルタップ（別スイッチ、初期オフ）で自分のメッセージを削除 |
 
 ## 移植中に見つけた問題
 
 - 矢印画像（351.11の12922）は、照合ツールの候補（1133）が誤りで、JumpToPresentButtonの依存にある13194（`registerAsset`）が正しかった。候補は必ず実バンドルで確かめる。
 - captureに加えたmoduleが観測対象（`MODULE_PROBES`）にないと、オブザーバー全体が起動せず、すべての機能が止まる。全機能を組み込んだときのcaptureがすべて観測対象にあることをテストで確かめるようにした。
+- Venusは、ユーザー操作のときに必要なmoduleを`__r(id)`で読み込む（`inspectedExport`）。diskは自然に読み込まれたmoduleだけを使っていたため、返信・編集に使うmoduleが未読み込みで、ダブルタップがDiscordのリアクションに戻っていた。ユーザー操作の時点に限り、navigationの準備ができていれば`requireModule`で読み込む`onDemand`を追加した（起動中には呼ばない）。
+- 352.17では、ネイティブのダブルタップがラップした`handleDoubleTapMessage`を通らずに`handleAddDefaultDoubleTapReaction`へ届く。Venusの「本物のダブルタップだけ」の判定は、ラップした処理が一度でも呼ばれたあとにだけ使う。
+- Venusは、ダブルタップ関連のバナーを非表示にするとき元のcomponentを関数として呼ぶため、表示中に切り替えるとhookの数が変わる。diskでは元のcomponentを要素として描くようにした。
+- トリプルタップ削除はVenusでは既定でオンだが、誤削除を避けるため別スイッチにして初期オフにした。

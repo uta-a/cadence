@@ -5,11 +5,13 @@ import { EMOJI_SIZES } from "./settings";
 import type { ExtraKey, FeatureKey } from "./settings";
 
 /** Ported Venus features; credits are kept in docs/VENUS-PORT.md and NOTICE. */
-const EXTRA_ROWS: ReadonlyArray<{ id: ExtraKey; title: string; description: string }> = Object.freeze([
+const EXTRA_ROWS: ReadonlyArray<{ id: ExtraKey; title: string; description: string; requires?: string }> = Object.freeze([
     { id: "quickDelete", title: "削除の確認を省く", description: "メッセージ削除の「本当に削除しますか？」を出さずに削除します" },
     { id: "noConfirmPin", title: "ピン留めの確認を省く", description: "ピン留め・解除の確認を出しません（NoConfirmPin by Skamt に基づく）" },
     { id: "alwaysTrust", title: "リンクとファイルを常に信頼", description: "外部リンクと危険なファイルの警告を出しません（AlwaysTrust by zt, Trwy に基づく）" },
     { id: "jumpToTop", title: "最初のメッセージへ移動", description: "チャットの先頭へ移動するボタンを出します" },
+    { id: "gestures", title: "ダブルタップで返信", description: "ダブルタップで返信、自分のメッセージは編集します（Geastures+ by kmmiio99o の移植）" },
+    { id: "gestureTripleDelete", title: "トリプルタップで削除", description: "自分のメッセージを3回タップで削除します（「ダブルタップで返信」と併用）", requires: "gestures" },
 ]);
 
 const FEATURE_ROWS: ReadonlyArray<{ id: FeatureKey; title: string; description: string }> = Object.freeze([
@@ -121,9 +123,9 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                         h(native.Switch, { accessibilityLabel: "disk:nitro-masked", value: state.nitro.maskedLinks,
                             disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
                             onValueChange: (value: boolean) => { void controller.setNitro({ maskedLinks: value }).catch(() => {}); } }))) : null,
-                EXTRA_ROWS.some(row => (features as readonly string[]).includes(row.id)) ? text("Venus から移植した機能",
+                EXTRA_ROWS.some(row => (features as readonly string[]).includes(row.requires ?? row.id)) ? text("Venus から移植した機能",
                     { accessibilityRole: "header", style: { color: colors.text, fontSize: 16, fontWeight: "600", marginTop: spacing * 1.5 } }) : null,
-                ...EXTRA_ROWS.filter(row => (features as readonly string[]).includes(row.id)).map(row => {
+                ...EXTRA_ROWS.filter(row => (features as readonly string[]).includes(row.requires ?? row.id)).map(row => {
                     const on = Array.isArray(state.extras) && state.extras.includes(row.id);
                     return h(native.View, { key: row.id, style: { backgroundColor: colors.surface, padding: spacing, borderRadius: 12,
                         flexDirection: "row", alignItems: "center", marginTop: spacing } },

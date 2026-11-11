@@ -628,3 +628,97 @@ test("every module captured with all features built is an observation target, so
     assert.equal(new Set(core.captures.map(c => c.id)).size, core.captures.length, "no duplicate captures");
     assert.doesNotThrow(() => createMetroObserver({}, MODULE_PROBES, () => {}, () => {}, core.captures));
 });
+
+async function gesturesApi() {
+    const { build } = await import("esbuild");
+    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/gestures";',
+        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
+    const host = { module: { exports: {} } };
+    vm.runInNewContext(out[0].text, host);
+    return host.module.exports;
+}
+function gestureFixture(createGestures, options = {}) {
+    let clock = 1000, timers = [], on = true, triple = options.triple ?? false;
+    const calls = [];
+    const g = createGestures({
+        enabled: () => on, tripleDelete: () => triple, currentUser: () => ({ id: "me" }),
+        canReply: () => (channel, message) => options.canReply ?? true, reply: () => o => calls.push(["reply", o.message.id, o.actionSource]),
+        canEdit: () => (message, userId) => message.author.id === userId, edit: () => (m, c, ref, source) => calls.push(["edit", m.id, source]),
+        undeletable: () => new Set([7]), deleteMessage: () => (channelId, id) => { calls.push(["delete", channelId, id]); return Promise.resolve(); },
+        haptic: () => calls.push(["haptic"]), setTimeout: (fn, ms) => { timers.push(fn); return timers.length; }, clearTimeout: () => { timers = []; },
+        now: () => clock, onEvent: e => calls.push(["event", e]) });
+    return { g, calls, flush: () => { const t = timers; timers = []; t.forEach(fn => fn()); }, tick: ms => { clock += ms; },
+        setOn: v => { on = v; }, setTriple: v => { triple = v; } };
+}
+
+test("double-tap replies to others, edits your own, and falls back to Discord's reaction", async () => {
+    const { createGestures } = await gesturesApi();
+    const f = gestureFixture(createGestures);
+    let reacted = 0;
+    const original = () => { reacted++; return "reacted"; };
+    const other = { id: "1", author: { id: "you" }, state: "SENT" }, mine = { id: "2", author: { id: "me" }, state: "SENT" }, channel = { id: "c" };
+    f.g.doubleTap(original, null, [other, channel]);
+    f.g.doubleTap(original, null, [mine, channel]);
+    assert.deepEqual(plain(f.calls.filter(c => c[0] === "reply" || c[0] === "edit")), [["reply", "1", "message_swipe"], ["edit", "2", "message_swipe"]]);
+    assert.equal(reacted, 0);
+    const blocked = gestureFixture(createGestures, { canReply: false });
+    blocked.g.doubleTap(original, null, [other, channel]);
+    assert.equal(reacted, 1, "where replying is not allowed, Discord's own reaction runs");
+    f.setOn(false);
+    assert.equal(f.g.doubleTap(original, null, [other, channel]), "reacted", "disabled: Discord's reaction");
+});
+
+test("triple-tap delete is opt-in, waits for a third tap, and only deletes your own deletable messages", async () => {
+    const { createGestures } = await gesturesApi();
+    const original = () => "reacted";
+    const mine = { id: "2", author: { id: "me" }, state: "SENT", type: 0 }, channel = { id: "c" };
+    const off = gestureFixture(createGestures);
+    off.g.doubleTap(original, null, [mine, channel]);
+    assert.ok(off.calls.some(c => c[0] === "edit"), "without triple delete the edit happens at once");
+    const f = gestureFixture(createGestures, { triple: true });
+    f.g.doubleTap(original, null, [mine, channel]);
+    assert.ok(!f.calls.some(c => c[0] === "edit"), "waits for a possible third tap");
+    f.tick(500);
+    assert.equal(f.g.tap({ nativeEvent: { messageId: "2" } }), true);
+    assert.deepEqual(plain(f.calls.filter(c => c[0] === "delete")), [["delete", "c", "2"]]);
+    f.flush();
+    assert.ok(!f.calls.some(c => c[0] === "edit"), "no edit after the delete");
+    const late = gestureFixture(createGestures, { triple: true });
+    late.g.doubleTap(original, null, [mine, channel]);
+    late.flush();
+    assert.ok(late.calls.some(c => c[0] === "edit"), "no third tap: edit after the wait");
+    const other = gestureFixture(createGestures, { triple: true });
+    other.g.doubleTap(original, null, [{ id: "1", author: { id: "you" }, state: "SENT" }, channel]);
+    assert.ok(other.calls.some(c => c[0] === "reply"), "someone else's message never waits or deletes");
+    const kept = gestureFixture(createGestures, { triple: true });
+    kept.g.doubleTap(original, null, [{ ...mine, type: 7 }, channel]);
+    assert.ok(!kept.calls.some(c => c[0] === "delete") && kept.calls.some(c => c[0] === "edit"), "undeletable types are edited, never deleted");
+});
+
+test("wrapped MessagesHandlers keeps instances, prototype and taps, and only real double-taps are taken over", async () => {
+    const { createGestures } = await gesturesApi();
+    const f = gestureFixture(createGestures);
+    function Handlers(params) {
+        this.params = params;
+        this.handleTapMessage = () => "tap";
+        this.handleDoubleTapMessage = event => event.run();
+    }
+    Handlers.prototype.kind = "handlers";
+    Handlers.STATIC = 1;
+    const Wrapped = f.g.wrapHandlers(Handlers);
+    const instance = new Wrapped({ selectedChannelId: "c", chatInputRef: "ref" });
+    assert.ok(instance instanceof Handlers);
+    assert.equal(instance.kind, "handlers");
+    assert.equal(Wrapped.STATIC, 1);
+    assert.equal(instance.handleTapMessage({ nativeEvent: { messageId: "9" } }), "tap");
+    let reacted = 0;
+    const original = () => { reacted++; };
+    const other = { id: "1", author: { id: "you" } }, channel = { id: "c" };
+    f.g.doubleTap(original, null, [other, channel]);
+    assert.equal(reacted, 0, "before the wrapped handler has been seen, every call is taken as a double-tap");
+    instance.handleDoubleTapMessage({ run: () => f.g.doubleTap(original, null, [other, channel]) });
+    assert.equal(reacted, 0);
+    f.g.doubleTap(original, null, [other, channel]);
+    assert.equal(reacted, 1, "once it has been seen, a call outside a real double-tap (TalkBack) keeps Discord's behaviour");
+    assert.equal(f.calls.filter(c => c[0] === "reply").length, 2);
+});

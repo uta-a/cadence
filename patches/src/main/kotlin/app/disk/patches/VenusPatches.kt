@@ -34,6 +34,13 @@ val jumpToFirstMessage = venusFeature(
 )
 
 @Suppress("unused")
+val doubleTapToReply = venusFeature(
+    "gestures", "Double-tap to reply",
+    "Double-tap to reply, or to edit your own message; optional triple-tap to delete (a port of Geastures+ by kmmiio99o). " +
+        "Off until enabled in the disk settings.",
+)
+
+@Suppress("unused")
 val skipPinConfirmation = venusFeature(
     "noConfirmPin", "Skip pin confirmation",
     "Pin and unpin without a confirmation (based on NoConfirmPin by Skamt). Off until enabled in the disk settings.",

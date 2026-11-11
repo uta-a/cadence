@@ -9,6 +9,7 @@ import { createPlatformAvatar } from "../features/platformIndicator";
 import { installQuickConfirm } from "../features/venus/quickConfirm";
 import { installAlwaysTrust } from "../features/venus/alwaysTrust";
 import { createJumpToTop } from "../features/venus/jumpToTop";
+import { createGestures, wrapExport } from "../features/venus/gestures";
 import type { JumpReact } from "../features/venus/jumpToTop";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
@@ -139,6 +140,62 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             report(ok ? "jump-to-top installed" : "jump-to-top unavailable");
         } catch (_) { report("jump-to-top unavailable"); }
     }
+    /**
+     * A module for a user action (a tap), loaded on demand if it has not loaded naturally yet. Only called from
+     * handlers that run after the app is up, never during boot; failures read as missing.
+     */
+    function onDemand(id: number): unknown {
+        if (modules.has(id)) return modules.get(id);
+        if (!requireModule || !navigationReady()) return undefined;
+        try { return requireModule(id); } catch (_) { return undefined; }
+    }
+    const gestureOn = () => settings.isExtraEnabled("gestures");
+    const gestures = features.includes("gestures") ? createGestures({
+        enabled: gestureOn,
+        tripleDelete: () => settings.isExtraEnabled("gestureTripleDelete"),
+        currentUser: () => {
+            const store = dataProperty(onDemand(1392), "default"), get = store && Reflect.get(store as object, "getCurrentUser");
+            return typeof get === "function" ? Reflect.apply(get, store, []) as { id?: unknown } : null;
+        },
+        canReply: () => dataProperty(onDemand(8365), "canReplyToMessage"),
+        reply: () => dataProperty(onDemand(11370), "default"),
+        canEdit: () => dataProperty(onDemand(11371), "default"),
+        edit: () => dataProperty(onDemand(10117), "handleEdit"),
+        undeletable: () => dataProperty(dataProperty(onDemand(1087), "MessageTypesSets"), "UNDELETABLE") as { has?(t: unknown): boolean },
+        deleteMessage: () => {
+            const actions = dataProperty(onDemand(7598), "default"), remove = actions && Reflect.get(actions as object, "deleteMessage");
+            return typeof remove === "function" ? (...args: unknown[]) => Reflect.apply(remove, actions, args) : undefined;
+        },
+        haptic: () => {
+            const haptics = onDemand(5244), trigger = dataProperty(haptics, "triggerHapticFeedback");
+            const type = dataProperty(dataProperty(haptics, "HapticFeedbackTypes"), "IMPACT_LIGHT");
+            if (typeof trigger === "function" && type !== undefined) Reflect.apply(trigger, undefined, [type]);
+        },
+        setTimeout: (fn, ms) => globalThis.setTimeout(fn, ms),
+        clearTimeout: handle => globalThis.clearTimeout(handle as ReturnType<typeof globalThis.setTimeout>),
+        now: () => Date.now(),
+        onEvent: name => report(`gestures ${name}`),
+    }) : null;
+    /** Discord's double-tap banners and nudges, rendered as their own element so toggling never changes hook order. */
+    function hideWhileGestures(exports: unknown, key: string): boolean {
+        const react = reactApi(["createElement"]) as { createElement(type: unknown, props: unknown): unknown } | undefined;
+        if (!react) return false;
+        return wrapExport(exports, key, original => function DiskHiddenWhileGestures(props: unknown) {
+            return gestureOn() ? null : react.createElement(original, props);
+        });
+    }
+    function installGesture(id: number, exports: unknown): void {
+        if (!gestures) return;
+        let ok: boolean | undefined;
+        if (id === 8358) ok = wrapExport(exports, "handleAddDefaultDoubleTapReaction", original =>
+            function (this: unknown, ...args: unknown[]) { return gestures.doubleTap(original, this, args); });
+        if (id === 11269) ok = wrapExport(exports, "MessagesHandlers", original => gestures.wrapHandlers(original));
+        if (id === 9868) ok = wrapExport(exports, "maybeShowDoubleTapReminderToast", original =>
+            function (this: unknown, ...args: unknown[]) { return gestureOn() ? undefined : Reflect.apply(original, this, args); });
+        if (id === 14023) ok = hideWhileGestures(exports, "DoubleTapEmojiEditNudge");
+        if (id === 13207) ok = hideWhileGestures(exports, "DoubleTapToReactChatInputBanner");
+        if (ok !== undefined) report(`gestures ${id} ${ok ? "installed" : "unavailable"}`);
+    }
     function openSettings(): boolean {
         if (!navigationReady()) return false;
         try {
@@ -170,6 +227,10 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     // Jump to first message: JumpToPresentButton 13192, its pill 13193 and arrow asset 13194, chat input heights 9814,
     // MessageStore 6042 and MessageActions 7598.
     if (features.includes("jumpToTop")) ids.push(13192, 13193, 13194, 9814, 6042, 7598);
+    // Double-tap to reply: DoubleTapToReactUtils 8358, MessagesHandlers 11269, reminder toast 9868, edit nudge 14023,
+    // chat input banner 13207, canReplyToMessage 8365, replyToMessage 11370, canEditMessage 11371,
+    // LongPressMessageActionSheetUtils 10117, haptics 5244, constants 1087, UserStore 1392, MessageActions 7598.
+    if (features.includes("gestures")) ids.push(8358, 11269, 9868, 14023, 13207, 8365, 11370, 11371, 10117, 5244, 1087, 1392, 7598);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
@@ -213,6 +274,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                     ? "always-trust installed" : "always-trust unavailable");
             }
             if (id === 13192) installJumpToTop(exports);
+            if (features.includes("gestures")) installGesture(id, exports);
             if (id === 15449) installPlatformIndicator(exports);
             const icon = ICON_MODULES.find(item => item.id === id);
             if (icon) {

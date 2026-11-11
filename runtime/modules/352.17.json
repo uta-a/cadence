@@ -1058,6 +1058,289 @@
     "confidence": "high",
     "verified": false
   },
+  "DoubleTapToReactUtils": {
+    "id": 8358,
+    "factory": 8359,
+    "shape": [
+      "handleAddDefaultDoubleTapReaction"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 270408,
+        "detail": "module 8358 -> factory 8359; modules/double_tap_to_react/native/DoubleTapToReactUtils.tsx; 351.11 8254"
+      },
+      {
+        "kind": "export",
+        "function": 8359,
+        "offset": 261,
+        "detail": "PutById handleAddDefaultDoubleTapReaction (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "MessagesHandlers": {
+    "id": 11269,
+    "factory": 11270,
+    "shape": [
+      "MessagesHandlers"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 367496,
+        "detail": "module 11269 -> factory 11270; modules/messages/native/MessagesHandlers.tsx; 351.11 11114"
+      },
+      {
+        "kind": "export",
+        "function": 11270,
+        "offset": 950,
+        "detail": "PutById MessagesHandlers (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "DoubleTapReminderToast": {
+    "id": 9868,
+    "factory": 9869,
+    "shape": [
+      "maybeShowDoubleTapReminderToast"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 320764,
+        "detail": "module 9868 -> factory 9869; 351.11 9738"
+      },
+      {
+        "kind": "export",
+        "function": 9869,
+        "offset": 112,
+        "detail": "PutById maybeShowDoubleTapReminderToast (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "DoubleTapEmojiEditNudge": {
+    "id": 14023,
+    "factory": 14024,
+    "shape": [
+      "DoubleTapEmojiEditNudge"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 459698,
+        "detail": "module 14023 -> factory 14024; 351.11 13762"
+      },
+      {
+        "kind": "export",
+        "function": 14024,
+        "offset": 358,
+        "detail": "PutById DoubleTapEmojiEditNudge (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "DoubleTapToReactChatInputBanner": {
+    "id": 13207,
+    "factory": 13208,
+    "shape": [
+      "DoubleTapToReactChatInputBanner"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 432372,
+        "detail": "module 13207 -> factory 13208; 351.11 12935"
+      },
+      {
+        "kind": "export",
+        "function": 13208,
+        "offset": 730,
+        "detail": "PutById DoubleTapToReactChatInputBanner (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "CanReplyToMessage": {
+    "id": 8365,
+    "factory": 8366,
+    "shape": [
+      "canReplyToMessage"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 270642,
+        "detail": "module 8365 -> factory 8366; modules/replies/canReplyToMessage.tsx; 351.11 8261"
+      },
+      {
+        "kind": "export",
+        "function": 8366,
+        "offset": 215,
+        "detail": "PutById canReplyToMessage (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "ReplyToMessage": {
+    "id": 11370,
+    "factory": 11371,
+    "shape": [
+      "default"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 370872,
+        "detail": "module 11370 -> factory 11371; modules/replies/native/replyToMessage.tsx; 351.11 11198"
+      },
+      {
+        "kind": "export",
+        "function": 11371,
+        "offset": 151,
+        "detail": "PutById default (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "CanEditMessage": {
+    "id": 11371,
+    "factory": 11372,
+    "shape": [
+      "default"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 370906,
+        "detail": "module 11371 -> factory 11372; modules/messages/canEditMessage.tsx; 351.11 11199"
+      },
+      {
+        "kind": "export",
+        "function": 11372,
+        "offset": 132,
+        "detail": "PutById default (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "LongPressMessageActionSheetUtils": {
+    "id": 10117,
+    "factory": 10118,
+    "shape": [
+      "handleEdit"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 329058,
+        "detail": "module 10117 -> factory 10118; 351.11 9988"
+      },
+      {
+        "kind": "export",
+        "function": 10118,
+        "offset": 363,
+        "detail": "PutById handleEdit (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "HapticUtils": {
+    "id": 5244,
+    "factory": 5245,
+    "shape": [
+      "HapticFeedbackTypes",
+      "triggerHapticFeedback"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 167836,
+        "detail": "module 5244 -> factory 5245; modules/haptics/HapticUtils.native.tsx; 351.11 5156"
+      },
+      {
+        "kind": "export",
+        "function": 5245,
+        "offset": 97,
+        "detail": "PutById HapticFeedbackTypes (plain data)"
+      },
+      {
+        "kind": "export",
+        "function": 5245,
+        "offset": 108,
+        "detail": "PutById triggerHapticFeedback (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "Constants": {
+    "id": 1087,
+    "factory": 1088,
+    "shape": [
+      "MessageTypesSets"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 34668,
+        "detail": "module 1087 -> factory 1088; Discord constants; same ID in 351.11"
+      },
+      {
+        "kind": "export",
+        "function": 1088,
+        "offset": 68274,
+        "detail": "PutById MessageTypesSets (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "UserStore": {
+    "id": 1392,
+    "factory": 1393,
+    "shape": [
+      "default"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 44144,
+        "detail": "module 1392 -> factory 1393; stores/UserStore.tsx; same ID in 351.11"
+      },
+      {
+        "kind": "export",
+        "function": 1393,
+        "offset": 1011,
+        "detail": "PutById default (plain data)"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
   "_missing": {
     "runtimeVerification": "All14 descriptor identities have device observations. verified=false reserves full feature-hook approval; core Overview UI and owned settings write/readback/restart have separate capability evidence. Probes never evaluated accessors; UI lazy getters were evaluated only after navigation readiness. No store/send methods were called; unimplemented feature contracts and fault durability remain unverified.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",

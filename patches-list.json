@@ -138,6 +138,33 @@
       "options": []
     },
     {
+      "name": "Double-tap to reply",
+      "description": "Double-tap to reply, or to edit your own message; optional triple-tap to delete (a port of Geastures+ by kmmiio99o). Off until enabled in the disk settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Fake Nitro",
       "description": "Send emojis that need Nitro as image links. Off until enabled in the disk settings.",
       "default": true,

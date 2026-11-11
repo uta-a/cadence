@@ -232,6 +232,18 @@
     "ChatFloatingNavButton",
     "ChatBottomManager",
     "MessageStore",
-    "JumpArrowAsset"
+    "JumpArrowAsset",
+    "DoubleTapToReactUtils",
+    "MessagesHandlers",
+    "DoubleTapReminderToast",
+    "DoubleTapEmojiEditNudge",
+    "DoubleTapToReactChatInputBanner",
+    "CanReplyToMessage",
+    "ReplyToMessage",
+    "CanEditMessage",
+    "LongPressMessageActionSheetUtils",
+    "HapticUtils",
+    "Constants",
+    "UserStore"
   ]
 }
