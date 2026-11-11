@@ -13,6 +13,7 @@ import { createGestures, wrapExport } from "../features/venus/gestures";
 import { installFullImages } from "../features/venus/fullImages";
 import { createReadAll } from "../features/venus/readAll";
 import { installQuietReplies, pendingReplyState } from "../features/venus/quietReplies";
+import { createVoiceDownload } from "../features/venus/voiceDownload";
 import type { JumpReact } from "../features/venus/jumpToTop";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
@@ -178,6 +179,24 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
         if (!requireModule || !navigationReady()) return undefined;
         try { return requireModule(id); } catch (_) { return undefined; }
     }
+    const voiceDownload = features.includes("voiceDownload") ? createVoiceDownload({
+        enabled: () => settings.isExtraEnabled("voiceDownload"),
+        message: (channelId, messageId) => {
+            const store = dataProperty(onDemand(6042), "default"), get = dataProperty(store, "getMessage");
+            return typeof get === "function" ? Reflect.apply(get, store, [channelId, messageId]) : undefined;
+        },
+        nativeData: event => {
+            const read = dataProperty(onDemand(10105), "getNativeSyntheticEventData");
+            return typeof read === "function" ? Reflect.apply(read, undefined, [event]) : undefined;
+        },
+        download: (url, type, mime) => {
+            const media = dataProperty(onDemand(1447), "default");
+            const download = media && Reflect.get(media as object, "downloadMediaAssetWithContentType");
+            if (typeof download !== "function") throw new Error("unavailable");
+            return Reflect.apply(download, media, [url, type, mime]);
+        },
+        onEvent: event => report(`voice-download ${event}`),
+    }) : null;
     const gestureOn = () => settings.isExtraEnabled("gestures");
     const gestures = features.includes("gestures") ? createGestures({
         enabled: gestureOn,
@@ -270,6 +289,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     // when the button is pressed (onDemand).
     if (features.includes("readAll")) ids.push(17778, 17768);
     if (features.includes("quietReplies")) ids.push(10119, 7785);
+    if (features.includes("voiceDownload")) ids.push(8165, 11269);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
@@ -332,6 +352,8 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                 report(wrapped > 0 ? "full-images installed" : "full-images unavailable");
             }
             if (features.includes("gestures")) installGesture(id, exports);
+            if (voiceDownload && id === 8165 && !voiceDownload.installRows(exports)) report("voice-download unavailable");
+            if (voiceDownload && id === 11269 && !voiceDownload.installHandlers(exports)) report("voice-download unavailable");
             if (id === 15449) installPlatformIndicator(exports);
             const icon = ICON_MODULES.find(item => item.id === id);
             if (icon) {

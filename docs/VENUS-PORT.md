@@ -35,6 +35,15 @@
 | 高画質で画像を読み込む（patch: Load full-quality images） | Load full-quality images（Uncompressed Discord Images by Knewest、HighResProfileImages by Kawtious） | ImageUtils 1498、AvatarUtils 1417 | 実機確認済み: チャットの画像が元ファイルのURLで読み込まれた（`full-images image`）。Venusの場所別・GIFの設定は省き、チャットと全画面とアイコンをまとめて1つのスイッチにした（GIFはDiscordのまま） |
 | すべて既読にする（patch: Read all） | Read all（ReadAllNotificationsButton の移植） | useGuildsBarProps 17778、GuildsBarConstants 17768。押したときに読む: GuildReadStateStore 6846、SortedGuildStore 6733、LurkingStore 4936、GuildStore 4877、ReadStateStore 6803、ReadStateTypes 6737、markGuildsAsRead 15243、Constants 1087、PrivateChannelReadStateStore 15096、PrivateChannelSortStore 7354、MessageRequestUtils 6844、ReadStateActionCreators 7238 | 実機確認済み: サーバー一覧のDMボタンの下にボタンが出る。タップでサーバーの未読マークが消え、長押し→DMで未読バッジ4件が消えることを確認（`read-all cleared`）。設定オフ／オンも再起動なしで反映。未読がないときは`nothing`になる。Venusの長押しシートとトーストは使わず、AndroidのAlert（ボタン3つ、外側タップで閉じる）と、消せたときの✓表示にした |
 
+### Download voice messages（実機保存確認済み）
+
+- `runtime/src/features/venus/voiceDownload.ts` はVenusの同名機能（VoiceDownload由来）を移植。個別patch `Download voice messages`、初期オフの`voiceDownload`設定。
+- 352.17のRowGenerator **8165 / factory8166**（prototype.generate）、MessagesHandlers **11269**（handleTapCtaButton）を接続。保存操作時だけMessageStore **6042**、NativeMediaManager **1447**、イベント変換 **10105** を解決する。起動時の強制ロードはしない。
+- 音声フラグ8192とDiscordのCDN/media上のattachments URL、audio MIMEを検査。既存のCTAは上書きしない。署名付きURLをそのまま標準の`downloadMediaAssetWithContentType(url, 0, mime)`へ渡す。再エンコードなし。失敗・連打はbusy状態を解放して再試行可能。
+- 設定変更はチャンネルを開き直して反映する。オフにした直後に残っているdiskのCTAは何も保存せず消費し、Discordの別CTA処理へは渡さない。現状は暗色の中立ボタン配色。テーマ別調整は未対応。
+- pipa: 短いテスト音声を送信→ボタン表示→押して保存、`voice-download started` / `saved`、`/sdcard/Download/voice-message.ogg`（5,679 bytes、Opus、1.72秒）を確認。保存処理はユーザー操作時のみ。テスト音声のローカルコピーはgitignore対象の`work/phase4-device/`内。
+- 型検査、Node **119件**、Python **20件**、Gradleテスト、smoke APKビルド成功。
+
 ### Reply without pinging（サーバーの初期オフ・手動切替を実機確認）
 
 - `runtime/src/features/venus/quietReplies.ts` はVenusの`quietReplyCreate`を移植。個別patch `Reply without pinging` と初期オフの `quietReplies` 設定を追加した。

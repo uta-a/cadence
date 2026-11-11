@@ -55,6 +55,18 @@
     "id": 6737, "factory": 6738, "shape": ["CHANNEL", "GUILD_EVENT"],
     "evidence": [{"kind":"registration","function":0,"offset":216710,"detail":"modules/read_states/ReadStateConstants.tsx"},{"kind":"export","function":6738,"offset":41,"detail":"CHANNEL; GUILD_EVENT at 58"}], "confidence":"high", "verified":false
   },
+  "MessageRowGenerator": {
+    "id":8165,"factory":8166,"shape":["default"],
+    "evidence":[{"kind":"registration","function":0,"offset":264046,"detail":"modules/messages/native/renderer/RowGenerator.tsx; Venus 8013"},{"kind":"export","function":8166,"offset":213,"detail":"default class; prototype.generate closure46038 at178"}],"confidence":"high","verified":false
+  },
+  "NativeMediaManager": {
+    "id":1447,"factory":1448,"shape":["default"],
+    "evidence":[{"kind":"registration","function":0,"offset":45904,"detail":"../discord_common/js/packages/rtn-codegen/js/NativeMediaManagerModule.tsx"},{"kind":"export","function":1448,"offset":102,"detail":"TurboModuleRegistry.getEnforcing NativeMediaManagerModule; downloadMediaAssetWithContentType is validated only on user action"}],"confidence":"high","verified":false
+  },
+  "MessageDataSnowflakeUtils": {
+    "id":10105,"factory":10106,"shape":["getNativeSyntheticEventData"],
+    "evidence":[{"kind":"registration","function":0,"offset":328652,"detail":"modules/messages/native/snowflake/MessageDataSnowflakeUtils.tsx; Venus 9976"},{"kind":"export","function":10106,"offset":86,"detail":"getNativeSyntheticEventData closure53434"}],"confidence":"high","verified":false
+  },
   "PendingReplyStore": {
     "id": 7785, "factory": 7786, "shape": ["default"],
     "evidence": [

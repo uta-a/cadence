@@ -165,6 +165,33 @@
       "options": []
     },
     {
+      "name": "Download voice messages",
+      "description": "Add a save button to voice messages using Android's downloader (based on VoiceDownload). Off until enabled in the disk settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Fake Nitro",
       "description": "Send emojis that need Nitro as image links. Off until enabled in the disk settings.",
       "default": true,

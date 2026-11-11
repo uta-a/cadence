@@ -218,6 +218,9 @@
     }
   },
   "notObserved": [
+    "MessageRowGenerator",
+    "NativeMediaManager",
+    "MessageDataSnowflakeUtils",
     "PendingReplyStore",
     "PendingReplyActionCreators",
     "ReadAllSortedGuildStore",

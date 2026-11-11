@@ -48,6 +48,12 @@ val loadFullQualityImages = venusFeature(
 )
 
 @Suppress("unused")
+val downloadVoiceMessages = venusFeature(
+    "voiceDownload", "Download voice messages",
+    "Add a save button to voice messages using Android's downloader (based on VoiceDownload). Off until enabled in the disk settings.",
+)
+
+@Suppress("unused")
 val replyWithoutPinging = venusFeature(
     "quietReplies", "Reply without pinging",
     "Start server and group DM replies without a mention; Discord's per-reply toggle stays available. Off until enabled in the disk settings.",
