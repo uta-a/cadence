@@ -60,6 +60,7 @@ export const MODULE_PROBES: readonly ModuleProbe[] = [
     { name: "ReadAllReadStateStore", id: 6803, paths: ["default"] },
     { name: "ReadAllReadStateActionCreators", id: 7238, paths: ["bulkAck"] },
     { name: "ReadAllReadStateConstants", id: 6737, paths: ["CHANNEL", "GUILD_EVENT"] },
+    { name: "GuildsBarGuildMenuItems", id: 17772, paths: ["default"] },
     { name: "MessageRowGenerator", id: 8165, paths: ["default"] },
     { name: "NativeMediaManager", id: 1447, paths: ["default"] },
     { name: "MessageDataSnowflakeUtils", id: 10105, paths: ["getNativeSyntheticEventData"] },

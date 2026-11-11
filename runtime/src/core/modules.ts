@@ -14,6 +14,7 @@ import { installFullImages } from "../features/venus/fullImages";
 import { createReadAll } from "../features/venus/readAll";
 import { installQuietReplies, pendingReplyState } from "../features/venus/quietReplies";
 import { createVoiceDownload } from "../features/venus/voiceDownload";
+import { installServerInfo } from "../features/venus/serverInfo";
 import type { JumpReact } from "../features/venus/jumpToTop";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
@@ -290,6 +291,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     if (features.includes("readAll")) ids.push(17778, 17768);
     if (features.includes("quietReplies")) ids.push(10119, 7785);
     if (features.includes("voiceDownload")) ids.push(8165, 11269);
+    if (features.includes("serverInfo")) ids.push(17772);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
@@ -350,6 +352,27 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                 const wrapped = installFullImages(modules.get(1498), modules.get(1417), () => settings.isExtraEnabled("fullImages"),
                     kind => report(`full-images ${kind}`));
                 report(wrapped > 0 ? "full-images installed" : "full-images unavailable");
+            }
+            if (id === 17772 && features.includes("serverInfo")) {
+                const ok = installServerInfo(exports, {
+                    enabled: () => settings.isExtraEnabled("serverInfo"),
+                    guild: id => {
+                        const store = dataProperty(onDemand(4877), "default"), get = dataProperty(store, "getGuild");
+                        return typeof get === "function" ? Reflect.apply(get, store, [id]) : undefined;
+                    },
+                    show: (title, message) => {
+                        if (!navigationReady()) return false;
+                        const rn = modules.get(17);
+                        const alert = rn && typeof rn === "object" ? Reflect.get(rn, "Alert") : undefined;
+                        if (!alert || (typeof alert !== "object" && typeof alert !== "function")) return false;
+                        const show = Reflect.get(alert, "alert");
+                        if (typeof show !== "function") return false;
+                        Reflect.apply(show, alert, [title, message, [{ text: "閉じる" }], { cancelable: true }]);
+                        return true;
+                    },
+                    onEvent: event => report(`server-info ${event}`),
+                });
+                if (!ok) report("server-info unavailable");
             }
             if (features.includes("gestures")) installGesture(id, exports);
             if (voiceDownload && id === 8165 && !voiceDownload.installRows(exports)) report("voice-download unavailable");

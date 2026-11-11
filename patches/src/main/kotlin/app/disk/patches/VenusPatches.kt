@@ -48,6 +48,12 @@ val loadFullQualityImages = venusFeature(
 )
 
 @Suppress("unused")
+val serverInformation = venusFeature(
+    "serverInfo", "Server info",
+    "Show loaded server metadata from the server icon's hold menu. No extra member requests. Off until enabled in the disk settings.",
+)
+
+@Suppress("unused")
 val downloadVoiceMessages = venusFeature(
     "voiceDownload", "Download voice messages",
     "Add a save button to voice messages using Android's downloader (based on VoiceDownload). Off until enabled in the disk settings.",

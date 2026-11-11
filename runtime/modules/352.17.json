@@ -55,6 +55,10 @@
     "id": 6737, "factory": 6738, "shape": ["CHANNEL", "GUILD_EVENT"],
     "evidence": [{"kind":"registration","function":0,"offset":216710,"detail":"modules/read_states/ReadStateConstants.tsx"},{"kind":"export","function":6738,"offset":41,"detail":"CHANNEL; GUILD_EVENT at 58"}], "confidence":"high", "verified":false
   },
+  "GuildsBarGuildMenuItems": {
+    "id":17772,"factory":17773,"shape":["default"],
+    "evidence":[{"kind":"registration","function":0,"offset":584840,"detail":"modules/guilds_bar/native/utils/getGuildsBarGuildMenuItems.tsx; Venus 17433"},{"kind":"export","function":17773,"offset":153,"detail":"default menu items function"}],"confidence":"high","verified":false
+  },
   "MessageRowGenerator": {
     "id":8165,"factory":8166,"shape":["default"],
     "evidence":[{"kind":"registration","function":0,"offset":264046,"detail":"modules/messages/native/renderer/RowGenerator.tsx; Venus 8013"},{"kind":"export","function":8166,"offset":213,"detail":"default class; prototype.generate closure46038 at178"}],"confidence":"high","verified":false

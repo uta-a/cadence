@@ -35,6 +35,14 @@
 | 高画質で画像を読み込む（patch: Load full-quality images） | Load full-quality images（Uncompressed Discord Images by Knewest、HighResProfileImages by Kawtious） | ImageUtils 1498、AvatarUtils 1417 | 実機確認済み: チャットの画像が元ファイルのURLで読み込まれた（`full-images image`）。Venusの場所別・GIFの設定は省き、チャットと全画面とアイコンをまとめて1つのスイッチにした（GIFはDiscordのまま） |
 | すべて既読にする（patch: Read all） | Read all（ReadAllNotificationsButton の移植） | useGuildsBarProps 17778、GuildsBarConstants 17768。押したときに読む: GuildReadStateStore 6846、SortedGuildStore 6733、LurkingStore 4936、GuildStore 4877、ReadStateStore 6803、ReadStateTypes 6737、markGuildsAsRead 15243、Constants 1087、PrivateChannelReadStateStore 15096、PrivateChannelSortStore 7354、MessageRequestUtils 6844、ReadStateActionCreators 7238 | 実機確認済み: サーバー一覧のDMボタンの下にボタンが出る。タップでサーバーの未読マークが消え、長押し→DMで未読バッジ4件が消えることを確認（`read-all cleared`）。設定オフ／オンも再起動なしで反映。未読がないときは`nothing`になる。Venusの長押しシートとトーストは使わず、AndroidのAlert（ボタン3つ、外側タップで閉じる）と、消せたときの✓表示にした |
 
+### Server info（基本情報を実機確認）
+
+- `runtime/src/features/venus/serverInfo.ts` はVenusの`serverInfoMenu`を移植。Morpheの個別patch `Server info` と初期オフの`serverInfo`設定を追加した。
+- メニューはVenus 17433 → 352.17 **17772 / factory17773**。`getGuildsBarGuildMenuItems.tsx`のdefault export offset153を実バンドルで確認。押したときだけGuildStore **4877**を解決する。
+- サーバーアイコンの長押しメニューに「サーバー情報」を追加し、読み込み済みの名前・ID・所有者ID・作成日時・メンバー数・ブースト情報・言語・認証レベルを表示。取得できていない値は省略。追加通信やメンバー取得要求は行わない。
+- Venusの友達一覧、所有者プロフィール遷移、コピーボタン、装飾付きシートは未移植。diskではAndroid標準ダイアログを使う。
+- pipaで初期オフ、設定保存、長押しメニューとダイアログを確認。`server-info opened`を記録し、FATAL/TypeError/ReferenceErrorなし。証跡は`work/phase4-device/server-info-dialog.png`。型検査、Node **122件**、Python **24件**、Gradleテストとsmoke APKビルド成功。
+
 ### Download voice messages（実機保存確認済み）
 
 - `runtime/src/features/venus/voiceDownload.ts` はVenusの同名機能（VoiceDownload由来）を移植。個別patch `Download voice messages`、初期オフの`voiceDownload`設定。
