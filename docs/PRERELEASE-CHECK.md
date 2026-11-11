@@ -9,7 +9,7 @@
 - サーバー情報: 長押しメニューから読み込み済みの基本情報を表示。
 - 非表示チャンネル: 読み取り専用メニュー方式。空の画面と設定を実機確認。標準一覧・権限判定・履歴取得を変更しない。
 - 削除・編集履歴: 読み込み済み本文を最大200件、起動中だけ保持。編集前後・削除前の表示、全消去、再起動後0件を実機確認。
-- 配布準備: normal/smokeを識別し、DEX欠落・smoke版・バージョン不一致を拒否。MPPとMorpheメタデータ、ライセンス、チェックサムをローカルにまとめる。
+- 配布準備: normal/smokeを識別し、DEX欠落・smoke版・バージョン不一致・ライセンス欠落を拒否。MPP単体にもライセンスとNOTICEを同梱。Morpheメタデータとチェックサムもローカルにまとめる。
 
 ## 最終ローカル検証
 
@@ -17,7 +17,7 @@
 | --- | --- |
 | TypeScript | 成功 |
 | Node | 143件成功、skipなし |
-| Python、実入力指定 | 24件成功、skipなし |
+| Python、実入力指定 | 25件成功、skipなし |
 | Kotlin、実バンドル・DEX・Hermesあり | 57件成功、skipなし |
 | normal / smoke APK | ビルド成功 |
 | normal APK | user0へ同署名更新。設定を維持し、`loaded`と`settings ready`を確認。起動ログにFATAL・TypeError・ReferenceErrorなし |

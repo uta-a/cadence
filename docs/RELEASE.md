@@ -46,7 +46,7 @@ python3 tools/prepare_release.py \
   --out work/release-staging/0.0.1
 ```
 
-出力先は空のディレクトリにします。MPPのmanifestと`patches-list.json`のバージョンが指定値に一致しない場合、DEXやビルド情報がない場合、smoke版の場合は拒否します。
+出力先は空のディレクトリにします。MPPのmanifestと`patches-list.json`のバージョンが指定値に一致しない場合、DEXやビルド情報、ライセンス・帰属表記がない場合、smoke版の場合は拒否します。MPP内にも`disk/legal/license.txt`と`notice.txt`を同梱します。
 
 出力:
 
@@ -104,6 +104,7 @@ python3 tools/prepare_release.py \
 - 開発中のバージョンを確定し、Gradle・ランタイム・説明文の値を揃える。
 - 確定版の変更履歴と配布物を作り直す。
 - 公開先、ライセンス、対応バージョン、既知の制限を再確認する。
+- GPLに従い、対応するソースとビルド手順を公開する。リポジトリを非公開にしたままMPPだけを配布しない。
 - 別途承認を得てタグ、push、Release作成、メタデータ公開を行う。
 - 公開済みURLからMorphe Managerへ追加し、更新確認まで通す。
 

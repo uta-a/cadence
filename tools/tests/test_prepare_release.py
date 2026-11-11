@@ -25,10 +25,13 @@ class ReleasePreparationTests(unittest.TestCase):
         self.mpp = self.root / 'input.mpp'
         self.out = self.root / 'staged'
 
-    def bundle(self, *, smoke=False, dex=True, info=True, version='0.0.1'):
+    def bundle(self, *, smoke=False, dex=True, info=True, notices=True, notice_text='fixture attribution', version='0.0.1'):
         with zipfile.ZipFile(self.mpp, 'w') as archive:
             archive.writestr('META-INF/MANIFEST.MF', f'Name: disk\r\nVersion: {version}\r\n')
             archive.writestr('disk/runtime.js', 'var disk = true;')
+            if notices:
+                archive.writestr('disk/legal/license.txt', 'fixture license')
+                archive.writestr('disk/legal/notice.txt', notice_text)
             if dex:
                 archive.writestr('classes.dex', b'dex\n035\0fixture')
             if info:
@@ -52,12 +55,18 @@ class ReleasePreparationTests(unittest.TestCase):
         self.assertEqual(len(list(self.out.iterdir())), 7)
 
     def test_smoke_or_missing_entries_never_produce_output(self):
-        for options in ({'smoke': True}, {'dex': False}, {'info': False}, {'version': '0.0.2'}):
+        for options in ({'smoke': True}, {'dex': False}, {'info': False}, {'notices': False}, {'version': '0.0.2'}):
             with self.subTest(options=options):
                 self.bundle(**options)
                 with self.assertRaises(ValueError):
                     self.stage()
                 self.assertFalse(self.out.exists())
+
+    def test_empty_attribution_is_rejected(self):
+        self.bundle(notice_text='')
+        with self.assertRaisesRegex(ValueError, 'Empty license or attribution'):
+            self.stage()
+        self.assertFalse(self.out.exists())
 
     def test_invalid_version_repository_or_stale_output_are_rejected(self):
         self.bundle()

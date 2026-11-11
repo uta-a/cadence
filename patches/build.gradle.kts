@@ -4,7 +4,7 @@ patches {
     about {
         name = "disk"
         description = "Fake Nitro, platform indicators and privacy options for Discord on Android"
-        source = "git@github.com:uta-a/disk.git"
+        source = "https://github.com/uta-a/disk"
         author = "uta-a"
         contact = "https://github.com/uta-a/disk/issues"
         website = "https://github.com/uta-a/disk"
@@ -58,6 +58,12 @@ val buildRuntime by tasks.registering(Exec::class) {
 sourceSets["main"].resources.srcDir(buildRuntime)
 
 tasks {
+    processResources {
+        from(listOf(rootProject.file("LICENSE"), rootProject.file("NOTICE"))) {
+            into("disk/legal")
+            rename { name -> name.lowercase() + ".txt" }
+        }
+    }
     test {
         useJUnitPlatform()
         // Tests that need local tools (the Hermes VM, a Discord bundle) look for them here and skip without them.

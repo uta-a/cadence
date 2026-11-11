@@ -20,9 +20,11 @@ def validate_bundle(mpp: Path, version: str):
         names = archive.namelist()
         if len(names) != len(set(names)):
             raise ValueError("Duplicate bundle entries")
-        for required in ("classes.dex", "disk/runtime.js", "disk/build-info.json", "META-INF/MANIFEST.MF"):
+        for required in ("classes.dex", "disk/runtime.js", "disk/build-info.json", "META-INF/MANIFEST.MF", "disk/legal/license.txt", "disk/legal/notice.txt"):
             if required not in names:
                 raise ValueError("Required bundle entry missing: " + required)
+        if not archive.read("disk/legal/license.txt").strip() or not archive.read("disk/legal/notice.txt").strip():
+            raise ValueError("Empty license or attribution notice")
         if not archive.read("classes.dex").startswith(b"dex\n"):
             raise ValueError("Invalid classes.dex")
         info = json.loads(archive.read("disk/build-info.json"))
