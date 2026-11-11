@@ -60,6 +60,7 @@ export const MODULE_PROBES: readonly ModuleProbe[] = [
     { name: "ReadAllReadStateStore", id: 6803, paths: ["default"] },
     { name: "ReadAllReadStateActionCreators", id: 7238, paths: ["bulkAck"] },
     { name: "ReadAllReadStateConstants", id: 6737, paths: ["CHANNEL", "GUILD_EVENT"] },
+    { name: "PendingReplyActionCreators", id: 10119, paths: ["createPendingReply", "createShallowPendingReply", "setPendingReplyShouldMention"] },
     { name: "UseGuildsBarProps", id: 17778, paths: ["default"] },
     { name: "GuildsBarConstants", id: 17768, paths: ["FastListRenderSections"] },
     { name: "ImageUtils", id: 1498, paths: ["getMobileOptimizedSrc", "default.getMobileOptimizedSrc"] },

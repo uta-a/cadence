@@ -300,6 +300,33 @@
       "options": []
     },
     {
+      "name": "Reply without pinging",
+      "description": "Start server and group DM replies without a mention; Discord's per-reply toggle stays available. Off until enabled in the disk settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Skip delete confirmation",
       "description": "Delete messages without the \"Are you sure?\" alert. Off until enabled in the disk settings.",
       "default": true,

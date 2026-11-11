@@ -48,6 +48,12 @@ val loadFullQualityImages = venusFeature(
 )
 
 @Suppress("unused")
+val replyWithoutPinging = venusFeature(
+    "quietReplies", "Reply without pinging",
+    "Start server and group DM replies without a mention; Discord's per-reply toggle stays available. Off until enabled in the disk settings.",
+)
+
+@Suppress("unused")
 val readAll = venusFeature(
     "readAll", "Read all",
     "Add a button to the server list that marks servers (or, when held, DMs) as read. Off until enabled in the disk settings.",

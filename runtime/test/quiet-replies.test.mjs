@@ -1,0 +1,61 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { build } from "esbuild";
+import vm from "node:vm";
+import { fileURLToPath } from "node:url";
+
+const { outputFiles } = await build({ stdin: { contents: 'export * from "./features/venus/quietReplies";',
+    resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true,
+    format: "cjs", platform: "neutral", target: "es2019", write: false });
+const host = { module: { exports: {} } };
+vm.runInNewContext(outputFiles[0].text, host);
+const { installQuietReplies } = host.module.exports;
+
+test("quiet replies change only initial server/group mentions and preserve receiver, parameters and manual toggle", () => {
+    let on = false, events = 0, calls = [];
+    const original = function (...args) { calls.push({ self: this, args }); return "reply"; };
+    const manual = () => "manual";
+    const actions = { createPendingReply: original, createShallowPendingReply: original, setPendingReplyShouldMention: manual };
+    assert.equal(installQuietReplies(actions, () => on, () => events++), 2);
+    const params = Object.freeze({ channel: { guild_id: "g", type: 0 }, message: { id: "m" }, shouldMention: true });
+    assert.equal(actions.createPendingReply(params, "tail"), "reply");
+    assert.equal(calls.at(-1).args[0], params, "default off");
+    on = true;
+    for (const key of ["createPendingReply", "createShallowPendingReply"]) {
+        assert.equal(actions[key](params, "tail"), "reply");
+        const { self, args } = calls.at(-1);
+        assert.equal(self, actions);
+        assert.equal(args[1], "tail");
+        assert.equal(args[0].shouldMention, false);
+        assert.equal(args[0].message, params.message);
+        assert.equal(args[0].channel, params.channel);
+        assert.equal(params.shouldMention, true);
+    }
+    assert.equal(actions.setPendingReplyShouldMention, manual);
+    const group = { channel: { type: 3 }, messageId: "m" };
+    actions.createShallowPendingReply(group);
+    assert.equal(calls.at(-1).args[0].shouldMention, false);
+    for (const untouched of [null, {}, [], { channel: { type: 1 } }, { channel: { type: 2 } },
+        { channel: { guild_id: "g" }, shouldMention: false }]) {
+        actions.createPendingReply(untouched);
+        assert.equal(calls.at(-1).args[0], untouched);
+    }
+    assert.equal(events, 3);
+});
+
+test("quiet replies fail open on unsafe shapes and never repeat an original that throws", () => {
+    let calls = 0, accessors = 0;
+    const failure = new Error("original");
+    const actions = { createPendingReply(value) { calls++; throw failure; } };
+    assert.equal(installQuietReplies(actions, () => true, () => { throw new Error("log"); }), 1);
+    assert.throws(() => actions.createPendingReply({ channel: { guild_id: "g" } }), e => e === failure);
+    assert.equal(calls, 1);
+    const unsafe = { get channel() { accessors++; throw new Error("accessor"); } };
+    assert.throws(() => actions.createPendingReply(unsafe), e => e === failure);
+    assert.equal(accessors, 0);
+    assert.equal(calls, 2);
+    assert.equal(installQuietReplies(Object.freeze({ createPendingReply() {} }), () => true), 0);
+    const getters = { get createPendingReply() { accessors++; return () => {}; } };
+    assert.equal(installQuietReplies(getters, () => true), 0);
+    assert.equal(accessors, 0);
+});

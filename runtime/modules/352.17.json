@@ -55,6 +55,15 @@
     "id": 6737, "factory": 6738, "shape": ["CHANNEL", "GUILD_EVENT"],
     "evidence": [{"kind":"registration","function":0,"offset":216710,"detail":"modules/read_states/ReadStateConstants.tsx"},{"kind":"export","function":6738,"offset":41,"detail":"CHANNEL; GUILD_EVENT at 58"}], "confidence":"high", "verified":false
   },
+  "PendingReplyActionCreators": {
+    "id": 10119, "factory": 10120, "shape": ["createPendingReply", "createShallowPendingReply", "setPendingReplyShouldMention"],
+    "evidence": [
+      {"kind":"registration","function":0,"offset":329124,"detail":"modules/replies/PendingReplyActionCreators.tsx; Venus 9990"},
+      {"kind":"export","function":10120,"offset":89,"detail":"createPendingReply closure53522; createShallowPendingReply at100; setPendingReplyShouldMention at111"},
+      {"kind":"implementation","function":53522,"offset":16,"detail":"reads params.shouldMention; dispatched at81 along with message/channel"},
+      {"kind":"implementation","function":53523,"offset":17,"detail":"reads params.shouldMention for shallow replies; dispatched at71"}
+    ], "confidence":"high", "verified":false
+  },
   "RootNavigation": {
     "id": 5183, "factory": 5184, "shape": ["getRootNavigationRef"],
     "evidence": [

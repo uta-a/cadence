@@ -12,6 +12,7 @@ import { createJumpToTop } from "../features/venus/jumpToTop";
 import { createGestures, wrapExport } from "../features/venus/gestures";
 import { installFullImages } from "../features/venus/fullImages";
 import { createReadAll } from "../features/venus/readAll";
+import { installQuietReplies } from "../features/venus/quietReplies";
 import type { JumpReact } from "../features/venus/jumpToTop";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
@@ -268,6 +269,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     // Read all: useGuildsBarProps 17778 and GuildsBarConstants 17768. The read-state stores and actions are loaded
     // when the button is pressed (onDemand).
     if (features.includes("readAll")) ids.push(17778, 17768);
+    if (features.includes("quietReplies")) ids.push(10119);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
@@ -312,6 +314,11 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             }
             if (id === 13192) installJumpToTop(exports);
             if (id === 17778 && features.includes("readAll")) installReadAll(exports);
+            if (id === 10119 && features.includes("quietReplies")) {
+                const count = installQuietReplies(exports, () => settings.isExtraEnabled("quietReplies"),
+                    () => report("quiet-replies changed"));
+                report(count === 2 ? "quiet-replies installed" : "quiet-replies unavailable");
+            }
             if ((id === 1498 || id === 1417) && modules.has(1498) && modules.has(1417) && !fullImagesInstalled) {
                 fullImagesInstalled = true;
                 const wrapped = installFullImages(modules.get(1498), modules.get(1417), () => settings.isExtraEnabled("fullImages"),

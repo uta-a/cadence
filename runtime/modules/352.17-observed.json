@@ -218,6 +218,7 @@
     }
   },
   "notObserved": [
+    "PendingReplyActionCreators",
     "ReadAllSortedGuildStore",
     "ReadAllGuildStore",
     "ReadAllLurkingStore",
