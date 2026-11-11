@@ -2,7 +2,7 @@
 
 Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator、プライバシー保護をオフラインで追加する。
 
-> 開発中（**Phase 4: 機能を実装し実機で確認済み**。Fake Nitroのピッカー・スタンプ、Platform Indicatorの他の表示箇所は未実装）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
+> 開発中（**Phase 4: 機能を実装中**。Fake Nitroのピッカー・スタンプは実機未確認、Platform Indicatorの他の表示箇所は未実装）。設計とフェーズは [docs/DESIGN.md](docs/DESIGN.md) を参照。
 
 **開発対象:** Discord **352.17 - Stable**（APKM）。Fake Nitro（入力した絵文字のリンク変換）、Platform Indicator（アバターのバッジ）、Privacy（JS analytics・広告ID・Sentry・AppsFlyerの停止）を実装した。詳細は[Phase 4記録](docs/PHASE4.md)と[調査記録](docs/PHASE4-RESEARCH.md)。
 
@@ -18,7 +18,7 @@ Discord (Android) 向けの Morphe パッチ。Fake Nitro、Platform Indicator�
 | Metro観測・core接続 | 実機で14/14候補のdescriptorを観測 | 観測はgetterを評価しない。UIだけはnavigation readiness後にRN getterを使い、Overview初回consumer前に入口を接続。store/send呼出しなし |
 | 設定コア・保存アダプター | UI・保存・再起動後の復元を実機確認 | schema2のコンパクト表示を切替→書込/read-back→cold restartで復元。検証値はオフへ戻して再起動後も確認。失敗・競合・再試行は単体テスト |
 | 診断ログ・ビルド機能表 | 実機確認済み | 最大80件のメモリログを設定画面から表示。Morpheで選んだ機能patchを`finalize`でランタイムへ埋め込む |
-| Fake Nitro | 実機確認済み（入力した絵文字） | Discordが送れないと判定した絵文字だけをCDN画像リンクに変換。許可を得たDMへの送信で確認。ピッカー・スタンプは未実装 |
+| Fake Nitro | 入力した絵文字は実機確認済み | Discordが送れないと判定した絵文字だけをCDN画像リンクに変換。画像サイズ・名前付きリンクの設定、ピッカーでの選択、Nitro限定スタンプのリンク送信を実装（ピッカー・スタンプは実機未確認） |
 | Platform Indicator | 実機確認済み | design-systemのAvatarにバッジを重ねる。別部品のアバター（DMの行・メッセージ横）には出ない |
 | Privacy | JS analytics・広告ID・Sentry・AppsFlyerを停止 | `track`をno-opに、`getGoogleAdvertisingId`を既存の`null`応答に置換。SentryとAppsFlyerはSDKの入口を`return-void`に。Sentry・AppsFlyer宛ての接続がなくなったことをホスト名で確認 |
 
@@ -68,7 +68,7 @@ HBC の実行テストには `work/hermes/hermes`、実バンドルの検証に�
 python3 -I -m unittest discover -s tools/tests -v
 ```
 
-ローカル検証結果: Kotlin **55件成功（skipなし）**、解析ツール **20件成功（入力を指定した場合）**、ランタイム **88件成功**、TypeScript型検査・HBC98・MPPビルド成功。
+ローカル検証結果: Kotlin **55件成功（skipなし）**、解析ツール **20件成功（入力を指定した場合）**、ランタイム **94件成功**、TypeScript型検査・HBC98・MPPビルド成功。
 解析ツールの全件実行には `HERMESC`・`HERMES_SOURCE`・`DISK_BUNDLE` の指定が必要（tools の README を参照）。
 モジュール ID 表はすべて `verified: false`（一覧の記載だけで機能フックを承認しない）。実機での観測と、各機能の限定的な実行確認は別の[実機receipt](runtime/modules/352.17-observed.json)に記録し、機能はそれぞれ実行時に形を検査してから接続する。単一のRN初期化gateは採用せず、依存ごとに接続条件を確認する。
 

@@ -25,7 +25,10 @@ Fake Nitro・Platform Indicator・Privacy（JS analyticsの停止と広告IDの�
 - `MessageActions`（module 7598）の`default.sendMessage`を、元関数を保持した関数で差し替える。
 - Discordのparserは、送れない絵文字を`message.invalidEmojis`に入れつつ`content`には`<:name:id>`を残す。その絵文字だけをCDNの画像リンク（`https://cdn.discordapp.com/emojis/{id}.{webp|gif}?size=48&name={name}`）に置き換え、`invalidEmojis`から除く。使える絵文字はそのまま送る。
 - 前後に空白がなければ空白を補う。変換後が2000文字を超える場合、形が想定外の場合、設定が読めない場合は、元のmessageのまま元関数を呼ぶ。呼び出し元のmessageは書き換えない。Discordが内部で`sendMessage`を再度呼んでも、2回目は変換しない（冪等）。
-- 未実装: 絵文字ピッカーで送れない絵文字を選べるようにすること、スタンプのリンク送信、サイズ・マスクドリンクのオプション。
+- **設定**: 画像サイズ（48/64/96/128）と名前付きリンク（`[name](URL)`）を、disk設定画面のFake Nitroの下で選べる。設定ファイルはschema 2のまま、任意の`nitro`オブジェクトとして保存する（旧ビルドはallowlistのキーしか読まないので無視する）。不正な値は読み込み時に既定値（48・オフ）に戻し、保存時は拒否する。
+- **スタンプ**（`installStickerHooks`）: スタンプピッカー（function 105918）は、`getStickerSendability`（module 7475）の結果が`SENDABLE`のときだけ送信へ進む。Fake Nitroがオンのとき、Nitro限定（`SENDABLE_WITH_PREMIUM`）でPNG・APNG・GIF形式のスタンプだけを`SENDABLE`と返し、そのIDを最大64件記憶する。`sendStickers`は、送るスタンプがすべて記憶済みのときだけ、`https://media.discordapp.net/stickers/{id}.{png|gif}?size=160`を通常のメッセージとして送る。それ以外（Lottie、送信不可、混在、文字列でない本文、オフ）はDiscordの元の処理のまま。
+- **ピッカー**（`installEmojiPickerUnlock`）: 絵文字ピッカーはmodule 4953の`default.getEmojiUnavailableReason(s)`でロックを判定する。Fake Nitroがオンで、用途が`EmojiIntention.CHAT`のときだけ、`bypassPremiumEmojiEntitlement: true`を付けた引数のコピーで元関数を呼ぶ（Nitroの判定だけを省き、サーバー側の制限は残る）。送信時の判定（parserの`isEmojiPremiumLocked`）は同じ実装をclosure経由で呼ぶのでこの影響を受けず、選んだ絵文字は送信時にリンクへ変換される。リアクションとカスタムステータスはリンクにできないので対象外。
+- **実機未確認**: スタンプとピッカーは、ログインした端末での確認が必要。テスト端末XIG07（未ログイン）では起動とエラー0件までを確認した。
 
 ### Platform Indicator（`runtime/src/features/platformIndicator.ts`）
 
@@ -78,8 +81,8 @@ smoke版APK（SHA-256 `19850e32a1d24675bd603da8633b096b2a14739be4da2dc5167412b96
 
 ## ローカル検証
 
-- Node: 88件成功（変換・冪等性・失敗時の元動作・hook数・機能別capture・設定画面の機能行を含む）。TypeScript型検査成功。
-- Kotlin: 49件成功（広告IDの命令列ガード・置き換え・DEX往復・改変の拒否、機能選択のcontext分離を含む）。
+- Node: 94件成功（変換・冪等性・失敗時の元動作・hook数・機能別capture・設定画面の機能行を含む）。TypeScript型検査成功。
+- Kotlin: 55件成功（Sentry・AppsFlyerの命令列ガードと置き換え、広告IDの命令列ガード・置き換え・DEX往復・改変の拒否、機能選択のcontext分離を含む）。
 - Python: 20件成功（追加したmoduleの登録位置・命令境界を実バンドルで照合）。
 - Kotlinの実DEXを使うテストは、`work/352.17/dex`がない環境ではskipされる。この環境ではskip 0件。
 - 機能選択の受け渡しは、Morphe CLIで実際にビルドしたAPKで確認した（単体テストは`Any()`のcontextを使うため）。通常版APKでpreludeを復元し、生成したランタイムに`["fakeNitro", "platformIndicator", "disableAnalytics"]`を埋めたものと完全一致すること、smoke引数が`!1`であること、DEXの置き換えと`bundle pin`を確認した。
