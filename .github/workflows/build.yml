@@ -26,7 +26,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 'lts/*'
+          node-version: '22'
           cache: npm
           cache-dependency-path: runtime/package-lock.json
 
@@ -38,7 +38,8 @@ jobs:
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew :patches:generatePatchesList :patches:buildAndroid --no-daemon
+          DISK_UI_SMOKE: '0'
+        run: ./gradlew :patches:test :patches:generatePatchesList :patches:buildAndroid --no-daemon
 
       - name: Test analysis tools
         env:

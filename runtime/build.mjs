@@ -2,7 +2,7 @@
 //   node build.mjs [--out <file>]
 import { build } from "esbuild";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, openSync, readSync, closeSync, rmSync } from "node:fs";
+import { mkdtempSync, openSync, readSync, closeSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -52,4 +52,7 @@ try {
 } finally {
     rmSync(scratch, { recursive: true, force: true });
 }
+// Packaged alongside runtime.js. Release preparation rejects missing metadata and UI-smoke bundles.
+writeFileSync(join(dirname(out), "build-info.json"), JSON.stringify({ schema: 1, hbcVersion: HBC_VERSION,
+    uiSmoke: process.env.DISK_UI_SMOKE === "1" }) + "\n");
 console.log(`disk runtime -> ${out} (HBC${HBC_VERSION} ok)`);

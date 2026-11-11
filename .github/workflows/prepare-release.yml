@@ -1,0 +1,55 @@
+name: Prepare release artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version matching gradle.properties; staging only, no publication
+        required: true
+        type: string
+        default: '0.0.1'
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    env:
+      DISK_UI_SMOKE: '0'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: runtime/package-lock.json
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Build normal bundle and run tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew :patches:test :patches:generatePatchesList :patches:buildAndroid --no-daemon
+      - name: Test tools
+        env:
+          HERMESC: ${{ github.workspace }}/runtime/node_modules/hermes-compiler/hermesc/linux64-bin/hermesc
+        run: python3 -I -m unittest discover -s tools/tests -v
+      - name: Stage checked artifacts without publishing
+        env:
+          VERSION: ${{ inputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 tools/prepare_release.py \
+            --mpp "patches/build/libs/patches-${VERSION}.mpp" \
+            --version "$VERSION" --repository "$REPOSITORY" \
+            --notes CHANGELOG.md --out build/release-staging
+      - uses: actions/upload-artifact@v7
+        with:
+          name: disk-release-staging
+          path: build/release-staging/
+          if-no-files-found: error
+          compression-level: 0
