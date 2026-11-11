@@ -42,10 +42,12 @@ export function createVoiceDownload(deps: VoiceDownloadDeps) {
     }
     function tap(event: unknown): boolean {
         let data: unknown;
+        let owned = false;
         try {
             data = object(event) ? event.nativeEvent : undefined;
             if (!object(data) || data.callback == null) data = deps.nativeData(event);
             if (!object(data) || data.callback !== CALLBACK) return false;
+            owned = true;
             // A stale disk CTA after the setting is disabled must not reach Discord's unrelated CTA handler.
             if (!deps.enabled()) return true;
             if (typeof data.channelId !== "string" || typeof data.messageId !== "string"
@@ -61,7 +63,7 @@ export function createVoiceDownload(deps: VoiceDownloadDeps) {
                 busy.delete(key); report("saved");
             }, () => { busy.delete(key); report("failed"); });
             return true;
-        } catch (_) { report("failed"); return object(data) && data.callback === CALLBACK; }
+        } catch (_) { report("failed"); return owned; }
     }
     function installRows(exports: unknown): boolean {
         try {

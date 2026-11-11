@@ -88,6 +88,7 @@ python3 -I -m unittest discover -s tools/tests -v
 ## 開発記録
 
 - [残作業](docs/PLAN.md)
+- [公開前チェックの途中経過](docs/PRERELEASE-CHECK.md)
 - [変更履歴](CHANGELOG.md)
 - [Phase 4](docs/PHASE4.md)
 - [Venus移植と実機確認](docs/VENUS-PORT.md)

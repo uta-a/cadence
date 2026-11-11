@@ -85,4 +85,8 @@ test("missing messages and synchronous native failures never leak to Discord or 
     const broken = setup({ download() { throw new Error("native"); }, onEvent() { throw new Error("log"); } }); broken.enable(true);
     assert.equal(broken.feature.tap(event), true); await flush();
     assert.equal(broken.feature.tap(event), true); await flush();
+    const unsafe = { nativeEvent: { get callback() { throw new Error("accessor"); } } };
+    assert.equal(broken.feature.tap(unsafe), false, "unknown malformed CTA falls through without re-reading its getter");
+    const failingStore = setup({ message() { throw new Error("store"); } }); failingStore.enable(true);
+    assert.equal(failingStore.feature.tap(event), true, "recognized disk CTA stays consumed even if its store fails");
 });
