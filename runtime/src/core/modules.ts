@@ -317,7 +317,12 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             if (id === 10119 && features.includes("quietReplies")) {
                 const count = installQuietReplies(exports, () => settings.isExtraEnabled("quietReplies"),
                     () => report("quiet-replies changed"),
-                    params => report(`quiet-replies state-${pendingReplyState(modules.get(7785), params)}`));
+                    params => {
+                        report(`quiet-replies state-${pendingReplyState(modules.get(7785), params)}`);
+                        if (typeof globalThis.setTimeout === "function") globalThis.setTimeout(() => {
+                            report(`quiet-replies delayed-${pendingReplyState(modules.get(7785), params)}`);
+                        }, 250);
+                    });
                 report(count === 2 ? "quiet-replies installed" : "quiet-replies unavailable");
             }
             if ((id === 1498 || id === 1417) && modules.has(1498) && modules.has(1417) && !fullImagesInstalled) {

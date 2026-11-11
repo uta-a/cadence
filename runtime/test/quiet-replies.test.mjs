@@ -43,6 +43,23 @@ test("quiet replies change only initial server/group mentions and preserve recei
     assert.equal(events, 3);
 });
 
+test("normal and shallow replies retain different originals after both exports are wrapped", () => {
+    const calls = [];
+    const actions = {
+        createPendingReply(params) { calls.push(["normal", params.message]); return "normal-result"; },
+        createShallowPendingReply(params) { calls.push(["shallow", params.messageId]); return "shallow-result"; },
+    };
+    let enabled = false;
+    assert.equal(installQuietReplies(actions, () => enabled), 2);
+    const message = { id: "m" }, channel = { guild_id: "g" };
+    for (const on of [false, true]) {
+        enabled = on;
+        assert.equal(actions.createPendingReply({ channel, message }), "normal-result");
+        assert.equal(actions.createShallowPendingReply({ channel, messageId: "s" }), "shallow-result");
+    }
+    assert.deepEqual(calls, [["normal", message], ["shallow", "s"], ["normal", message], ["shallow", "s"]]);
+});
+
 test("quiet replies fail open on unsafe shapes and never repeat an original that throws", () => {
     let calls = 0, accessors = 0;
     const failure = new Error("original");

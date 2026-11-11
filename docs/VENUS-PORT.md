@@ -35,18 +35,19 @@
 | 高画質で画像を読み込む（patch: Load full-quality images） | Load full-quality images（Uncompressed Discord Images by Knewest、HighResProfileImages by Kawtious） | ImageUtils 1498、AvatarUtils 1417 | 実機確認済み: チャットの画像が元ファイルのURLで読み込まれた（`full-images image`）。Venusの場所別・GIFの設定は省き、チャットと全画面とアイコンをまとめて1つのスイッチにした（GIFはDiscordのまま） |
 | すべて既読にする（patch: Read all） | Read all（ReadAllNotificationsButton の移植） | useGuildsBarProps 17778、GuildsBarConstants 17768。押したときに読む: GuildReadStateStore 6846、SortedGuildStore 6733、LurkingStore 4936、GuildStore 4877、ReadStateStore 6803、ReadStateTypes 6737、markGuildsAsRead 15243、Constants 1087、PrivateChannelReadStateStore 15096、PrivateChannelSortStore 7354、MessageRequestUtils 6844、ReadStateActionCreators 7238 | 実機確認済み: サーバー一覧のDMボタンの下にボタンが出る。タップでサーバーの未読マークが消え、長押し→DMで未読バッジ4件が消えることを確認（`read-all cleared`）。設定オフ／オンも再起動なしで反映。未読がないときは`nothing`になる。Venusの長押しシートとトーストは使わず、AndroidのAlert（ボタン3つ、外側タップで閉じる）と、消せたときの✓表示にした |
 
-### Reply without pinging（実機の表示確認は保留）
+### Reply without pinging（サーバーの初期オフ・手動切替を実機確認）
 
 - `runtime/src/features/venus/quietReplies.ts` はVenusの`quietReplyCreate`を移植。個別patch `Reply without pinging` と初期オフの `quietReplies` 設定を追加した。
 - 実バンドルでVenus 9990 → 352.17 **10119 / factory10120** を確認。通常返信`createPendingReply`（export offset89、closure53522）と浅い返信`createShallowPendingReply`（offset100、closure53523）は、ともに引数の`shouldMention`をdispatchする。
 - サーバー／グループDMの返信開始時だけ`shouldMention:false`にする。引数は変更せず複製し、手動の`setPendingReplyShouldMention`（offset111）は包まない。未知の形・1対1DM・既にオフの返信は元のまま。
 - Venusのサーバー別／グループDM別設定と「自分へのメンションには通知する」例外設定は未移植。今回は単一スイッチ。
-- 型検査、Node 111件、Python 20件、Gradleテスト・smoke APKビルド成功。実機では初期オフ、設定保存、フック設置、`quiet-replies changed`を確認。
-- **返信欄の表示と手動オンへの切替は実機未確認**。今回の設定とgesturesを両方オフにした比較でも、同じサーバーメッセージの「返信」操作後にキーボードだけが開き、返信欄が出なかった。原因は未確定で、このログだけでは返信成功や通知抑制成功とはしない。次は通常ビルドでの比較と返信UI／Storeの調査から再開する。
-- 実機の比較画面: `work/phase4-device/quiet-replies-disabled-baseline.png`（ローカルのみ）。検証後はquietRepliesとgesturesをオフにしている。
+- 実機で、設定オン→サーバー返信欄が`@ OFF`で開始、返信欄をタップ→`@ ON`、設定オフ→通常どおり`@ ON`で開始することを確認した。返信本文の送信や相手端末の通知受信は試していない。グループDMと浅い返信の経路はユニットテストのみ。
+- 以前の「返信欄が出ない」症状を、無patch・disk単独・disk+quietReplies・全機能で比較した。無patchとdisk単独は正常。quietRepliesのラッパーをループ内で作る形から、元関数を引数に受け取る関数ファクトリへ変えると、全機能ビルドでも解消した（引数の複製方式は元のまま）。Android Hermes eval上のループ内クロージャが、通常返信を浅い返信へ誤って渡していた可能性がある。手元のNode／Hermes CLIでは旧コードの小再現が成功せず、エンジン内部の原因までは断定しない。通常・浅い返信に異なる元関数を使うテストを追加した。
+- 実機証跡（ローカルのみ）: `reply-unpatched-control.png`、`quiet-replies-fixed-off.png`（設定オン時の`@ OFF`）、`quiet-replies-manual-on.png`、`quiet-replies-feature-disabled.png`、いずれも`work/phase4-device/`内。検証後はquietRepliesをオフに戻した。
 - 再開時の切り分け用にPendingReplyStore **7785 / factory7786** を静的確認し、自然ロード時のみ捕捉する診断を追加した。ユーザーの返信操作後に既存の`getPendingReply(channelId)`を読むだけで、モジュールの強制ロードや状態変更はしない。本文・ID・相手の情報は出さず、`quiet-replies state-quiet` / `state-mention` / `state-missing` / `state-unavailable`のいずれかだけを記録する。設定オフでも同じ操作を比較できる。浅い返信の状態は別マップなので、この診断の`missing`だけでは浅い返信の失敗を意味しない。
 - `changed`の記録を元アクションの正常return後へ移動。元アクションが同期例外を投げた場合は、変更済みと記録せず、再実行もしない。返り値・Promiseの同一性は維持する（非同期完了の保証ではない）。
-- 診断追加後: 型検査、Node **113件**、Python **20件**、Gradleテスト、smoke APKビルド成功。pipaがADBに見つからず旧接続先もタイムアウトしたため、新しい診断の実機確認・インストールは未実施。
+- 返信直後に加え250ms後にも同じ固定ラベルで診断する。修正前は`state-missing` / `delayed-missing`、修正後は設定オンで`state-quiet` / `delayed-quiet`、設定オフで`state-mention` / `delayed-mention`を実機確認した。
+- 最終確認: 型検査、Node **114件**、Python **20件**、Gradleテスト、normal/smoke両APKのビルド成功。pipaには全機能を含む**normal APKを再インストール**し、通常画面への起動と起動ログに`FATAL` / `TypeError` / `ReferenceError`がないことを確認。全機能の統合再試験は別途残る。
 
 Read all の安全性と確認範囲:
 - DMのリクエスト／スパム除外APIが欠落・例外・不正な返り値の場合は、DM既読化を行わない。APIが候補外のIDを返した場合も停止する。

@@ -49,30 +49,29 @@ export function installQuietReplies(exports: unknown, enabled: () => boolean, on
     onCreated?: (params: unknown) => void): number {
     if (!exports || typeof exports !== "object") return 0;
     let installed = 0;
+    // Isolate each original in a function invocation, not a loop-scoped binding. On Android's eval path,
+    // this fixes missing normal replies observed with the loop-created wrappers (docs/VENUS-PORT.md).
+    function wrap(original: Fn): Fn {
+        return function createReply(this: unknown, ...args: unknown[]): unknown {
+            let next = args;
+            try {
+                if (enabled()) {
+                    const params = quietParams(args[0]);
+                    if (params !== args[0]) next = [params, ...args.slice(1)];
+                }
+            } catch (_) { /* Original arguments on unsupported settings/shape. */ }
+            const result = Reflect.apply(original, this, next);
+            if (next !== args) { try { onChanged?.(); } catch (_) { /* Diagnostics only. */ } }
+            try { onCreated?.(next[0]); } catch (_) { /* Diagnostics cannot change Discord's return value. */ }
+            return result;
+        };
+    }
     for (const key of ["createPendingReply", "createShallowPendingReply"]) {
         try {
             const descriptor = Object.getOwnPropertyDescriptor(exports, key);
             if (!descriptor || !("value" in descriptor) || typeof descriptor.value !== "function"
                 || (!descriptor.writable && !descriptor.configurable)) continue;
-            const original = descriptor.value as Fn;
-            function createReply(this: unknown, ...args: unknown[]): unknown {
-                let next = args;
-                try {
-                    if (enabled()) {
-                        const params = quietParams(args[0]);
-                        if (params !== args[0]) {
-                            next = [params, ...args.slice(1)];
-                        }
-                    }
-                } catch (_) { /* Original arguments on unsupported settings/shape. */ }
-                // Do not catch the original: it must run exactly once, even if Discord throws.
-                const result = Reflect.apply(original, this, next);
-                if (next !== args) { try { onChanged?.(); } catch (_) { /* Diagnostics only. */ } }
-                // Runs for enabled and disabled settings so the same reply action can be compared.
-                try { onCreated?.(next[0]); } catch (_) { /* Diagnostics cannot change Discord's return value. */ }
-                return result;
-            }
-            Object.defineProperty(exports, key, { ...descriptor, value: createReply });
+            Object.defineProperty(exports, key, { ...descriptor, value: wrap(descriptor.value as Fn) });
             installed++;
         } catch (_) { /* Unsupported export: leave it unchanged. */ }
     }
