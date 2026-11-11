@@ -22,7 +22,31 @@ function quietParams(value: unknown): unknown {
     } catch (_) { return value; }
 }
 
-export function installQuietReplies(exports: unknown, enabled: () => boolean, onChanged?: () => void): number {
+export type PendingReplyState = "quiet" | "mention" | "missing" | "unavailable";
+
+/** User-action diagnostic only: reads the already-loaded store without importing it or logging account data. */
+export function pendingReplyState(exports: unknown, params: unknown): PendingReplyState {
+    try {
+        if (!exports || typeof exports !== "object" || !params || typeof params !== "object") return "unavailable";
+        const storeDescriptor = Object.getOwnPropertyDescriptor(exports, "default");
+        const channelDescriptor = Object.getOwnPropertyDescriptor(params, "channel");
+        if (!storeDescriptor || !("value" in storeDescriptor) || !channelDescriptor || !("value" in channelDescriptor))
+            return "unavailable";
+        const store = storeDescriptor.value, channel = channelDescriptor.value;
+        if (!store || typeof store !== "object" || !channel || typeof channel !== "object") return "unavailable";
+        const id = Reflect.get(channel, "id"), getReply = Reflect.get(store, "getPendingReply");
+        if (typeof id !== "string" || !id || typeof getReply !== "function") return "unavailable";
+        const reply = Reflect.apply(getReply, store, [id]);
+        if (reply == null) return "missing";
+        if (typeof reply !== "object") return "unavailable";
+        const mention = Object.getOwnPropertyDescriptor(reply, "shouldMention");
+        if (!mention || !("value" in mention)) return "unavailable";
+        return mention.value === false ? "quiet" : mention.value === true ? "mention" : "unavailable";
+    } catch (_) { return "unavailable"; }
+}
+
+export function installQuietReplies(exports: unknown, enabled: () => boolean, onChanged?: () => void,
+    onCreated?: (params: unknown) => void): number {
     if (!exports || typeof exports !== "object") return 0;
     let installed = 0;
     for (const key of ["createPendingReply", "createShallowPendingReply"]) {
@@ -38,12 +62,15 @@ export function installQuietReplies(exports: unknown, enabled: () => boolean, on
                         const params = quietParams(args[0]);
                         if (params !== args[0]) {
                             next = [params, ...args.slice(1)];
-                            try { onChanged?.(); } catch (_) { /* Diagnostics only. */ }
                         }
                     }
                 } catch (_) { /* Original arguments on unsupported settings/shape. */ }
                 // Do not catch the original: it must run exactly once, even if Discord throws.
-                return Reflect.apply(original, this, next);
+                const result = Reflect.apply(original, this, next);
+                if (next !== args) { try { onChanged?.(); } catch (_) { /* Diagnostics only. */ } }
+                // Runs for enabled and disabled settings so the same reply action can be compared.
+                try { onCreated?.(next[0]); } catch (_) { /* Diagnostics cannot change Discord's return value. */ }
+                return result;
             }
             Object.defineProperty(exports, key, { ...descriptor, value: createReply });
             installed++;

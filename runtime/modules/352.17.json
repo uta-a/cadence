@@ -55,6 +55,15 @@
     "id": 6737, "factory": 6738, "shape": ["CHANNEL", "GUILD_EVENT"],
     "evidence": [{"kind":"registration","function":0,"offset":216710,"detail":"modules/read_states/ReadStateConstants.tsx"},{"kind":"export","function":6738,"offset":41,"detail":"CHANNEL; GUILD_EVENT at 58"}], "confidence":"high", "verified":false
   },
+  "PendingReplyStore": {
+    "id": 7785, "factory": 7786, "shape": ["default"],
+    "evidence": [
+      {"kind":"registration","function":0,"offset":251422,"detail":"modules/replies/PendingReplyStore.tsx"},
+      {"kind":"export","function":7786,"offset":376,"detail":"default store instance; prototype getPendingReply closure44581 at170"},
+      {"kind":"implementation","function":44581,"offset":10,"detail":"returns pending reply indexed by channel ID"},
+      {"kind":"implementation","function":44583,"offset":80,"detail":"stores shouldMention with default true; diagnostic reads the resulting boolean"}
+    ], "confidence":"high", "verified":false
+  },
   "PendingReplyActionCreators": {
     "id": 10119, "factory": 10120, "shape": ["createPendingReply", "createShallowPendingReply", "setPendingReplyShouldMention"],
     "evidence": [

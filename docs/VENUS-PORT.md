@@ -44,6 +44,9 @@
 - 型検査、Node 111件、Python 20件、Gradleテスト・smoke APKビルド成功。実機では初期オフ、設定保存、フック設置、`quiet-replies changed`を確認。
 - **返信欄の表示と手動オンへの切替は実機未確認**。今回の設定とgesturesを両方オフにした比較でも、同じサーバーメッセージの「返信」操作後にキーボードだけが開き、返信欄が出なかった。原因は未確定で、このログだけでは返信成功や通知抑制成功とはしない。次は通常ビルドでの比較と返信UI／Storeの調査から再開する。
 - 実機の比較画面: `work/phase4-device/quiet-replies-disabled-baseline.png`（ローカルのみ）。検証後はquietRepliesとgesturesをオフにしている。
+- 再開時の切り分け用にPendingReplyStore **7785 / factory7786** を静的確認し、自然ロード時のみ捕捉する診断を追加した。ユーザーの返信操作後に既存の`getPendingReply(channelId)`を読むだけで、モジュールの強制ロードや状態変更はしない。本文・ID・相手の情報は出さず、`quiet-replies state-quiet` / `state-mention` / `state-missing` / `state-unavailable`のいずれかだけを記録する。設定オフでも同じ操作を比較できる。浅い返信の状態は別マップなので、この診断の`missing`だけでは浅い返信の失敗を意味しない。
+- `changed`の記録を元アクションの正常return後へ移動。元アクションが同期例外を投げた場合は、変更済みと記録せず、再実行もしない。返り値・Promiseの同一性は維持する（非同期完了の保証ではない）。
+- 診断追加後: 型検査、Node **113件**、Python **20件**、Gradleテスト、smoke APKビルド成功。pipaがADBに見つからず旧接続先もタイムアウトしたため、新しい診断の実機確認・インストールは未実施。
 
 Read all の安全性と確認範囲:
 - DMのリクエスト／スパム除外APIが欠落・例外・不正な返り値の場合は、DM既読化を行わない。APIが候補外のIDを返した場合も停止する。

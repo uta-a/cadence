@@ -9,7 +9,7 @@ const { outputFiles } = await build({ stdin: { contents: 'export * from "./featu
     format: "cjs", platform: "neutral", target: "es2019", write: false });
 const host = { module: { exports: {} } };
 vm.runInNewContext(outputFiles[0].text, host);
-const { installQuietReplies } = host.module.exports;
+const { installQuietReplies, pendingReplyState } = host.module.exports;
 
 test("quiet replies change only initial server/group mentions and preserve receiver, parameters and manual toggle", () => {
     let on = false, events = 0, calls = [];
@@ -58,4 +58,50 @@ test("quiet replies fail open on unsafe shapes and never repeat an original that
     const getters = { get createPendingReply() { accessors++; return () => {}; } };
     assert.equal(installQuietReplies(getters, () => true), 0);
     assert.equal(accessors, 0);
+});
+
+test("reply diagnostics run after successful dispatch, keep original results and never report a failed action as changed", () => {
+    let reply, on = true;
+    const seen = [], channel = { id: "c", guild_id: "g" };
+    const store = Object.create({ getPendingReply(id) {
+        assert.equal(this, store);
+        assert.equal(id, "c");
+        return reply;
+    } });
+    const result = Promise.resolve("unchanged result");
+    const actions = { createPendingReply(params) {
+        reply = { shouldMention: params.shouldMention ?? true };
+        return result;
+    } };
+    assert.equal(installQuietReplies(actions, () => on, () => seen.push("changed"), params => {
+        seen.push(pendingReplyState({ default: store }, params));
+        throw new Error("diagnostic failure");
+    }), 1);
+    assert.equal(actions.createPendingReply({ channel }), result);
+    assert.deepEqual(seen, ["changed", "quiet"]);
+    on = false;
+    assert.equal(actions.createPendingReply({ channel }), result);
+    assert.deepEqual(seen, ["changed", "quiet", "mention"]);
+    const failing = { createPendingReply() { throw new Error("dispatch failure"); } };
+    installQuietReplies(failing, () => true, () => seen.push("wrong"), () => seen.push("wrong"));
+    assert.throws(() => failing.createPendingReply({ channel }), /dispatch failure/);
+    assert.deepEqual(seen, ["changed", "quiet", "mention"]);
+});
+
+test("pending reply diagnostics distinguish missing state from unavailable APIs without evaluating accessors", () => {
+    const params = { channel: { id: "c" } };
+    for (const value of [undefined, null])
+        assert.equal(pendingReplyState({ default: { getPendingReply: () => value } }, params), "missing");
+    for (const value of [false, 1, {}, { shouldMention: "false" }])
+        assert.equal(pendingReplyState({ default: { getPendingReply: () => value } }, params), "unavailable");
+    assert.equal(pendingReplyState(undefined, params), "unavailable");
+    assert.equal(pendingReplyState({ default: {} }, params), "unavailable");
+    assert.equal(pendingReplyState({ default: { getPendingReply() { throw new Error("store"); } } }, params), "unavailable");
+    let getters = 0;
+    const unsafe = { get default() { getters++; throw new Error("accessor"); } };
+    assert.equal(pendingReplyState(unsafe, params), "unavailable");
+    const store = { default: { getPendingReply: () => ({ get shouldMention() { getters++; return true; } }) } };
+    assert.equal(pendingReplyState(store, params), "unavailable");
+    assert.equal(pendingReplyState(store, { get channel() { getters++; return {}; } }), "unavailable");
+    assert.equal(getters, 0);
 });
