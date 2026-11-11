@@ -24,7 +24,7 @@ export const MODULE_PROBES: readonly ModuleProbe[] = [
     { name: "MobilePhoneIcon", id: 7085, paths: ["MobilePhoneIcon"] },
     { name: "GlobeEarthIcon", id: 9524, paths: ["GlobeEarthIcon"] },
     { name: "VrHeadsetIcon", id: 16280, paths: ["VrHeadsetIcon"] },
-    { name: "StickerSendability", id: 7475, paths: ["StickerSendability", "getStickerSendability"] },
+    { name: "StickerSendability", id: 7475, paths: ["StickerSendability", "getStickerSendability", "isSendableSticker"] },
     { name: "EmojiUtils", id: 4953, paths: ["default", "default.getEmojiUnavailableReason", "default.getEmojiUnavailableReasons"] },
     { name: "EmojiIntention", id: 1395, paths: ["EmojiIntention"] },
 ];

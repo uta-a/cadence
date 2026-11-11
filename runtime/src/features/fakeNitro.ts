@@ -137,10 +137,13 @@ export function installStickerHooks(sendability: unknown, actions: unknown, enab
     const SENDABLE = values?.SENDABLE, PREMIUM = values?.SENDABLE_WITH_PREMIUM;
     if (typeof SENDABLE !== "number" || typeof PREMIUM !== "number") return false;
     const getter = Object.getOwnPropertyDescriptor(sendability, "getStickerSendability");
+    // The picker's list rows (106004/106011/106012) draw the lock from isSendableSticker, which compares the original
+    // getStickerSendability through an internal reference; it is replaced so both agree.
+    const checker = Object.getOwnPropertyDescriptor(sendability, "isSendableSticker");
     const holder = Object.getOwnPropertyDescriptor(actions, "default");
     const target = holder && "value" in holder ? holder.value : undefined;
     const sender = target && typeof target === "object" ? Object.getOwnPropertyDescriptor(target, "sendStickers") : undefined;
-    for (const descriptor of [getter, sender])
+    for (const descriptor of [getter, sender, checker])
         if (!descriptor || !("value" in descriptor) || typeof descriptor.value !== "function" || (!descriptor.writable && !descriptor.configurable))
             return false;
     const originalSendability = getter!.value as (...args: unknown[]) => unknown;
@@ -194,7 +197,12 @@ export function installStickerHooks(sendability: unknown, actions: unknown, enab
         return Reflect.apply(originalSend, this, args);
     }
 
+    function isSendableSticker(this: unknown, ...args: unknown[]): boolean {
+        return Reflect.apply(getStickerSendability, this, args) === SENDABLE;
+    }
+
     Object.defineProperty(sendability, "getStickerSendability", { ...getter, value: getStickerSendability });
+    Object.defineProperty(sendability, "isSendableSticker", { ...checker, value: isSendableSticker });
     Object.defineProperty(target, "sendStickers", { ...sender, value: sendStickers });
     return true;
 }

@@ -327,7 +327,8 @@ function stickerFixture() {
     const { installStickerHooks, stickerUrl } = api();
     const StickerSendability = { SENDABLE: 0, SENDABLE_WITH_PREMIUM: 1, NONSENDABLE: 2, SENDABLE_WITH_BOOSTED_GUILD: 3 };
     const results = new Map([["10", 1], ["11", 1], ["12", 2], ["13", 0], ["14", 1]]);
-    const sendability = { StickerSendability, getStickerSendability(sticker) { return results.get(sticker.id); } };
+    const sendability = { StickerSendability, getStickerSendability(sticker) { return results.get(sticker.id); },
+        isSendableSticker(sticker) { return results.get(sticker.id) === 0; } };
     const sends = [], stickerSends = [];
     const target = {
         sendMessage(...args) { sends.push([this, args]); return "message-result"; },
@@ -388,7 +389,7 @@ test("remembered stickers are sent as links through sendMessage; anything else u
 test("sticker hooks refuse unexpected shapes without changing anything", () => {
     const { installStickerHooks } = api();
     const original = () => 1, send = () => {};
-    const good = { StickerSendability: { SENDABLE: 0, SENDABLE_WITH_PREMIUM: 1 }, getStickerSendability: original };
+    const good = { StickerSendability: { SENDABLE: 0, SENDABLE_WITH_PREMIUM: 1 }, getStickerSendability: original, isSendableSticker: () => false };
     assert.equal(installStickerHooks({ getStickerSendability: original }, { default: { sendStickers: send } }, () => true), false);
     const frozen = Object.freeze({ sendStickers: send });
     assert.equal(installStickerHooks(good, { default: frozen }, () => true), false);
@@ -450,4 +451,20 @@ test("masked sticker labels keep only plain characters", () => {
     f.sendability.getStickerSendability(sticker("11", 1, "【】!!"));
     f.target.sendStickers("ch", ["11"]);
     assert.equal(f.sends[1][1][1].content, `[sticker](${f.stickerUrl("11", "png")})`);
+});
+
+test("the picker list's lock follows the same answer, and the sticker is remembered from it", () => {
+    const f = stickerFixture();
+    assert.equal(f.sendability.isSendableSticker(sticker("10")), true, "premium image sticker shows unlocked");
+    assert.equal(f.target.sendStickers("ch", ["10"]), "message-result", "and is linked when sent");
+    assert.equal(f.sendability.isSendableSticker(sticker("11", 3)), false, "Lottie keeps the lock");
+    assert.equal(f.sendability.isSendableSticker(sticker("12")), false, "NONSENDABLE keeps the lock");
+    assert.equal(f.sendability.isSendableSticker(sticker("13")), true);
+    f.setEnabled(false);
+    assert.equal(f.sendability.isSendableSticker(sticker("14")), false, "disabled: Discord's own lock");
+    const { installStickerHooks } = api();
+    const noChecker = { StickerSendability: { SENDABLE: 0, SENDABLE_WITH_PREMIUM: 1 }, getStickerSendability: () => 1 };
+    const original = noChecker.getStickerSendability;
+    assert.equal(installStickerHooks(noChecker, { default: { sendStickers() {} } }, () => true), false);
+    assert.equal(noChecker.getStickerSendability, original, "nothing replaced without isSendableSticker");
 });

@@ -691,7 +691,8 @@
     "factory": 7476,
     "shape": [
       "StickerSendability",
-      "getStickerSendability"
+      "getStickerSendability",
+      "isSendableSticker"
     ],
     "evidence": [
       {
@@ -717,6 +718,18 @@
         "function": 7476,
         "offset": 228,
         "detail": "PutByIdStrict getStickerSendability (plain data)"
+      },
+      {
+        "kind": "export",
+        "function": 7476,
+        "offset": 239,
+        "detail": "PutByIdStrict isSendableSticker = closure 42463 (getStickerSendability via environment === SENDABLE)"
+      },
+      {
+        "kind": "consumer",
+        "function": 106004,
+        "offset": 100,
+        "detail": "StickerPickerListRow reads isSendableSticker from the export at call time to draw the lock (also 106011/106012)"
       },
       {
         "kind": "consumer",
