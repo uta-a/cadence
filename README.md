@@ -29,7 +29,7 @@ Venus由来のコード、元作者、実機の確認範囲は [移植記録](do
 
 ## ローカルで使う
 
-現在、公開済みの「Add to Morphe」リンクやReleaseはありません。
+現在、公開済みの「Add to Morphe」リンクやReleaseはありません。**patcher 2.3.0以降を内蔵したMorphe Managerが必要です。** 実機にあるManager 1.28.0はpatcher 1.11.0のため、このMPPを読み込んでもパッチを実行できません。
 
 1. 自分で用意したDiscord **352.17 Stable** の正規APKMを使います。別バージョンや改変済み入力は対象外です。
 2. 以下の手順で通常MPPをビルドします。

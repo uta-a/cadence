@@ -46,7 +46,9 @@ Phase 0〜3は完了。Phase 4の機能実装とPhase 5の配布準備を進め�
 - [x] 公開しないActionsの手動準備ワークフロー。
 - [x] 通常MPPの配布準備をローカルで実行。成果物は`work/release-staging/local-prepare-1/`で、公開なし。
 - [x] `def4aa2`のクリーン作業ディレクトリでビルド・MPP検査・配布準備成功。実入力なしのためKotlin57件中48件、Python24件中6件はskip。元の環境ではKotlin57件とPython24件をskipなしで確認。
-- [ ] 別端末などの新規環境でMorphe ManagerのローカルMPP読み込みから導入まで確認。
+- [x] 一時仕事用プロファイルで新規データのDiscord起動とdiskの読み込みを確認。試験後にプロファイルを削除し、元のユーザーへ復帰。
+- [x] 同プロファイルでMorphe ManagerへローカルMPPを取り込み。
+- [ ] patcher 2.3.0以降を内蔵したManagerでパッチ実行から導入まで確認。端末のManager 1.28.0はpatcher 1.11.0で実行できず、既存Managerは更新していない。
 - [ ] v0.1の機能範囲、バージョン、公開前チェックを確定。
 
 詳細は `RELEASE.md`。リモートソース追加は公開URLが必要なため、非公開の段階では未検証として残す。

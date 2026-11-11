@@ -8,7 +8,7 @@
 - [ ] 選択済みのServers系機能と削除・編集履歴の実装。
 - [ ] グループDMなど未確認経路の実機確認。
 - [ ] 全機能の統合再試験とアプリ更新後の設定復元。
-- [ ] 新規環境でのMorphe ManagerによるMPP読み込み、パッチ適用、インストール。
+- [ ] patcher 2.3.0以降のMorphe Managerによるパッチ適用からインストールまで。新規プロファイルでのMPP取り込みは確認済みだが、端末のManager 1.28.0は内蔵patcher 1.11.0で実行できなかった。
 - [ ] 公開するバージョンと機能範囲の最終確認。
 
 これらが残っている間は、準備ツールが成功しても「公開可能」とは扱いません。
@@ -76,6 +76,16 @@ python3 tools/prepare_release.py \
 7. 実機にはnormal APKを残し、試験設定と作成したデータを記録する。
 
 「Add to Morphe」のリモート追加は公開されたソースURLが必要です。非公開のままでこの経路を完了したとは記録しません。
+
+## ローカル検証結果
+
+- 通常MPPの配布準備を実行済み。生成メタデータ、DEX、ビルド情報、チェックサムを検査。公開操作なし。
+- `def4aa2`をgit archiveで新しい作業ディレクトリへ展開し、既存のnode_modulesやworkなしでビルドと配布準備に成功。Kotlin57件中48件、Python24件中6件は実入力なしのためskip。元の作業環境ではKotlin57件、Python24件がskipなしで成功した。
+- pipaに独立した仕事用プロファイルuser10を作り、通常APKの既存インストールをそのユーザーへ登録。アプリデータは新規で、ログイン前のようこそ画面と`loaded` / `observer installed` / `settings ready`を確認した。これはAPKのパッチ適用工程を試した結果ではない。
+- 同プロファイルへローカルMPPをMediaStore経由で渡し、Morphe ManagerのLocalソースとしてdisk 0.0.1を取り込めた。ただしManager 1.28.0にはpatcher 1.11.0しかなく、MPPの要求する2.3.0と不一致でpatch数0・更新要求となった。実行成功やインストールまで通ったとは扱わない。
+- ログイン前の新規プロファイルではdisk設定のUIと保存復元は未確認。既存のログイン済みuser0で新機能の初期オフ・オン・オフ・書込/read-backと上書き更新を確認した。
+- 試験用user10は試験後に削除し、user0のみが残ることを確認。user0のDiscord・Managerのデータを消去していない。user0のManagerは更新していない。
+- 証跡は`work/phase4-device/fresh-profile-start.png`と`manager-disk-compatibility-detail.png`。公開用資料にはアカウント画面の画像を含めない。
 
 ## 公開を承認された後に行うこと
 
