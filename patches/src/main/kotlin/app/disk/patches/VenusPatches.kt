@@ -22,6 +22,12 @@ val skipDeleteConfirmation = venusFeature(
 )
 
 @Suppress("unused")
+val alwaysTrustLinksAndFiles = venusFeature(
+    "alwaysTrust", "Always trust links and files",
+    "Open links and files without Discord's warnings (based on AlwaysTrust by zt and Trwy). Off until enabled in the disk settings.",
+)
+
+@Suppress("unused")
 val skipPinConfirmation = venusFeature(
     "noConfirmPin", "Skip pin confirmation",
     "Pin and unpin without a confirmation (based on NoConfirmPin by Skamt). Off until enabled in the disk settings.",

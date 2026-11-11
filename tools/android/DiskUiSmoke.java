@@ -42,7 +42,7 @@ public class DiskUiSmoke extends UiAutomatorTestCase {
             System.out.println("DISK_UI hardware back preserved overview");
         } else if (action.equals("toggle-feature") || action.equals("check-feature")) {
             String feature = getParams().getString("feature", "");
-            boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin");
+            boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin") || feature.equals("alwaysTrust");
             assertTrue("DISK_UI invalid feature", extra || feature.equals("fakeNitro") || feature.equals("platformIndicator"));
             String prefix = extra ? "disk:extra:" : "disk:feature:";
             if (action.equals("toggle-feature")) {

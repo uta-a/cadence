@@ -3,6 +3,33 @@
   "version": "0.0.1",
   "patches": [
     {
+      "name": "Always trust links and files",
+      "description": "Open links and files without Discord's warnings (based on AlwaysTrust by zt and Trwy). Off until enabled in the disk settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Disable advertising ID",
       "description": "Report no Google advertising ID to Discord's JavaScript.",
       "default": true,

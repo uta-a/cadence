@@ -29,4 +29,6 @@ export const MODULE_PROBES: readonly ModuleProbe[] = [
     { name: "EmojiIntention", id: 1395, paths: ["EmojiIntention"] },
     { name: "AlertActionCreators", id: 5941, paths: ["default", "default.show"] },
     { name: "Intl", id: 1128, paths: ["intl", "t"] },
+    { name: "MaskedLinkStore", id: 8894, paths: ["default"] },
+    { name: "SuspiciousDownloadUtils", id: 8642, paths: ["isSuspiciousDownload"] },
 ];

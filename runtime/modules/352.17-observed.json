@@ -225,6 +225,8 @@
     "EmojiUtils",
     "EmojiIntention",
     "AlertActionCreators",
-    "Intl"
+    "Intl",
+    "MaskedLinkStore",
+    "SuspiciousDownloadUtils"
   ]
 }

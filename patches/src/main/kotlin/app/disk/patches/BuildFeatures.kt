@@ -10,7 +10,7 @@ import java.util.WeakHashMap
 internal object BuildFeatures {
     private const val MARKER = "/*__DISK_FEATURES__*/"
     /** Runtime features, in manifest order. Ported Venus features follow the original three (docs/VENUS-PORT.md). */
-    val known = listOf("fakeNitro", "platformIndicator", "disableAnalytics", "quickDelete", "noConfirmPin")
+    val known = listOf("fakeNitro", "platformIndicator", "disableAnalytics", "quickDelete", "noConfirmPin", "alwaysTrust")
     private val selections = WeakHashMap<Any, MutableSet<String>>()
 
     fun select(context: Any, id: String) {

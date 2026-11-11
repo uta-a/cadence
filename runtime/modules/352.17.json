@@ -879,6 +879,64 @@
     "confidence": "high",
     "verified": false
   },
+  "MaskedLinkStore": {
+    "id": 8894,
+    "factory": 8895,
+    "shape": [
+      "default"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 288250,
+        "detail": "module 8894 -> factory 8895 (stores/MaskedLinkStore.tsx; 351.11 module 8766 in Venus Patches)"
+      },
+      {
+        "kind": "export",
+        "function": 8895,
+        "offset": 350,
+        "detail": "PutByIdStrict exports.default (store instance; isTrustedDomain on its class)"
+      },
+      {
+        "kind": "consumer",
+        "function": 48925,
+        "offset": 1171,
+        "detail": "reads isTrustedDomain from the store instance at call time"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "SuspiciousDownloadUtils": {
+    "id": 8642,
+    "factory": 8643,
+    "shape": [
+      "isSuspiciousDownload"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 279868,
+        "detail": "module 8642 -> factory 8643 (modules/suspicious_downloads/SuspiciousDownloadUtils.tsx; 351.11 module 8537)"
+      },
+      {
+        "kind": "export",
+        "function": 8643,
+        "offset": 227,
+        "detail": "PutByIdStrict isSuspiciousDownload (plain data)"
+      },
+      {
+        "kind": "consumer",
+        "function": 47923,
+        "offset": 1634,
+        "detail": "reads isSuspiciousDownload from the export at call time"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
   "_missing": {
     "runtimeVerification": "All14 descriptor identities have device observations. verified=false reserves full feature-hook approval; core Overview UI and owned settings write/readback/restart have separate capability evidence. Probes never evaluated accessors; UI lazy getters were evaluated only after navigation readiness. No store/send methods were called; unimplemented feature contracts and fault durability remain unverified.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",

@@ -545,3 +545,26 @@ test("ported feature switches appear only for the features built into this APK",
     assert.equal(one.find(node => node.props.accessibilityLabel === "disk:extra:quickDelete").props.value, true);
     assert.equal(one.find(node => node.props.accessibilityLabel === "disk:extra:noConfirmPin"), undefined);
 });
+
+test("always trust answers trusted and not suspicious only while enabled, without touching the store class", async () => {
+    const { build } = await import("esbuild");
+    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/alwaysTrust";',
+        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
+    const host = { module: { exports: {} } };
+    vm.runInNewContext(out[0].text, host);
+    const { installAlwaysTrust } = host.module.exports;
+    class Store { isTrustedDomain(url) { return url === "https://discord.com"; } }
+    const store = new Store(), other = new Store();
+    const downloads = { isSuspiciousDownload: name => name.endsWith(".exe") ? "exe" : null };
+    let on = false;
+    assert.equal(installAlwaysTrust({ default: store }, downloads, () => on), true);
+    assert.equal(store.isTrustedDomain("https://example.com"), false, "off: Discord's answer");
+    assert.equal(downloads.isSuspiciousDownload("a.exe"), "exe");
+    on = true;
+    assert.equal(store.isTrustedDomain("https://example.com"), true);
+    assert.equal(downloads.isSuspiciousDownload("a.exe"), null);
+    assert.equal(other.isTrustedDomain("https://example.com"), false, "the class itself is unchanged");
+    assert.equal(Store.prototype.isTrustedDomain.call(store, "https://example.com"), false);
+    assert.equal(installAlwaysTrust({ default: Object.freeze(new Store()) }, { isSuspiciousDownload() {} }, () => true), false);
+    assert.equal(installAlwaysTrust({ default: new Store() }, {}, () => true), false);
+});

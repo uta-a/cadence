@@ -17,7 +17,7 @@ if ! ./gradlew :patches:test :patches:generatePatchesList :patches:buildAndroid 
 MPP=(patches/build/libs/patches-*[0-9].mpp)
 test "${#MPP[@]}" -eq 1
 "$JAVA_HOME/bin/java" -Xmx4g -jar work/tools/morphe-desktop-2.1.1-all.jar patch work/install-35217/discord-352.17-source.apkm \
-  --patches="${MPP[0]}" --exclusive --enable=disk --enable="Fake Nitro" --enable="Platform Indicator" --enable="Disable analytics" --enable="Disable advertising ID" --enable="Disable crash reporting" --enable="Disable install attribution" --enable="Skip delete confirmation" --enable="Skip pin confirmation" --bytecode-mode=FULL --unsigned --out="$OUT/unsigned.apk" --result-file="$OUT/patch-result.json" > "$OUT/patch.log" 2>&1
+  --patches="${MPP[0]}" --exclusive --enable=disk --enable="Fake Nitro" --enable="Platform Indicator" --enable="Disable analytics" --enable="Disable advertising ID" --enable="Disable crash reporting" --enable="Disable install attribution" --enable="Skip delete confirmation" --enable="Skip pin confirmation" --enable="Always trust links and files" --bytecode-mode=FULL --unsigned --out="$OUT/unsigned.apk" --result-file="$OUT/patch-result.json" > "$OUT/patch.log" 2>&1
 "$SDK/build-tools/36.0.0/zipalign" -P 16 -f 4 "$OUT/unsigned.apk" "$OUT/aligned.apk"
 "$SDK/build-tools/36.0.0/apksigner" sign --ks work/install-35217/disk-local-test.jks --ks-key-alias disk-local-test \
   --ks-pass env:DISK_KEYSTORE_PASSWORD --key-pass env:DISK_KEYSTORE_PASSWORD --out "$OUT/signed.apk" "$OUT/aligned.apk"

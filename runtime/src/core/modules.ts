@@ -7,6 +7,7 @@ import { installAnalyticsBlock } from "../features/analytics";
 import { installEmojiPickerUnlock, installSendMessageHook, installStickerHooks } from "../features/fakeNitro";
 import { createPlatformAvatar } from "../features/platformIndicator";
 import { installQuickConfirm } from "../features/venus/quickConfirm";
+import { installAlwaysTrust } from "../features/venus/alwaysTrust";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
 /** Data descriptors only; trusted RN lazy component getters are evaluated separately after navigation readiness. */
@@ -40,6 +41,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     let stickersInstalled = false;
     let pickerInstalled = false;
     let confirmInstalled = false;
+    let trustInstalled = false;
     let native: NativeUi | null | undefined;
     function report(value: string): void { try { onStatus(value); } catch (_) { /* Fixed diagnostics only. */ } }
     function navigationReady(): boolean {
@@ -143,6 +145,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     const ids = [19, 17, 5183, 7522, 1164, 18400];
     // Ported Venus features (docs/VENUS-PORT.md): 5941 AlertActionCreators and 1128 intl.
     if (features.includes("quickDelete") || features.includes("noConfirmPin")) ids.push(5941, 1128);
+    if (features.includes("alwaysTrust")) ids.push(8894, 8642);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
@@ -179,6 +182,11 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                     quickDelete: () => features.includes("quickDelete") && settings.isExtraEnabled("quickDelete"),
                     noConfirmPin: () => features.includes("noConfirmPin") && settings.isExtraEnabled("noConfirmPin"),
                 }, () => report("quick-confirm skipped")) ? "quick-confirm installed" : "quick-confirm unavailable");
+            }
+            if ((id === 8894 || id === 8642) && modules.has(8894) && modules.has(8642) && !trustInstalled) {
+                trustInstalled = true;
+                report(installAlwaysTrust(modules.get(8894), modules.get(8642), () => settings.isExtraEnabled("alwaysTrust"))
+                    ? "always-trust installed" : "always-trust unavailable");
             }
             if (id === 15449) installPlatformIndicator(exports);
             const icon = ICON_MODULES.find(item => item.id === id);
