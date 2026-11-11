@@ -48,3 +48,8 @@ Features that Venus credits to community plugins keep those credits:
   fullImages.ts                             Load full-quality images         Uncompressed Discord Images by
                                                                              Knewest; HighResProfileImages
                                                                              by Kawtious
+
+The method list of the "Disable telemetry and touch logging" patch
+(patches/src/main/kotlin/app/disk/patches/dex/MethodStub.kt, PrivacyStubs.telemetry) follows
+Venus Patches' patches/src/main/kotlin/app/venus/patches/PrivacyPatches.kt (NativePrivacy.telemetry)
+at the same commit. disk stubs a subset, pinned to Discord 352.17 by method digests.

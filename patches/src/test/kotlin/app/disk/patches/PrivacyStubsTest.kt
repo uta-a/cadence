@@ -22,14 +22,14 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 
-/** Discord 352.17 checks for the Sentry and AppsFlyer stubs. Skipped with a reason when the DEX is not extracted. */
+/** Discord 352.17 checks for the Sentry, AppsFlyer and telemetry stubs. Skipped with a reason when the DEX is not extracted. */
 class PrivacyStubsTest {
     private val root = File(System.getProperty("disk.root") ?: ".")
-    private val all = PrivacyStubs.sentry + PrivacyStubs.appsFlyer
+    private val all = PrivacyStubs.sentry + PrivacyStubs.appsFlyer + PrivacyStubs.telemetry
 
     @Test
     fun `patches are default and Discord-only`() {
-        for (patch in listOf(disableSentry, disableAppsFlyer)) {
+        for (patch in listOf(disableSentry, disableAppsFlyer, disableTelemetry)) {
             assertTrue(patch.default)
             assertEquals("com.discord", patch.compatibility!!.single().packageName)
         }
@@ -122,6 +122,16 @@ class PrivacyStubsTest {
     fun `the stubs do not touch methods pinned by the bundle pin`() {
         val pinned = setOf("Ld6/a;", "Ldl/o;", "Lu5/b;", "Lw6/z;", "Lcom/discord/bundle_updater/BundleUpdaterManager;")
         assertTrue(all.none { it.type in pinned })
+    }
+
+    @Test
+    fun `telemetry stubs leave Promise-returning and snapshot methods alone`() {
+        val names = PrivacyStubs.telemetry.map { it.name }.toSet()
+        assertTrue(PrivacyStubs.telemetry.none { it.parameters.any { p -> p.endsWith("/Promise;") } })
+        assertTrue("snapshot" !in names && "requestReport" !in names && "getPendingReports" !in names)
+        // Native onResume enables jank tracking on its own, so a JS-side stub would only claim coverage it lacks.
+        assertTrue(PrivacyStubs.telemetry.none { it.type.startsWith("Lcom/discord/jank_stats/") })
+        assertEquals(PrivacyStubs.telemetry.size, PrivacyStubs.telemetry.map { it.type to it.name }.toSet().size)
     }
 
     private fun withDex(block: ((String) -> ClassDef?) -> Unit) {

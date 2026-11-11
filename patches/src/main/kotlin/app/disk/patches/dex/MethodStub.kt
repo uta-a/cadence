@@ -104,6 +104,7 @@ internal data class MethodStub(
 }
 
 internal object PrivacyStubs {
+    private const val PUBLIC = 0x1
     private const val PUBLIC_FINAL = 0x11
     private const val PUBLIC_STATIC = 0x9
     private const val CONTEXT = "Landroid/content/Context;"
@@ -133,6 +134,35 @@ internal object PrivacyStubs {
             "Lcom/appsflyer/internal/AFa1uSDK;", "logEvent",
             listOf(CONTEXT, "Ljava/lang/String;", "Ljava/util/Map;", "Lcom/appsflyer/attribution/AppsFlyerRequestListener;"), PUBLIC_FINAL,
             "4a9aabd2bb28e6f84ec12396e2464049bee6b15814815c72ef62676b1bb562b7", 97,
+        ),
+    )
+
+    /**
+     * Touch logging and the on-device TelemetryRing. Target choice follows Venus Patches' "Disable telemetry and touch
+     * logging" (GPL-3.0, VenusIsJaded/Venus-Patches); only void entry points are stubbed, so no Promise is left unresolved.
+     * Jank, frame-metric and TTI timings are left alone: MainActivity.onResume starts jank tracking natively and the JS
+     * module would throw without its aggregator. They leave the app only as JS analytics events (see Disable analytics).
+     */
+    val telemetry = listOf(
+        // Never registers the touch listener, so taps, view hierarchies and memory figures are not recorded.
+        MethodStub(
+            "Lcom/discord/analytics/touch/TouchEventAnalyticsModule;", "enableTouchLogging", listOf(), PUBLIC,
+            "73ec197d514a521a5c69151bd51978fbb4def39195d37a157e3fd6a5f106bc57", 54,
+        ),
+        MethodStub(
+            "Lcom/discord/analytics/touch/TouchEventAnalyticsModule;", "onEventRecognized", listOf("Lz5/c;"), PUBLIC,
+            "f4236401ba8ba190e15eeb752bdb8c35779ad5cd2d277d7e3c11c53627ea55a2", 145,
+        ),
+        // TelemetryRing.append: the single funnel for native and JS entries; snapshots then stay empty.
+        MethodStub(
+            "Lcom/discord/crash_reporting/u;", "a",
+            listOf("Ljava/lang/String;", "J", "Ljava/lang/String;", "Ljava/util/Map;", "Ljava/util/List;"), PUBLIC_STATIC,
+            "f046b9b7cd9fbf1df5fdccb02ebc84bb315a4e5dc4bcf3dc7c62279ced70c728", 71,
+        ),
+        MethodStub(
+            "Lcom/discord/crash_reporting/TelemetryRingModule;", "append",
+            listOf("Ljava/lang/String;", "D", "Ljava/lang/String;", "Lcom/facebook/react/bridge/ReadableMap;", "Lcom/facebook/react/bridge/ReadableArray;"), PUBLIC,
+            "54a3eb9958a5495a9a9d268f23a6baea82f4c82831053f5e9036e2f409b5d226", 44,
         ),
     )
 }

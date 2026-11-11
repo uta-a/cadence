@@ -70,3 +70,13 @@ val disableAppsFlyer = bytecodePatch(
     compatibleWith(discord)
     execute { MethodStub.apply(this, PrivacyStubs.appsFlyer) }
 }
+
+@Suppress("unused")
+val disableTelemetry = bytecodePatch(
+    name = "Disable telemetry and touch logging",
+    description = "Never record taps or the on-device telemetry log (based on Venus Patches).",
+    default = true,
+) {
+    compatibleWith(discord)
+    execute { MethodStub.apply(this, PrivacyStubs.telemetry) }
+}
