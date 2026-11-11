@@ -1401,6 +1401,64 @@
     "confidence": "high",
     "verified": false
   },
+  "UseGuildsBarProps": {
+    "id": 17778,
+    "factory": 17779,
+    "shape": [
+      "default"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 585044,
+        "detail": "module 17778 -> factory 17779 (modules/guilds_bar/native/hooks/useGuildsBarProps.tsx; 17439 in 351.11)"
+      },
+      {
+        "kind": "export",
+        "function": 17779,
+        "offset": 531,
+        "detail": "PutById default (plain data hook)"
+      },
+      {
+        "kind": "construction",
+        "function": 78479,
+        "offset": 2590,
+        "detail": "returns {listProps, listDataProps}; listDataProps has itemSize, renderItem, sections"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
+  "GuildsBarConstants": {
+    "id": 17768,
+    "factory": 17769,
+    "shape": [
+      "FastListRenderSections"
+    ],
+    "evidence": [
+      {
+        "kind": "registration",
+        "function": 0,
+        "offset": 584704,
+        "detail": "module 17768 -> factory 17769 (modules/guilds_bar/native/GuildsBarConstants.tsx; 17429 in 351.11)"
+      },
+      {
+        "kind": "construction",
+        "function": 17769,
+        "offset": 187,
+        "detail": "FastListRenderSections.SEPARATOR = 6"
+      },
+      {
+        "kind": "export",
+        "function": 17769,
+        "offset": 330,
+        "detail": "PutById FastListRenderSections"
+      }
+    ],
+    "confidence": "high",
+    "verified": false
+  },
   "_missing": {
     "runtimeVerification": "All14 descriptor identities have device observations. verified=false reserves full feature-hook approval; core Overview UI and owned settings write/readback/restart have separate capability evidence. Probes never evaluated accessors; UI lazy getters were evaluated only after navigation readiness. No store/send methods were called; unimplemented feature contracts and fault durability remain unverified.",
     "rnInitTiming": "244 is the side-effect module initializing/registering RN AppRegistry, not implementation 245 or app entry 0. Factory completion alone has NOT been shown to be a safe gate for arbitrary eager imports; test actual boot ordering/reentrancy.",

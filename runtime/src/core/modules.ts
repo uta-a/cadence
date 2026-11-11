@@ -11,6 +11,7 @@ import { installAlwaysTrust } from "../features/venus/alwaysTrust";
 import { createJumpToTop } from "../features/venus/jumpToTop";
 import { createGestures, wrapExport } from "../features/venus/gestures";
 import { installFullImages } from "../features/venus/fullImages";
+import { createReadAll } from "../features/venus/readAll";
 import type { JumpReact } from "../features/venus/jumpToTop";
 import type { AvatarReact, Platform, PresenceSource } from "../features/platformIndicator";
 
@@ -142,6 +143,31 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             report(ok ? "jump-to-top installed" : "jump-to-top unavailable");
         } catch (_) { report("jump-to-top unavailable"); }
     }
+    function installReadAll(exports: unknown): void {
+        try {
+            const react = reactApi(["createElement", "useState", "useEffect"]);
+            if (!react) throw new Error("unavailable");
+            const readAll = createReadAll({
+                enabled: () => settings.isExtraEnabled("readAll"),
+                react: react as Parameters<typeof createReadAll>[0]["react"],
+                native: () => { const ui = resolveNative(); return ui ? { View: ui.View, Text: ui.Text, Pressable: ui.Pressable } : null; },
+                alert: () => {
+                    // react-native's index exports getters, so Alert is read with Reflect.get.
+                    const rn = modules.get(17);
+                    let alert: unknown;
+                    try { alert = rn && typeof rn === "object" ? Reflect.get(rn, "Alert") : undefined; } catch (_) { alert = undefined; }
+                    // Alert is a class with a static alert().
+                    return alert && (typeof alert === "object" || typeof alert === "function") && typeof Reflect.get(alert, "alert") === "function"
+                        ? alert as { alert(title: string, message: string | undefined, buttons: { text: string }[], options?: { cancelable?: boolean }): void } : null;
+                },
+                module: id => onDemand(id),
+                subscribe: listener => settings.subscribe(listener),
+                separator: () => dataProperty(dataProperty(modules.get(17768), "FastListRenderSections"), "SEPARATOR"),
+                onEvent: name => report(`read-all ${name}`),
+            });
+            if (!readAll.install(exports)) report("read-all unavailable");
+        } catch (_) { report("read-all unavailable"); }
+    }
     /**
      * A module for a user action (a tap), loaded on demand if it has not loaded naturally yet. Only called from
      * handlers that run after the app is up, never during boot; failures read as missing.
@@ -236,9 +262,12 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     // Double-tap to reply: DoubleTapToReactUtils 8358, MessagesHandlers 11269, reminder toast 9868, edit nudge 14023,
     // chat input banner 13207, canReplyToMessage 8365, replyToMessage 11370, canEditMessage 11371,
     // LongPressMessageActionSheetUtils 10117, haptics 5244, constants 1087, UserStore 1392, MessageActions 7598.
+    if (features.includes("gestures")) ids.push(8358, 11269, 9868, 14023, 13207, 8365, 11370, 11371, 10117, 5244, 1087, 1392, 7598);
     // Load full-quality images: ImageUtils 1498 and AvatarUtils 1417 (same IDs in 351.11).
     if (features.includes("fullImages")) ids.push(1498, 1417);
-    if (features.includes("gestures")) ids.push(8358, 11269, 9868, 14023, 13207, 8365, 11370, 11371, 10117, 5244, 1087, 1392, 7598);
+    // Read all: useGuildsBarProps 17778 and GuildsBarConstants 17768. The read-state stores and actions are loaded
+    // when the button is pressed (onDemand).
+    if (features.includes("readAll")) ids.push(17778, 17768);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
     if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
@@ -282,6 +311,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                     ? "always-trust installed" : "always-trust unavailable");
             }
             if (id === 13192) installJumpToTop(exports);
+            if (id === 17778 && features.includes("readAll")) installReadAll(exports);
             if ((id === 1498 || id === 1417) && modules.has(1498) && modules.has(1417) && !fullImagesInstalled) {
                 fullImagesInstalled = true;
                 const wrapped = installFullImages(modules.get(1498), modules.get(1417), () => settings.isExtraEnabled("fullImages"),

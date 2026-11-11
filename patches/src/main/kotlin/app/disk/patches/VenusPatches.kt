@@ -48,6 +48,12 @@ val loadFullQualityImages = venusFeature(
 )
 
 @Suppress("unused")
+val readAll = venusFeature(
+    "readAll", "Read all",
+    "Add a button to the server list that marks servers (or, when held, DMs) as read. Off until enabled in the disk settings.",
+)
+
+@Suppress("unused")
 val skipPinConfirmation = venusFeature(
     "noConfirmPin", "Skip pin confirmation",
     "Pin and unpin without a confirmation (based on NoConfirmPin by Skamt). Off until enabled in the disk settings.",

@@ -49,6 +49,8 @@ export const MODULE_PROBES: readonly ModuleProbe[] = [
     { name: "HapticUtils", id: 5244, paths: ["HapticFeedbackTypes", "triggerHapticFeedback"] },
     { name: "Constants", id: 1087, paths: ["MessageTypesSets"] },
     { name: "UserStore", id: 1392, paths: ["default"] },
+    { name: "UseGuildsBarProps", id: 17778, paths: ["default"] },
+    { name: "GuildsBarConstants", id: 17768, paths: ["FastListRenderSections"] },
     { name: "ImageUtils", id: 1498, paths: ["getMobileOptimizedSrc", "default.getMobileOptimizedSrc"] },
     { name: "AvatarUtils", id: 1417, paths: ["getUserAvatarURL", "default.getUserAvatarURL"] },
 ];

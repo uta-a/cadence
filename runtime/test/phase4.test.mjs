@@ -774,3 +774,63 @@ test("full-quality images return the uploaded file for normal pictures and large
     assert.equal(avatars.getUserAvatarSource().uri, "https://cdn.discordapp.com/avatars/1/a.webp?size=512");
     assert.equal(installFullImages(Object.freeze({ getMobileOptimizedSrc: resized }), {}, () => true), 0);
 });
+
+test("read all adds its row to the server bar's separator only, and marks servers and DMs read through Discord's actions", async () => {
+    const { build } = await import("esbuild");
+    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/readAll";',
+        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
+    const host = { module: { exports: {} } };
+    vm.runInNewContext(out[0].text, host);
+    const { createReadAll, markAsRead } = host.module.exports;
+    const calls = [];
+    const store = methods => Object.assign(Object.create({}), methods);
+    const modules = {
+        6846: { default: store({ hasUnread: id => id === "g1", getMentionCount: id => id === "g2" ? 1 : 0, getGuildHasUnreadIgnoreMuted: id => id === "g3" }) },
+        6733: { default: store({ getFlattenedGuildIds: () => ["g1", "g2", "g3", "g4"] }) },
+        4936: { default: store({ lurkingGuildIds: () => ["g1"] }) },
+        4877: { default: store({ getGuildIds: () => ["g4"] }) },
+        6803: { default: store({ hasUnread: () => false, hasUnreadOrMentions: id => id !== "d3", lastMessageId: id => id === "d2" ? null : `m-${id}` }) },
+        6737: { CHANNEL: 0, GUILD_EVENT: 1 },
+        15243: { default: (ids, section) => calls.push(["guilds", [...ids], section]) },
+        1087: { AnalyticsSections: { GUILD_LIST: "guild list" } },
+        15096: { default: store({ getUnreadPrivateChannelIds: () => ["d1", "d2"] }) },
+        7354: { default: store({ getPrivateChannelIds: () => ["d1", "d3", "d4"] }) },
+        6844: { filterOutMessageRequestsAndSpamById: ids => ids.filter(id => id !== "d4") },
+        7238: { bulkAck: acks => calls.push(["dms", acks.map(a => `${a.channelId}:${a.messageId}:${a.readStateType}`)]) },
+    };
+    const get = id => modules[id];
+    assert.deepEqual(plain(markAsRead("guilds", get)), { guilds: 3, dms: 0, failed: false });
+    assert.deepEqual(plain(calls), [["guilds", ["g1", "g2", "g3"], "guild list"]], "muted servers with unread channels are included");
+    calls.length = 0;
+    assert.deepEqual(plain(markAsRead("dms", get)), { guilds: 0, dms: 1, failed: false });
+    assert.deepEqual(plain(calls), [["dms", ["d1:m-d1:0"]]], "no last message, read, or request: not acknowledged");
+    assert.equal(markAsRead("both", () => undefined).failed, true, "stores not loaded");
+
+    let on = true, events = [];
+    const react = { createElement: (type, props, ...children) => ({ type, props, children }), useState: v => [v, () => {}], useEffect() {} };
+    const readAll = createReadAll({ enabled: () => on, react, native: () => ({ View: "View", Text: "Text", Pressable: "Pressable" }),
+        alert: () => null, module: get, separator: () => 6, onEvent: e => events.push(e) });
+    const listDataProps = { itemSize: section => section === 6 ? 10 : 48, renderItem: section => `row${section}`, sections: [1] };
+    const result = { listProps: { a: 1 }, listDataProps };
+    const exports = { default: () => result, OTHER: 1 };
+    assert.equal(readAll.install(exports), true);
+    const view = exports.default();
+    assert.notEqual(view, result);
+    assert.equal(view.listProps, result.listProps);
+    assert.equal(exports.default(), view, "the same result gives the same props");
+    assert.equal(view.listDataProps.itemSize(6), 50);
+    assert.equal(view.listDataProps.itemSize(1), 48);
+    assert.equal(view.listDataProps.renderItem(1), "row1");
+    const row = view.listDataProps.renderItem(6);
+    assert.equal(row.type, "View");
+    assert.equal(row.children[1], "row6", "Discord's separator stays below the button");
+    on = false;
+    assert.equal(view.listDataProps.itemSize(6), 10, "off: Discord's size");
+    assert.equal(exports.default(), result, "off: Discord's props");
+    assert.equal(readAll.run("guilds"), false, "off: nothing is marked");
+    on = true;
+    assert.equal(readAll.run("guilds"), true);
+    assert.deepEqual(events, ["installed", "cleared"]);
+    assert.equal(readAll.install(Object.freeze({ default: () => result })), false);
+    assert.equal(readAll.install({}), false);
+});

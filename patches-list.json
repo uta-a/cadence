@@ -273,6 +273,33 @@
       "options": []
     },
     {
+      "name": "Read all",
+      "description": "Add a button to the server list that marks servers (or, when held, DMs) as read. Off until enabled in the disk settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
       "name": "Skip delete confirmation",
       "description": "Delete messages without the \"Are you sure?\" alert. Off until enabled in the disk settings.",
       "default": true,

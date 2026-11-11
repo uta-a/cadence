@@ -246,6 +246,8 @@
     "Constants",
     "UserStore",
     "ImageUtils",
-    "AvatarUtils"
+    "AvatarUtils",
+    "UseGuildsBarProps",
+    "GuildsBarConstants"
   ]
 }

@@ -56,7 +56,7 @@ public class DiskUiSmoke extends UiAutomatorTestCase {
             System.out.println("DISK_UI hardware back preserved overview");
         } else if (action.equals("toggle-feature") || action.equals("check-feature")) {
             String feature = getParams().getString("feature", "");
-            boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin") || feature.equals("alwaysTrust") || feature.equals("jumpToTop") || feature.equals("gestures") || feature.equals("gestureTripleDelete") || feature.equals("fullImages");
+            boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin") || feature.equals("alwaysTrust") || feature.equals("jumpToTop") || feature.equals("gestures") || feature.equals("gestureTripleDelete") || feature.equals("fullImages") || feature.equals("readAll");
             assertTrue("DISK_UI invalid feature", extra || feature.equals("fakeNitro") || feature.equals("platformIndicator"));
             String prefix = extra ? "disk:extra:" : "disk:feature:";
             if (action.equals("toggle-feature")) {

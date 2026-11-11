@@ -33,6 +33,7 @@
 | 最初のメッセージへ移動（patch: Jump to first message） | Jump to first message（`jumpButton`） | JumpToPresentButton 13192、ピル 13193、矢印画像 13194、入力欄の高さ 9814、MessageStore 6042、MessageActions 7598 | 実機確認済み: DMで上へスクロールすると「最新へ移動」の横に上向きのボタンが出て、押すと先頭（2025-04-19）へ移動した |
 | ダブルタップで返信（patch: Double-tap to reply） | Double-tap to reply（Geastures+ by kmmiio99o の移植） | DoubleTapToReactUtils 8358、MessagesHandlers 11269、通知・バナー 9868/14023/13207、canReply 8365、replyToMessage 11370、canEdit 11371、handleEdit 10117、haptics 5244、定数 1087、UserStore 1392 | 実機確認済み: 相手のメッセージで返信、自分のメッセージで編集、トリプルタップ（別スイッチ、初期オフ）で自分のメッセージを削除 |
 | 高画質で画像を読み込む（patch: Load full-quality images） | Load full-quality images（Uncompressed Discord Images by Knewest、HighResProfileImages by Kawtious） | ImageUtils 1498、AvatarUtils 1417 | 実機確認済み: チャットの画像が元ファイルのURLで読み込まれた（`full-images image`）。Venusの場所別・GIFの設定は省き、チャットと全画面とアイコンをまとめて1つのスイッチにした（GIFはDiscordのまま） |
+| すべて既読にする（patch: Read all） | Read all（ReadAllNotificationsButton の移植） | useGuildsBarProps 17778、GuildsBarConstants 17768。押したときに読む: GuildReadStateStore 6846、SortedGuildStore 6733、LurkingStore 4936、GuildStore 4877、ReadStateStore 6803、ReadStateTypes 6737、markGuildsAsRead 15243、Constants 1087、PrivateChannelReadStateStore 15096、PrivateChannelSortStore 7354、MessageRequestUtils 6844、ReadStateActionCreators 7238 | 実機確認済み: サーバー一覧のDMボタンの下にボタンが出る。タップ（サーバー）と長押しの選択（DM）が動き、未読がないときは`nothing`になる。**未読を実際に消す動作は実機で未確認**。Venusの長押しシートとトーストは使わず、AndroidのAlert（ボタン3つ、外側タップで閉じる）と、消せたときの✓表示にした |
 
 ## 移植中に見つけた問題
 
@@ -46,3 +47,4 @@
 - トリプルタップ削除は、ネイティブのダブルタップのあとに`handleTapMessage`が自動では呼ばれないこと、`nativeEvent.messageId`があることを前提にしている（実機でダブルタップだけでは削除されず、3回目のタップで削除されたことを確認済み）。前提が崩れた場合は削除しない側に倒れる。650ms以内にダブルタップを2回続けた場合も削除になる。
 - 高画質画像の4096px・1600万画素の上限は、`getMobileOptimizedSrc`に渡る幅と高さを使う。これが元画像の大きさか表示の大きさかは未確認（Venusと同じ前提）。
 - `extras`に未知のIDがあるファイルを保存し直すと、そのIDは消える（古い版・新しい版の間を行き来した場合）。
+- react-nativeのindexはgetterで公開しているため、`Alert`は`Reflect.get`で読む（`dataProperty`では読めない）。`Alert`はクラスなので`typeof`は`function`。AndroidのAlertはボタンを3つまでしか出さない。
