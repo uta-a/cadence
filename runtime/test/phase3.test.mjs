@@ -32,7 +32,7 @@ test("settings controller defers load, refuses premature writes, and persists sc
     await c.setCompact(true);
     assert.equal(c.get().preferences.compact, true);
     assert.equal(c.get().save, "saved");
-    assert.deepEqual(m.writes, [{ version: 2, features: { fakeNitro: false, platformIndicator: false }, preferences: { compact: true } }]);
+    assert.deepEqual(m.writes, [{ version: 2, features: { fakeNitro: false, platformIndicator: false }, preferences: { compact: true }, nitro: NITRO_DEFAULT }]);
     const reloaded = createSettingsController(() => {}, () => m.storage);
     await reloaded.attach({});
     assert.equal(reloaded.get().preferences.compact, true);
@@ -96,6 +96,7 @@ test("per-module gate does not import anything before root navigation readiness"
     assert.deepEqual(f.imports, [7522]);
     assert.equal(f.opens, 1);
 });
+const NITRO_DEFAULT = { emojiSize: 48, maskedLinks: false };
 
 test("overview wraps before its first consumer but defers native lazy getters until navigation becomes ready", () => {
     const f = moduleFixture(), original = () => {}, exports = { default: original };
@@ -178,11 +179,11 @@ function nodes(tree) {
 
 test("UI resynchronizes changes between initial render and effect subscription", () => {
     const { createSettingsOverview } = api(), harness = reactHarness();
-    let state = { phase: "loading", save: "idle", preferences: { compact: false } }, subscribed = false;
+    let state = { phase: "loading", save: "idle", preferences: { compact: false }, nitro: NITRO_DEFAULT }, subscribed = false;
     const c = { get: () => state, subscribe() { subscribed = true; return () => {}; } };
     const native = { View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Switch: "Switch", Modal: "Modal" };
     const component = createSettingsOverview(harness.react, () => native, () => {}, c);
-    harness.render(component, {}, () => { assert.equal(subscribed, false); state = { phase: "ready", save: "idle", preferences: { compact: true } }; });
+    harness.render(component, {}, () => { assert.equal(subscribed, false); state = { phase: "ready", save: "idle", preferences: { compact: true }, nitro: NITRO_DEFAULT }; });
     const tree = harness.render(component);
     assert.equal(nodes(tree).find(node => node.type === "Switch").props.value, true);
     assert.equal(nodes(tree).find(node => node.type === "Switch").props.disabled, false);

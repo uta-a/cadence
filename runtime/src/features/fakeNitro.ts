@@ -8,6 +8,9 @@ const TOKEN = /<(a?):([A-Za-z0-9_~]{1,64}):([0-9]{1,25})>/;
 
 interface Locked { readonly animated: boolean; readonly name: string; }
 
+export interface ConvertOptions { readonly emojiSize: number; readonly maskedLinks: boolean; }
+const DEFAULT_OPTIONS: ConvertOptions = Object.freeze({ emojiSize: EMOJI_SIZE, maskedLinks: false });
+
 export function emojiUrl(id: string, animated: boolean, name: string, size = EMOJI_SIZE): string {
     return `https://cdn.discordapp.com/emojis/${id}.${animated ? "gif" : "webp"}?size=${size}&name=${encodeURIComponent(name)}`;
 }
@@ -29,7 +32,8 @@ function lockedEmojis(list: readonly unknown[]): Map<string, Locked> {
  * an unexpected shape, or a result over Discord's length limit (Discord then shows its usual notice).
  * Emojis that were not rewritten stay in `invalidEmojis`, so Discord still reports them.
  */
-export function convertMessage(message: unknown, size = EMOJI_SIZE): Record<string, unknown> | null {
+export function convertMessage(message: unknown, options: ConvertOptions = DEFAULT_OPTIONS): Record<string, unknown> | null {
+    const size = [48, 64, 96, 128].includes(options.emojiSize) ? options.emojiSize : EMOJI_SIZE;
     if (!message || typeof message !== "object" || Array.isArray(message)) return null;
     const original = message as Record<string, unknown>;
     const content = original.content, invalid = original.invalidEmojis;
@@ -47,7 +51,9 @@ export function convertMessage(message: unknown, size = EMOJI_SIZE): Record<stri
         const before = out.length > 0 && !/\s$/.test(out) ? " " : "";
         const next = content.charAt(start + match[0].length);
         const after = next && !/\s/.test(next) ? " " : "";
-        out += before + emojiUrl(id, match[1] === "a" || emoji.animated, emoji.name, size) + after;
+        const url = emojiUrl(id, match[1] === "a" || emoji.animated, emoji.name, size);
+        // A masked link shows the emoji name instead of the URL; the name is limited to [A-Za-z0-9_~] by TOKEN.
+        out += before + (options.maskedLinks === true ? `[${match[2]}](${url})` : url) + after;
         last = start + match[0].length;
         replaced.add(id);
     }
@@ -65,7 +71,8 @@ export function convertMessage(message: unknown, size = EMOJI_SIZE): Record<stri
  * Wrap `exports.default.sendMessage` (module 7598). The original is always called, with the converted message
  * only while the feature is enabled; any conversion failure falls back to the original arguments.
  */
-export function installSendMessageHook(exports: unknown, enabled: () => boolean, onConverted: () => void = () => {}): boolean {
+export function installSendMessageHook(exports: unknown, enabled: () => boolean, onConverted: () => void = () => {},
+    options: () => ConvertOptions = () => DEFAULT_OPTIONS): boolean {
     if (!exports || typeof exports !== "object") return false;
     const holder = Object.getOwnPropertyDescriptor(exports, "default");
     const target = holder && "value" in holder ? holder.value : undefined;
@@ -79,7 +86,7 @@ export function installSendMessageHook(exports: unknown, enabled: () => boolean,
         let call = args;
         try {
             if (enabled()) {
-                const converted = convertMessage(args[1]);
+                const converted = convertMessage(args[1], options());
                 if (converted) {
                     call = args.slice();
                     call[1] = converted;

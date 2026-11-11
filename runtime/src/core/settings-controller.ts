@@ -1,12 +1,13 @@
-import { createSettingsStore } from "./settings";
+import { createSettingsStore, DEFAULT_NITRO } from "./settings";
 import { createNativeSettingsStorage } from "./storage";
-import type { FeatureKey, PreferencesSnapshot, SettingsSnapshot, SettingsStorage } from "./settings";
+import type { FeatureKey, NitroOptions, PreferencesSnapshot, SettingsSnapshot, SettingsStorage } from "./settings";
 
 export interface SettingsViewState {
     readonly phase: "loading" | "ready" | "error";
     readonly save: "idle" | "saving" | "saved" | "error";
     readonly preferences: PreferencesSnapshot;
     readonly features: SettingsSnapshot;
+    readonly nitro: NitroOptions;
 }
 export function createSettingsController(onStatus: (status: string) => void = () => {},
     storageFactory: (native: unknown) => SettingsStorage = createNativeSettingsStorage) {
@@ -16,7 +17,7 @@ export function createSettingsController(onStatus: (status: string) => void = ()
     let store: ReturnType<typeof createSettingsStore> | undefined;
     let saving = 0;
     let state: SettingsViewState = Object.freeze({ phase: "loading", save: "idle",
-        preferences: Object.freeze({ compact: false }), features: Object.freeze({ fakeNitro: false, platformIndicator: false }) });
+        preferences: Object.freeze({ compact: false }), features: Object.freeze({ fakeNitro: false, platformIndicator: false }), nitro: DEFAULT_NITRO });
     const listeners = new Set<() => void>();
     function report(value: string): void { try { onStatus(value); } catch (_) { /* Ignore diagnostics. */ } }
     function publish(patch: Partial<SettingsViewState>): void {
@@ -34,7 +35,8 @@ export function createSettingsController(onStatus: (status: string) => void = ()
                 store = candidate;
                 store.subscribePreferences(() => publish({ preferences: candidate.getPreferences() }));
                 store.subscribe(() => publish({ features: candidate.get() }));
-                publish({ phase: "ready", preferences: store.getPreferences(), features: store.get() });
+                store.subscribeNitro(() => publish({ nitro: candidate.getNitro() }));
+                publish({ phase: "ready", preferences: store.getPreferences(), features: store.get(), nitro: store.getNitro() });
                 report("ready");
             } catch (_) {
                 store = undefined;
@@ -80,6 +82,9 @@ export function createSettingsController(onStatus: (status: string) => void = ()
         async setCompact(value: boolean): Promise<void> {
             if (typeof value !== "boolean") throw new Error("Settings not ready");
             await persist(ready => ready.setPreference("compact", value));
+        },
+        async setNitro(change: Partial<NitroOptions>): Promise<void> {
+            await persist(ready => ready.setNitro(change));
         },
         async setFeature(key: FeatureKey, value: boolean): Promise<void> {
             if (typeof value !== "boolean") throw new Error("Settings not ready");

@@ -155,7 +155,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             if (id === 18400) installUi(exports);
             if (id === 1267) report(installAnalyticsBlock(exports) ? "analytics blocked" : "analytics unavailable");
             if (id === 7598) report(installSendMessageHook(exports, () => settings.isEnabled("fakeNitro"),
-                () => report("fake-nitro converted"))
+                () => report("fake-nitro converted"), () => settings.get().nitro)
                 ? "fake-nitro installed" : "fake-nitro unavailable");
             if (id === 15449) installPlatformIndicator(exports);
             const icon = ICON_MODULES.find(item => item.id === id);

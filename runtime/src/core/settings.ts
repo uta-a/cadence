@@ -7,6 +7,11 @@ export type SettingsSnapshot = Readonly<Record<FeatureKey, boolean>>;
 export const PREFERENCE_KEYS = Object.freeze(["compact"] as const);
 export type PreferenceKey = typeof PREFERENCE_KEYS[number];
 export type PreferencesSnapshot = Readonly<Record<PreferenceKey, boolean>>;
+export const EMOJI_SIZES = Object.freeze([48, 64, 96, 128] as const);
+export type EmojiSize = typeof EMOJI_SIZES[number];
+/** Fake Nitro options. Optional in schema 2: older builds only read allowlisted keys and ignore this object. */
+export interface NitroOptions { readonly emojiSize: EmojiSize; readonly maskedLinks: boolean; }
+export const DEFAULT_NITRO: NitroOptions = Object.freeze({ emojiSize: 48, maskedLinks: false });
 
 export interface SettingsStorage {
     read(): Promise<string | null>;
@@ -16,12 +21,14 @@ export interface SettingsStorage {
 export function createSettingsStore(storage: SettingsStorage, onError: (error: unknown) => void = () => {}) {
     let values: SettingsSnapshot = Object.freeze({ fakeNitro: false, platformIndicator: false });
     let preferences: PreferencesSnapshot = Object.freeze({ compact: false });
+    let nitro: NitroOptions = DEFAULT_NITRO;
     let initialized = false;
     let loading: Promise<void> | null = null;
     let revision = 0;
     let saveQueue = Promise.resolve();
     const listeners = new Set<(value: SettingsSnapshot) => void>();
     const preferenceListeners = new Set<(value: PreferencesSnapshot) => void>();
+    const nitroListeners = new Set<(value: NitroOptions) => void>();
 
     function report(error: unknown): void {
         try { onError(error); } catch (_) { /* Diagnostics cannot break the client. */ }
@@ -41,7 +48,16 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         return value !== null && typeof value === "object" && !Array.isArray(value);
     }
 
-    function parse(text: string): { features: SettingsSnapshot; preferences: PreferencesSnapshot } {
+    function parseNitro(value: unknown): NitroOptions {
+        if (!isRecord(value)) return DEFAULT_NITRO;
+        const size = hasOwn(value, "emojiSize") ? value.emojiSize : undefined;
+        return Object.freeze({
+            emojiSize: EMOJI_SIZES.includes(size as EmojiSize) ? size as EmojiSize : DEFAULT_NITRO.emojiSize,
+            maskedLinks: hasOwn(value, "maskedLinks") && value.maskedLinks === true,
+        });
+    }
+
+    function parse(text: string): { features: SettingsSnapshot; preferences: PreferencesSnapshot; nitro: NitroOptions } {
         const data: unknown = JSON.parse(text);
         if (!isRecord(data)) throw new Error("Invalid disk settings");
         if (!hasOwn(data, "version") || !hasOwn(data, "features") ||
@@ -57,13 +73,14 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
                 platformIndicator: hasOwn(features, "platformIndicator") && features.platformIndicator === true,
             }),
             preferences: Object.freeze({ compact: hasOwn(savedPreferences, "compact") && savedPreferences.compact === true }),
+            nitro: data.version === 2 && hasOwn(data, "nitro") ? parseNitro(data.nitro) : DEFAULT_NITRO,
         };
     }
 
     function save(): Promise<void> {
         revision++;
         // Persist even an unchanged choice: the previous write may have failed, or disk may still hold an old value.
-        const snapshot = JSON.stringify({ version: 2, features: values, preferences });
+        const snapshot = JSON.stringify({ version: 2, features: values, preferences, nitro });
         // Queue before notifying: a listener may synchronously change a feature or preference.
         const pending = saveQueue.then(() => storage.write(snapshot));
         saveQueue = pending.catch(report);
@@ -74,6 +91,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         get ready() { return initialized; },
         get(): SettingsSnapshot { return values; },
         getPreferences(): PreferencesSnapshot { return preferences; },
+        getNitro(): NitroOptions { return nitro; },
         /** Load once; failures keep the all-off defaults and are reported. A concurrent local change wins over disk. */
         load(): Promise<void> {
             if (initialized) return Promise.resolve();
@@ -86,8 +104,10 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
                         const loaded = parse(text);
                         values = loaded.features;
                         preferences = loaded.preferences;
+                        nitro = loaded.nitro;
                         notify(listeners, () => values);
                         notify(preferenceListeners, () => preferences);
+                        notify(nitroListeners, () => nitro);
                     }
                 } catch (error) { report(error); }
                 finally { initialized = true; loading = null; }
@@ -112,6 +132,25 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
             const pending = save();
             if (changed) notify(preferenceListeners, () => preferences);
             return pending;
+        },
+        /** Only a known size and a strict boolean are accepted; the other option keeps its value. */
+        setNitro(change: Partial<NitroOptions>): Promise<void> {
+            if (!change || typeof change !== "object") return Promise.reject(new TypeError("Invalid Fake Nitro option"));
+            const keys = Object.keys(change);
+            if (keys.length === 0 || keys.some(key => key !== "emojiSize" && key !== "maskedLinks") ||
+                ("emojiSize" in change && !EMOJI_SIZES.includes(change.emojiSize as EmojiSize)) ||
+                ("maskedLinks" in change && typeof change.maskedLinks !== "boolean"))
+                return Promise.reject(new TypeError("Invalid Fake Nitro option"));
+            const next = Object.freeze({ ...nitro, ...change }) as NitroOptions;
+            const changed = next.emojiSize !== nitro.emojiSize || next.maskedLinks !== nitro.maskedLinks;
+            nitro = next;
+            const pending = save();
+            if (changed) notify(nitroListeners, () => nitro);
+            return pending;
+        },
+        subscribeNitro(listener: (value: NitroOptions) => void): () => void {
+            nitroListeners.add(listener);
+            return () => { nitroListeners.delete(listener); };
         },
         subscribe(listener: (value: SettingsSnapshot) => void): () => void {
             listeners.add(listener);

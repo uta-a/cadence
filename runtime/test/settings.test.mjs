@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { build } from "esbuild";
 import vm from "node:vm";
+const NITRO_DEFAULT = { emojiSize: 48, maskedLinks: false };
 
 const { outputFiles } = await build({ entryPoints: [new URL("../src/core/settings.ts", import.meta.url).pathname],
     bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
@@ -23,7 +24,7 @@ test("missing file starts with both features off; only supported keys and boolea
     await assert.rejects(s.set("accountToken", true), TypeError);
     await assert.rejects(s.set("fakeNitro", "yes"), TypeError);
     await s.set("fakeNitro", true);
-    assert.deepEqual(written, [{ version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: false } }]);
+    assert.deepEqual(written, [{ version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: false }, nitro: NITRO_DEFAULT }]);
     assert.throws(() => { s.get().fakeNitro = false; }, TypeError);
 });
 
@@ -157,14 +158,14 @@ test("a load racing with a local toggle never re-enables a stale disk value", as
 test("schema1 migrates to schema2 on the next write with compact off", async () => {
     const saved = [];
     const s = store({ read: async () => JSON.stringify({ version: 1,
-        features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: true } }),
+        features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: true }, nitro: NITRO_DEFAULT }),
         write: async text => saved.push(JSON.parse(text)) });
     await s.load();
     assert.equal(s.get().fakeNitro, true);
     assert.deepEqual(JSON.parse(JSON.stringify(s.getPreferences())), { compact: false });
     assert.deepEqual(saved, []);
     await s.set("platformIndicator", true);
-    assert.deepEqual(saved, [{ version: 2, features: { fakeNitro: true, platformIndicator: true }, preferences: { compact: false } }]);
+    assert.deepEqual(saved, [{ version: 2, features: { fakeNitro: true, platformIndicator: true }, preferences: { compact: false }, nitro: NITRO_DEFAULT }]);
 });
 
 test("compact defaults off, persists independently, and reloads from schema2", async () => {
@@ -179,7 +180,7 @@ test("compact defaults off, persists independently, and reloads from schema2", a
     s.subscribe(value => featureNotifications.push(value));
     await s.setPreference("compact", true);
     await s.setPreference("compact", true);
-    assert.deepEqual(JSON.parse(text), { version: 2, features: allOff, preferences: { compact: true } });
+    assert.deepEqual(JSON.parse(text), { version: 2, features: allOff, preferences: { compact: true }, nitro: NITRO_DEFAULT });
     assert.deepEqual(notifications, [true]);
     assert.deepEqual(featureNotifications, []);
     const reloaded = store(adapter);
@@ -202,7 +203,7 @@ test("schema2 reads only own allowlisted strict-boolean values", async () => {
     assert.deepEqual(JSON.parse(JSON.stringify(s.get())), { fakeNitro: true, platformIndicator: false });
     assert.deepEqual(JSON.parse(JSON.stringify(s.getPreferences())), { compact: true });
     for (const compact of ["true", 1, null, {}, [], false]) {
-        const malformed = store({ read: async () => JSON.stringify({ version: 2, features: allOff, preferences: { compact } }),
+        const malformed = store({ read: async () => JSON.stringify({ version: 2, features: allOff, preferences: { compact }, nitro: NITRO_DEFAULT }),
             write: async () => {} });
         await malformed.load();
         assert.equal(malformed.getPreferences().compact, false);
@@ -260,11 +261,11 @@ test("preference changes before or during load beat stale disk features and pref
             const loading = s.load();
             if (!beforeLoad) await s.setPreference("compact", compact);
             finish(JSON.stringify({ version: 2, features: { fakeNitro: true, platformIndicator: true },
-                preferences: { compact: !compact } }));
+                preferences: { compact: !compact }, nitro: NITRO_DEFAULT }));
             await loading;
             assert.equal(s.getPreferences().compact, compact);
             assert.deepEqual(JSON.parse(JSON.stringify(s.get())), allOff);
-            assert.deepEqual(saved, [{ version: 2, features: allOff, preferences: { compact } }]);
+            assert.deepEqual(saved, [{ version: 2, features: allOff, preferences: { compact }, nitro: NITRO_DEFAULT }]);
         }
     }
 });
@@ -274,7 +275,7 @@ test("a feature mutation during load also protects local preferences", async () 
     const s = store({ read: () => new Promise(resolve => { finish = resolve; }), write: async () => {} });
     const loading = s.load();
     await s.set("fakeNitro", true);
-    finish(JSON.stringify({ version: 2, features: allOff, preferences: { compact: true } }));
+    finish(JSON.stringify({ version: 2, features: allOff, preferences: { compact: true }, nitro: NITRO_DEFAULT }));
     await loading;
     assert.equal(s.get().fakeNitro, true);
     assert.equal(s.getPreferences().compact, false);
@@ -296,10 +297,10 @@ test("mixed concurrent feature and preference writes share one ordered snapshot 
     finish();
     await Promise.all([first, second, third, fourth]);
     assert.deepEqual(saved, [
-        { version: 2, features: allOff, preferences: { compact: true } },
-        { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: true } },
-        { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: false } },
-        { version: 2, features: { fakeNitro: true, platformIndicator: true }, preferences: { compact: false } },
+        { version: 2, features: allOff, preferences: { compact: true }, nitro: NITRO_DEFAULT },
+        { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: true }, nitro: NITRO_DEFAULT },
+        { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: false }, nitro: NITRO_DEFAULT },
+        { version: 2, features: { fakeNitro: true, platformIndicator: true }, preferences: { compact: false }, nitro: NITRO_DEFAULT },
     ]);
 });
 
@@ -320,9 +321,9 @@ test("mixed reentrant listeners queue writes before notifying and isolate errors
     await s.setPreference("compact", true);
     await Promise.all(nested);
     assert.deepEqual(saved, [
-        { version: 2, features: allOff, preferences: { compact: true } },
-        { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: true } },
-        { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: false } },
+        { version: 2, features: allOff, preferences: { compact: true }, nitro: NITRO_DEFAULT },
+        { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: true }, nitro: NITRO_DEFAULT },
+        { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: false }, nitro: NITRO_DEFAULT },
     ]);
     assert.deepEqual(errors, ["bad preference listener", "bad preference listener"]);
     assert.deepEqual(healthy, [false, false]);
@@ -343,5 +344,5 @@ test("unchanged compact can retry a failed write without blocking later feature 
     assert.deepEqual(errors, ["disk full"]);
     assert.equal(saved.length, 3);
     assert.deepEqual(saved[0], saved[1]);
-    assert.deepEqual(saved[2], { version: 2, features: { fakeNitro: false, platformIndicator: true }, preferences: { compact: true } });
+    assert.deepEqual(saved[2], { version: 2, features: { fakeNitro: false, platformIndicator: true }, preferences: { compact: true }, nitro: NITRO_DEFAULT });
 });

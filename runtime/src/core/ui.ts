@@ -1,6 +1,7 @@
 import type { SettingsController, SettingsViewState } from "./settings-controller";
 import type { BuildFeature } from "./features";
 import { getLogs } from "./log";
+import { EMOJI_SIZES } from "./settings";
 import type { FeatureKey } from "./settings";
 
 const FEATURE_ROWS: ReadonlyArray<{ id: FeatureKey; title: string; description: string }> = Object.freeze([
@@ -91,6 +92,27 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                             disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
                             onValueChange: (value: boolean) => { void controller.setFeature(row.id, value).catch(() => {}); } }) : null);
                 }),
+                features.includes("fakeNitro") ? h(native.View, { key: "nitro-options", style: { backgroundColor: colors.surface,
+                    padding: spacing, borderRadius: 12, marginTop: spacing } },
+                    text("Fake Nitro の画像サイズ"),
+                    h(native.View, { style: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 } },
+                        ...EMOJI_SIZES.map(size => {
+                            const selected = state.nitro.emojiSize === size;
+                            return h(native.Pressable, { key: String(size), accessibilityRole: "button",
+                                accessibilityLabel: `disk:nitro-size:${size}`, accessibilityState: { selected },
+                                disabled: state.phase !== "ready" || state.save === "saving",
+                                onPress: () => { void controller.setNitro({ emojiSize: size }).catch(() => {}); },
+                                style: { paddingHorizontal: 14, minHeight: 40, justifyContent: "center", marginRight: 8, marginTop: 4,
+                                    borderRadius: 8, backgroundColor: selected ? colors.accent : "#3F4147" } },
+                                text(String(size), { style: { color: colors.text, fontSize: 14 } }));
+                        })),
+                    h(native.View, { style: { flexDirection: "row", alignItems: "center", marginTop: spacing } },
+                        h(native.View, { style: { flex: 1 } }, text("名前付きリンク"),
+                            text(state.nitro.maskedLinks ? "[name](URL) の形で送信" : "URL をそのまま送信",
+                                { accessibilityLabel: `disk:nitro-masked:${state.nitro.maskedLinks}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
+                        h(native.Switch, { accessibilityLabel: "disk:nitro-masked", value: state.nitro.maskedLinks,
+                            disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
+                            onValueChange: (value: boolean) => { void controller.setNitro({ maskedLinks: value }).catch(() => {}); } }))) : null,
                 text(features.includes("disableAnalytics") ? "Analytics：JS の track 送信を停止しています（Morphe で選択）" : "Analytics：このビルドでは停止していません",
                     { accessibilityLabel: "disk:feature:disableAnalytics", style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
                 text("情報", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginTop: spacing * 2 } }),

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { build } from "esbuild";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
+const NITRO_DEFAULT = { emojiSize: 48, maskedLinks: false };
 
 const { outputFiles } = await build({ stdin: { contents: [
     'export * from "./features/fakeNitro";', 'export * from "./features/analytics";', 'export * from "./features/platformIndicator";',
@@ -215,7 +216,7 @@ test("feature switches persist schema2 features and isEnabled is off until ready
     await c.setFeature("fakeNitro", true);
     assert.equal(c.isEnabled("fakeNitro"), true);
     assert.equal(c.isEnabled("platformIndicator"), false);
-    assert.deepEqual(m.writes.at(-1), { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: false } });
+    assert.deepEqual(m.writes.at(-1), { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: false }, nitro: NITRO_DEFAULT });
     await assert.rejects(c.setFeature("unknown", true));
     await assert.rejects(c.setFeature("fakeNitro", "yes"));
     const reloaded = createSettingsController(() => {}, () => m.storage);
@@ -254,9 +255,11 @@ test("feature captures exist only for built features, and install hooks on natur
 test("settings page shows switches only for built features and states which are not included", () => {
     const { createSettingsOverview } = api();
     const native = { View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Switch: "Switch", Modal: "Modal" };
-    const state = { phase: "ready", save: "idle", preferences: { compact: false }, features: { fakeNitro: true, platformIndicator: false } };
+    const state = { phase: "ready", save: "idle", preferences: { compact: false }, features: { fakeNitro: true, platformIndicator: false },
+        nitro: { emojiSize: 64, maskedLinks: true } };
     const changes = [];
-    const controller = { get: () => state, subscribe: () => () => {}, setFeature: async (key, value) => { changes.push([key, value]); } };
+    const controller = { get: () => state, subscribe: () => () => {}, setFeature: async (key, value) => { changes.push([key, value]); },
+        setNitro: async change => { changes.push(["nitro", change]); } };
     const react = { Fragment: "F", createElement(type, props, ...children) { return { type, props: props ?? {}, children }; },
         useState(initial) { const value = typeof initial === "function" ? initial() : initial; return [initial === false ? true : value, () => {}]; },
         useEffect() {} };
@@ -271,4 +274,51 @@ test("settings page shows switches only for built features and states which are 
     assert.equal(all.find(node => node.props.accessibilityLabel === "disk:feature:platformIndicator"), undefined);
     assert.ok(all.some(node => node.children?.includes("このビルドには含まれていません")));
     assert.ok(all.some(node => String(node.children?.[0]).startsWith("Analytics：JS の track 送信を停止しています")));
+    const size64 = all.find(node => node.props.accessibilityLabel === "disk:nitro-size:64");
+    assert.equal(size64.props.accessibilityState.selected, true);
+    all.find(node => node.props.accessibilityLabel === "disk:nitro-size:128").props.onPress();
+    all.find(node => node.props.accessibilityLabel === "disk:nitro-masked").props.onValueChange(false);
+    assert.deepEqual(plain(changes.slice(1)), [["nitro", { emojiSize: 128 }], ["nitro", { maskedLinks: false }]]);
+    assert.ok(all.some(node => node.props.accessibilityLabel === "disk:nitro-masked:true"));
+    const without = flat(createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, ["platformIndicator"])({}));
+    assert.equal(without.find(node => node.props.accessibilityLabel === "disk:nitro-size:48"), undefined, "no options unless Fake Nitro is built");
+});
+
+test("conversion follows the chosen size and masked-link option", () => {
+    const { convertMessage, emojiUrl } = api();
+    const message = { content: "a <a:dance:333> b", invalidEmojis: [locked("333", "dance", true)] };
+    assert.equal(convertMessage(message, { emojiSize: 128, maskedLinks: false }).content, `a ${emojiUrl("333", true, "dance", 128)} b`);
+    assert.equal(convertMessage(message, { emojiSize: 96, maskedLinks: true }).content, `a [dance](${emojiUrl("333", true, "dance", 96)}) b`);
+    assert.match(convertMessage(message, { emojiSize: 1000, maskedLinks: false }).content, /size=48&/, "unknown sizes fall back to 48");
+});
+
+test("Fake Nitro options persist in schema 2, default safely, and reject invalid values without writing", async () => {
+    const { createSettingsController } = api();
+    let text = null;
+    const writes = [];
+    const storage = { read: async () => text, write: async value => { writes.push(JSON.parse(value)); text = value; } };
+    const c = createSettingsController(() => {}, () => storage);
+    await c.attach({});
+    assert.deepEqual(plain(c.get().nitro), { emojiSize: 48, maskedLinks: false });
+    await c.setNitro({ emojiSize: 96 });
+    await c.setNitro({ maskedLinks: true });
+    assert.deepEqual(writes.at(-1).nitro, { emojiSize: 96, maskedLinks: true });
+    const count = writes.length;
+    for (const bad of [{ emojiSize: 50 }, { maskedLinks: "yes" }, { other: 1 }, {}, null])
+        await assert.rejects(c.setNitro(bad));
+    assert.equal(writes.length, count);
+    const reloaded = createSettingsController(() => {}, () => storage);
+    await reloaded.attach({});
+    assert.deepEqual(plain(reloaded.get().nitro), { emojiSize: 96, maskedLinks: true });
+    for (const [stored, expected] of [
+        ['{"version":2,"features":{},"preferences":{}}', { emojiSize: 48, maskedLinks: false }],
+        ['{"version":2,"features":{},"preferences":{},"nitro":{"emojiSize":7,"maskedLinks":1}}', { emojiSize: 48, maskedLinks: false }],
+        ['{"version":2,"features":{},"preferences":{},"nitro":[]}', { emojiSize: 48, maskedLinks: false }],
+        ['{"version":1,"features":{},"nitro":{"emojiSize":128}}', { emojiSize: 48, maskedLinks: false }]]) {
+        text = stored;
+        const fresh = createSettingsController(() => {}, () => storage);
+        await fresh.attach({});
+        assert.equal(fresh.get().phase, "ready");
+        assert.deepEqual(plain(fresh.get().nitro), expected);
+    }
 });
