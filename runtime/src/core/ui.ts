@@ -1,7 +1,9 @@
 import type { SettingsController, SettingsViewState } from "./settings-controller";
 import type { BuildFeature } from "./features";
 import { getLogs } from "./log";
-import { EMOJI_SIZES } from "./settings";
+import { EMOJI_SIZES, PLATFORM_PLACES, DEFAULT_PLATFORM } from "./settings";
+const PLATFORM_LABELS = { avatars: "その他のアバター", dmList: "DM一覧の行", dmHeader: "DMヘッダー", memberList: "メンバー一覧",
+    profile: "プロフィール名", messages: "メッセージの名前" };
 import type { ExtraKey, FeatureKey } from "./settings";
 
 /** Ported Venus features; credits are kept in docs/VENUS-PORT.md and NOTICE. */
@@ -107,6 +109,21 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                             disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
                             onValueChange: (value: boolean) => { void controller.setFeature(row.id, value).catch(() => {}); } }) : null);
                 }),
+                features.includes("platformIndicator") ? h(native.View, { key: "platform-options", style: {
+                    backgroundColor: colors.surface, padding: spacing, borderRadius: 12, marginTop: spacing } },
+                    text("端末表示の場所", { accessibilityRole: "header" }),
+                    text("メッセージ欄はPC/M/W/VRの文字表示です。変更後はチャンネルを開き直してください", {
+                        style: { color: colors.secondary, fontSize: 13, marginTop: 4 } }),
+                    ...PLATFORM_PLACES.map(place => {
+                        const on = (state.platform ?? DEFAULT_PLATFORM)[place];
+                        return h(native.View, { key: place, style: { flexDirection: "row", alignItems: "center", marginTop: spacing } },
+                            h(native.View, { style: { flex: 1 } }, text(PLATFORM_LABELS[place]),
+                                text(on ? "オン" : "オフ", { accessibilityLabel: `disk:platform:${place}:${on}`,
+                                    style: { color: colors.secondary, fontSize: 13 } })),
+                            h(native.Switch, { accessibilityLabel: `disk:platform:${place}`, value: on,
+                                disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
+                                onValueChange: (value: boolean) => { void controller.setPlatform(place, value).catch(() => {}); } }));
+                    })) : null,
                 features.includes("fakeNitro") ? h(native.View, { key: "nitro-options", style: { backgroundColor: colors.surface,
                     padding: spacing, borderRadius: 12, marginTop: spacing } },
                     text("Fake Nitro の画像サイズ"),

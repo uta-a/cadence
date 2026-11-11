@@ -6,6 +6,8 @@ import type { ModuleCapture } from "../diagnostics/observer";
 import { installAnalyticsBlock } from "../features/analytics";
 import { installEmojiPickerUnlock, installSendMessageHook, installStickerHooks } from "../features/fakeNitro";
 import { createPlatformAvatar } from "../features/platformIndicator";
+import { createPlatformPlacements } from "../features/venus/platformPlacements";
+import type { PlatformPlace } from "./settings";
 import { installQuickConfirm } from "../features/venus/quickConfirm";
 import { installAlwaysTrust } from "../features/venus/alwaysTrust";
 import { createJumpToTop } from "../features/venus/jumpToTop";
@@ -111,6 +113,51 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
         return { store, getClientStatus: getClientStatus as PresenceSource["getClientStatus"],
             useStateFromStores: useStateFromStores as PresenceSource["useStateFromStores"] };
     }
+    let platformContext: unknown;
+    let placements: ReturnType<typeof createPlatformPlacements> | undefined;
+    function getPlatformContext(): unknown {
+        if (platformContext) return platformContext;
+        const react = reactApi(["createContext", "useContext"]);
+        const create = dataProperty(react, "createContext");
+        if (typeof create === "function") platformContext = Reflect.apply(create, react, [false]);
+        return platformContext;
+    }
+    function platformPlaceEnabled(place: PlatformPlace): boolean {
+        return settings.isEnabled("platformIndicator") && settings.get().platform[place];
+    }
+    function platformPlacements(): ReturnType<typeof createPlatformPlacements> | undefined {
+        if (placements) return placements;
+        const react = reactApi(["createElement", "cloneElement", "useState", "useEffect", "useRef"]);
+        const context = getPlatformContext(), provider = dataProperty(context, "Provider");
+        if (!react || !provider) return undefined;
+        const badges = new Map<string, unknown>();
+        placements = createPlatformPlacements({
+            react: react as Parameters<typeof createPlatformPlacements>[0]["react"], provider,
+            native: () => { const ui = resolveNative(); return ui ? { View: ui.View, Text: ui.Text } : null; },
+            enabled: platformPlaceEnabled, subscribe: listener => settings.subscribe(listener),
+            channel: id => {
+                const store = dataProperty(modules.get(4855), "default"), get = dataProperty(store, "getChannel");
+                return typeof get === "function" ? Reflect.apply(get, store, [id]) : undefined;
+            },
+            status: id => {
+                const source = presenceSource();
+                return source ? Reflect.apply(source.getClientStatus, source.store, [id]) : undefined;
+            },
+            badge: place => {
+                if (!badges.has(place)) badges.set(place, createPlatformAvatar({
+                    react: react as AvatarReact, original: null, inline: true,
+                    native: () => { const ui = resolveNative(); return ui ? { View: ui.View, Text: ui.Text } : null; },
+                    presence: presenceSource, icons: () => icons, enabled: () => platformPlaceEnabled(place),
+                    userId: props => typeof props.userId === "string" ? props.userId : undefined,
+                    subscribe: listener => settings.subscribe(listener),
+                    onEvent: event => { if (event === "badge") report(`platform-indicator ${place} badge`); },
+                }));
+                return badges.get(place);
+            },
+            onEvent: place => report(`platform-indicator ${place} rendered`),
+        });
+        return placements;
+    }
     function installPlatformIndicator(exports: unknown): void {
         try {
             const react = reactApi(["createElement", "useState", "useEffect", "useRef"]);
@@ -120,7 +167,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                 native: () => { const ui = resolveNative(); return ui ? { View: ui.View, Text: ui.Text } : null; },
                 presence: presenceSource,
                 icons: () => icons,
-                enabled: () => settings.isEnabled("platformIndicator"),
+                enabled: () => platformPlaceEnabled("avatars"), suppressContext: getPlatformContext(),
                 subscribe: listener => settings.subscribe(listener),
                 onEvent: event => report(`platform-indicator ${event}`),
             }));
@@ -294,7 +341,8 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     if (features.includes("serverInfo")) ids.push(17772);
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
-    if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, ...ICON_MODULES.map(icon => icon.id));
+    if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, 4855, 10659, 11110, 14049, 17499, 9196, 8165, 17494, 8778,
+        ...ICON_MODULES.map(icon => icon.id));
     const captures: ModuleCapture[] = Array.from(new Set(ids)).map(id => ({ id,
         onExports(exports, context) {
             modules.set(id, exports);
@@ -378,6 +426,18 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             if (voiceDownload && id === 8165 && !voiceDownload.installRows(exports)) report("voice-download unavailable");
             if (voiceDownload && id === 11269 && !voiceDownload.installHandlers(exports)) report("voice-download unavailable");
             if (id === 15449) installPlatformIndicator(exports);
+            if (features.includes("platformIndicator") && [10659, 11110, 14049, 17499, 9196, 8165, 17494, 8778].includes(id)) {
+                try {
+                    const runtime = platformPlacements();
+                    const ok = id === 17494 ? ["MessagesItemChannelFast", "MessagesItemChannelFlash", "MessagesItemChannelLegend"]
+                        .map(key => runtime?.installScope(exports, key)).every(Boolean)
+                        : id === 8778 ? runtime?.installScope(exports)
+                        : id === 11110 ? runtime?.installProfile(exports) : id === 8165 ? runtime?.installMessages(exports)
+                        : runtime?.install(exports, id === 14049 ? "dmHeader" : id === 17499 ? "dmList" : "memberList",
+                            id === 9196 ? "MemberRowItem" : "default");
+                    report(ok ? "platform-indicator placement installed" : "platform-indicator placement unavailable");
+                } catch (_) { report("platform-indicator placement unavailable"); }
+            }
             const icon = ICON_MODULES.find(item => item.id === id);
             if (icon) {
                 const component = dataProperty(exports, icon.name);

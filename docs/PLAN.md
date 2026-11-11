@@ -16,7 +16,8 @@ Phase 0〜3は完了。Phase 4の機能実装とPhase 5の配布準備を進め�
 
 - [x] Fake Nitroのピッカー、アニメ絵文字、スタンプ、設定。
 - [x] PrivacyのJS analytics・広告ID・Sentry・AppsFlyer。通信の対照試験済み。
-- [ ] Platform Indicatorのメンバー一覧・メッセージなど残りの場所と場所別設定。
+- [x] Platform IndicatorのDM一覧・ヘッダー・メンバー一覧・プロフィール名・メッセージ名と場所別設定。実機でオン/オフと再起動後の復元を確認。
+- [ ] 音声通話中のMemberRowItemの実機確認。
 - [ ] Venusと突き合わせ、v0.1に含める細かな差と制限を確定。
 
 ## Phase 4V-3 — Servers

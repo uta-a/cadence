@@ -232,7 +232,7 @@ test("feature captures exist only for built features, and install hooks on natur
     assert.deepEqual(ids(createCoreModules(() => {}, false, ["quietReplies"])), [17, 19, 1164, 5183, 7522, 7785, 10119, 18400]);
     const events = [];
     const core = createCoreModules(value => events.push(value), false, ["fakeNitro", "platformIndicator", "disableAnalytics"]);
-    assert.deepEqual(ids(core), [17, 19, 504, 1164, 1267, 1395, 4953, 5183, 5744, 7085, 7475, 7522, 7598, 9515, 9524, 15449, 16280, 18400]);
+    assert.deepEqual(ids(core), [17, 19, 504, 1164, 1267, 1395, 4855, 4953, 5183, 5744, 7085, 7475, 7522, 7598, 8165, 8778, 9196, 9515, 9524, 10659, 11110, 14049, 15449, 16280, 17494, 17499, 18400]);
     const capture = new Map(core.captures.map(c => [c.id, c.onExports]));
     const analytics = { default: { track() { return new Promise(() => {}); } } };
     capture.get(1267)(analytics, {});

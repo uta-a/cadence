@@ -55,6 +55,42 @@
     "id": 6737, "factory": 6738, "shape": ["CHANNEL", "GUILD_EVENT"],
     "evidence": [{"kind":"registration","function":0,"offset":216710,"detail":"modules/read_states/ReadStateConstants.tsx"},{"kind":"export","function":6738,"offset":41,"detail":"CHANNEL; GUILD_EVENT at 58"}], "confidence":"high", "verified":false
   },
+  "ChannelStore": {
+    "id":4855,"factory":4856,"shape":["default"],
+    "evidence":[{"kind":"registration","function":0,"offset":155146,"detail":"ChannelStore; used only if already loaded while rendering"},{"kind":"export","function":4856,"offset":1229,"detail":"default store"}],"confidence":"high","verified":false
+  },
+  "MessagesItemChannel": {
+    "id":17494,"factory":17495,"shape":["MessagesItemChannelFast","MessagesItemChannelFlash","MessagesItemChannelLegend"],
+    "evidence":[{"kind":"registration","function":0,"offset":575488,"detail":"modules/main_tabs_v2/native/tabs/messages/items/MessagesItemChannel.tsx"},{"kind":"export","function":17495,"offset":357,"detail":"Fast; Flash at363; Legend at369. Scope covers sibling avatar and name content"}],"confidence":"high","verified":false
+  },
+  "UserProfileAvatar": {
+    "id":8778,"factory":8779,"shape":["default"],
+    "evidence":[{"kind":"registration","function":0,"offset":284394,"detail":"modules/user_profile/native/UserProfileAvatar.tsx"},{"kind":"export","function":8779,"offset":310,"detail":"default avatar component; context suppresses duplicate overlay while profile-name badges are handled separately"}],"confidence":"high","verified":false
+  },
+  "PlatformUserRow": {
+    "id":10659,"factory":10660,"shape":["default"],
+    "evidence":[{"kind":"registration","function":0,"offset":347114,"detail":"modules/main_tabs_v2/native/shared_components/user_list/UserRow.tsx; Venus 10531"},{"kind":"export","function":10660,"offset":738,"detail":"memo default; closure55017"}],"confidence":"high","verified":false
+  },
+  "UserProfilePrimaryInfo": {
+    "id":11110,"factory":11111,"shape":["default","DisplayName"],
+    "evidence":[{"kind":"registration","function":0,"offset":362204,"detail":"modules/user_profile/native/UserProfilePrimaryInfo.tsx; Venus 10858"},{"kind":"export","function":11111,"offset":907,"detail":"default PrimaryInfo; named DisplayName at913 is also captured locally"}],"confidence":"high","verified":false
+  },
+  "PrivateChannelHeader": {
+    "id":14049,"factory":14050,"shape":["default"],
+    "evidence":[{"kind":"registration","function":0,"offset":460570,"detail":"modules/main_tabs_v2/native/channel/header/PrivateChannelHeader.tsx; Venus 13788"},{"kind":"export","function":14050,"offset":485,"detail":"memo default; nested ChannelTitle has title/accessibleTitle/userId props"}],"confidence":"high","verified":false
+  },
+  "MessagesItemChannelContent": {
+    "id":17499,"factory":17500,"shape":["default"],
+    "evidence":[{"kind":"registration","function":0,"offset":575658,"detail":"modules/main_tabs_v2/native/tabs/messages/items/channel/MessagesItemChannelContent.tsx; Venus 17165"},{"kind":"export","function":17500,"offset":631,"detail":"memo default; channel prop"}],"confidence":"high","verified":false
+  },
+  "VoiceMemberRowItem": {
+    "id":9196,"factory":9197,"shape":["MemberRowItem"],
+    "evidence":[{"kind":"registration","function":0,"offset":298318,"detail":"modules/voice_panel/native/shared/FormComponents.tsx; Venus 9069"},{"kind":"export","function":9197,"offset":476,"detail":"MemberRowItem"}],"confidence":"high","verified":false
+  },
+  "CreateNativeMessageContent": {
+    "id":8301,"factory":8302,"shape":["default"],
+    "evidence":[{"kind":"registration","function":0,"offset":268492,"detail":"modules/messages/native/renderer/createMessageContent.tsx"},{"kind":"export","function":8302,"offset":519,"detail":"default converter"},{"kind":"construction","function":46686,"offset":6110,"detail":"username in native message at slot32; authorId at slot35/offset6145. Only display output is cloned, not the source MessageRecord"}],"confidence":"high","verified":false
+  },
   "GuildsBarGuildMenuItems": {
     "id":17772,"factory":17773,"shape":["default"],
     "evidence":[{"kind":"registration","function":0,"offset":584840,"detail":"modules/guilds_bar/native/utils/getGuildsBarGuildMenuItems.tsx; Venus 17433"},{"kind":"export","function":17773,"offset":153,"detail":"default menu items function"}],"confidence":"high","verified":false

@@ -30,6 +30,7 @@ export interface AvatarReact {
     useEffect(effect: () => void | (() => void), deps: readonly unknown[]): void;
     useRef<T>(initial: T): { current: T };
     memo?: (component: unknown) => unknown;
+    useContext?: (context: unknown) => unknown;
 }
 export interface PresenceSource {
     readonly store: object;
@@ -45,6 +46,10 @@ export interface AvatarDependencies {
     readonly icons: () => Partial<Record<Platform, unknown>>;
     readonly enabled: () => boolean;
     readonly subscribe: (listener: () => void) => () => void;
+    readonly userId?: (props: Record<string, unknown>) => string | undefined;
+    readonly inline?: boolean;
+    /** Placement wrappers suppress the generic avatar overlay inside their own name/badge row. */
+    readonly suppressContext?: unknown;
     /** Fixed diagnostic labels, each reported once: never user IDs or presence values. */
     readonly onEvent?: (event: "rendered" | "badge") => void;
 }
@@ -59,18 +64,21 @@ export function createPlatformAvatar(deps: AvatarDependencies): unknown {
         try { deps.onEvent?.(event); } catch (_) { /* Diagnostics only. */ }
     }
     function DiskPlatformAvatar(props: Record<string, unknown>) {
-        const [enabled, setEnabled] = react.useState(() => deps.enabled());
+        const [, redraw] = react.useState(0);
         react.useEffect(() => {
-            const unsubscribe = deps.subscribe(() => setEnabled(deps.enabled()));
-            setEnabled(deps.enabled());
+            let revision = 0;
+            const unsubscribe = deps.subscribe(() => redraw(++revision));
+            redraw(++revision);
             return unsubscribe;
         }, []);
+        const enabled = deps.enabled();
+        const suppressed = deps.suppressContext && react.useContext ? react.useContext(deps.suppressContext) === true : false;
         // Only whether the store hook runs is fixed per instance (first render), so the hook count never changes.
         // RN primitives are not hooks and are looked up on every render, so early instances still gain a badge.
         const mode = react.useRef<PresenceSource | null | undefined>(undefined);
         if (mode.current === undefined) mode.current = deps.presence();
         const user = props.user, id = user && typeof user === "object" ? (user as Record<string, unknown>).id : undefined;
-        const userId = typeof id === "string" ? id : undefined;
+        const userId = deps.userId ? deps.userId(props) : typeof id === "string" ? id : undefined;
         let status: unknown;
         const presence = mode.current;
         if (presence) {
@@ -80,8 +88,8 @@ export function createPlatformAvatar(deps: AvatarDependencies): unknown {
                 try { return Reflect.apply(getClientStatus, store, [userId]); } catch (_) { return undefined; }
             }, [userId]);
         }
-        const originalElement = h(deps.original, props);
-        const native = presence && enabled ? deps.native() : null;
+        const originalElement = deps.inline ? null : h(deps.original, props);
+        const native = presence && enabled && !suppressed ? deps.native() : null;
         if (!native) return originalElement;
         once("rendered");
         const platforms = platformsOf(status);
@@ -90,14 +98,14 @@ export function createPlatformAvatar(deps: AvatarDependencies): unknown {
         const icons = platforms.length ? deps.icons() : {};
         const badge = platforms.length === 0 ? null : h(View, {
             pointerEvents: "none", accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants",
-            style: { position: "absolute", top: -4, right: -4, flexDirection: "row", alignItems: "center",
+            style: { ...(deps.inline ? {} : { position: "absolute", top: -4, right: -4 }), flexDirection: "row", alignItems: "center",
                 backgroundColor: "#1E1F22", borderRadius: 7, paddingHorizontal: 2, paddingVertical: 1 },
         }, ...platforms.map(({ platform, color }) => {
             const Icon = icons[platform];
             return Icon ? h(Icon, { key: platform, color, style: { width: 10, height: 10, marginHorizontal: 1 } })
                 : h(Text, { key: platform, style: { color, fontSize: 8, fontWeight: "700", marginHorizontal: 1 } }, LABELS[platform]);
         }));
-        return h(View, { style: { position: "relative" }, pointerEvents: "box-none" }, originalElement, badge);
+        return deps.inline ? badge : h(View, { style: { position: "relative" }, pointerEvents: "box-none" }, originalElement, badge);
     }
     const component = typeof react.memo === "function" ? react.memo(DiskPlatformAvatar) : DiskPlatformAvatar;
     copyStatics(deps.original, component);

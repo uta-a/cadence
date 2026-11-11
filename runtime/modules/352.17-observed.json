@@ -218,6 +218,15 @@
     }
   },
   "notObserved": [
+    "MessagesItemChannel",
+    "UserProfileAvatar",
+    "ChannelStore",
+    "PlatformUserRow",
+    "UserProfilePrimaryInfo",
+    "PrivateChannelHeader",
+    "MessagesItemChannelContent",
+    "VoiceMemberRowItem",
+    "CreateNativeMessageContent",
     "GuildsBarGuildMenuItems",
     "MessageRowGenerator",
     "NativeMediaManager",

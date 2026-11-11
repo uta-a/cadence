@@ -35,6 +35,17 @@
 | 高画質で画像を読み込む（patch: Load full-quality images） | Load full-quality images（Uncompressed Discord Images by Knewest、HighResProfileImages by Kawtious） | ImageUtils 1498、AvatarUtils 1417 | 実機確認済み: チャットの画像が元ファイルのURLで読み込まれた（`full-images image`）。Venusの場所別・GIFの設定は省き、チャットと全画面とアイコンをまとめて1つのスイッチにした（GIFはDiscordのまま） |
 | すべて既読にする（patch: Read all） | Read all（ReadAllNotificationsButton の移植） | useGuildsBarProps 17778、GuildsBarConstants 17768。押したときに読む: GuildReadStateStore 6846、SortedGuildStore 6733、LurkingStore 4936、GuildStore 4877、ReadStateStore 6803、ReadStateTypes 6737、markGuildsAsRead 15243、Constants 1087、PrivateChannelReadStateStore 15096、PrivateChannelSortStore 7354、MessageRequestUtils 6844、ReadStateActionCreators 7238 | 実機確認済み: サーバー一覧のDMボタンの下にボタンが出る。タップでサーバーの未読マークが消え、長押し→DMで未読バッジ4件が消えることを確認（`read-all cleared`）。設定オフ／オンも再起動なしで反映。未読がないときは`nothing`になる。Venusの長押しシートとトーストは使わず、AndroidのAlert（ボタン3つ、外側タップで閉じる）と、消せたときの✓表示にした |
 
+### Platform Indicatorの場所別拡張
+
+- `runtime/src/features/venus/platformPlacements.ts` はVenusの`platformName`、`platformHeader`、`platformDmRow`、`placePlatformTree`を移植。既存の独自Avatar表示と組み合わせた。
+- 352.17で検証した表示部品: UserRow **10659**、UserProfilePrimaryInfo **11110**、PrivateChannelHeader **14049**、MessagesItemChannelContent **17499**、Voice MemberRowItem **9196**。各memo/forwardRefの元部品は毎回同じフック順で呼び、子の部品をReactの描画外で実行しない。
+- DM行の兄弟Avatarまで制御するためMessagesItemChannel **17494**のFast/Flash/LegendをContextで囲み、プロフィールのAvatar **8778**も同様に処理。Contextはレイアウトを追加しない。既存のAvatar表示と名前横の表示が重複することを防ぐ。
+- 設定はschema2の任意の`platform`オブジェクト。`avatars`、`dmList`、`dmHeader`、`memberList`、`profile`、`messages`の6項目。旧ファイルは全場所オンを既定とし、機能の主スイッチ自体は従来どおり初期オフ。全場所が既定なら追加フィールドを省略する。
+- ネイティブのメッセージ欄はRowGenerator **8165**の表示結果だけを複製し、表示用`username`へPC/M/W/VRを付加する。CreateMessageContent **8301**のusername/authorIdの構築を静的確認。送信内容・MessageRecord・authorIdは変更しない。音声保存CTAとの併存をテスト。
+- pipaでDM一覧の行、DMヘッダー、DMのメンバー一覧、プロフィール名、過去メッセージの`peer-account · PC`を目視確認。その他AvatarをオンのままDM行とヘッダーを個別オフにして表示が消えること、プロセス再起動後の設定復元も確認した。DMカードのAvatarは「その他のアバター」で別に制御する。
+- メッセージ欄の端末表示は再描画時点のPresenceを使う。設定変更後はチャンネルを開き直す。音声通話のMemberRowItemはフック実装・単体テストまでで、通話中の実機確認は未実施。
+- 証跡は`work/phase4-device/platform-new-header.png`、`platform-new-profile.png`、`platform-native-messages.png`、`platform-scoped-off.png`。固定文字列の場所別診断のみを記録し、IDやPresence値はログに出さない。Node **130件**、Python **24件**、型検査、Gradleテスト、smoke APKビルド成功。場所設定は試験後にすべて既定へ戻した。
+
 ### Server info（基本情報を実機確認）
 
 - `runtime/src/features/venus/serverInfo.ts` はVenusの`serverInfoMenu`を移植。Morpheの個別patch `Server info` と初期オフの`serverInfo`設定を追加した。

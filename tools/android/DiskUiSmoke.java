@@ -54,6 +54,21 @@ public class DiskUiSmoke extends UiAutomatorTestCase {
             getUiDevice().waitForIdle();
             assertTrue("DISK_UI overview entry missing after back", control("disk").waitForExists(5000));
             System.out.println("DISK_UI hardware back preserved overview");
+        } else if (action.equals("toggle-platform") || action.equals("check-platform")) {
+            String place = getParams().getString("feature", "");
+            assertTrue("DISK_UI invalid platform location", place.equals("avatars") || place.equals("dmList") || place.equals("dmHeader")
+                || place.equals("memberList") || place.equals("profile") || place.equals("messages"));
+            if (action.equals("toggle-platform")) {
+                UiObject toggle = scrolled("disk:platform:" + place);
+                assertTrue("DISK_UI platform control missing", toggle.waitForExists(5000));
+                toggle.click(); getUiDevice().waitForIdle();
+                System.out.println("DISK_UI platform location toggled");
+            } else {
+                String expected = getParams().getString("expected", "false");
+                assertTrue("DISK_UI invalid expected value", expected.equals("true") || expected.equals("false"));
+                assertTrue("DISK_UI platform state mismatch", scrolled("disk:platform:" + place + ":" + expected).waitForExists(5000));
+                System.out.println("DISK_UI platform location matches expected");
+            }
         } else if (action.equals("toggle-feature") || action.equals("check-feature")) {
             String feature = getParams().getString("feature", "");
             boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin") || feature.equals("alwaysTrust") || feature.equals("jumpToTop") || feature.equals("gestures") || feature.equals("gestureTripleDelete") || feature.equals("fullImages") || feature.equals("readAll") || feature.equals("quietReplies") || feature.equals("voiceDownload") || feature.equals("serverInfo");

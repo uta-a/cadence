@@ -12,6 +12,11 @@ export type EmojiSize = typeof EMOJI_SIZES[number];
 /** Fake Nitro options. Optional in schema 2: older builds only read allowlisted keys and ignore this object. */
 export interface NitroOptions { readonly emojiSize: EmojiSize; readonly maskedLinks: boolean; }
 export const DEFAULT_NITRO: NitroOptions = Object.freeze({ emojiSize: 48, maskedLinks: false });
+export const PLATFORM_PLACES = Object.freeze(["avatars", "dmList", "dmHeader", "memberList", "profile", "messages"] as const);
+export type PlatformPlace = typeof PLATFORM_PLACES[number];
+export type PlatformOptions = Readonly<Record<PlatformPlace, boolean>>;
+export const DEFAULT_PLATFORM: PlatformOptions = Object.freeze({ avatars: true, dmList: true, dmHeader: true,
+    memberList: true, profile: true, messages: true });
 /**
  * Features ported from Venus Patches (docs/VENUS-PORT.md). Stored as the optional `extras` array of enabled IDs,
  * omitted while none is on, so older builds and older settings files are unaffected. Unknown IDs are ignored.
@@ -29,6 +34,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
     let values: SettingsSnapshot = Object.freeze({ fakeNitro: false, platformIndicator: false });
     let preferences: PreferencesSnapshot = Object.freeze({ compact: false });
     let nitro: NitroOptions = DEFAULT_NITRO;
+    let platform: PlatformOptions = DEFAULT_PLATFORM;
     let extras: ExtrasSnapshot = Object.freeze([]);
     let initialized = false;
     let loading: Promise<void> | null = null;
@@ -37,6 +43,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
     const listeners = new Set<(value: SettingsSnapshot) => void>();
     const preferenceListeners = new Set<(value: PreferencesSnapshot) => void>();
     const nitroListeners = new Set<(value: NitroOptions) => void>();
+    const platformListeners = new Set<(value: PlatformOptions) => void>();
     const extrasListeners = new Set<(value: ExtrasSnapshot) => void>();
 
     function report(error: unknown): void {
@@ -71,7 +78,15 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         return Object.freeze(EXTRA_KEYS.filter(key => value.includes(key)));
     }
 
-    function parse(text: string): { features: SettingsSnapshot; preferences: PreferencesSnapshot; nitro: NitroOptions; extras: ExtrasSnapshot } {
+    function parsePlatform(value: unknown): PlatformOptions {
+        const result = { ...DEFAULT_PLATFORM };
+        if (isRecord(value)) for (const key of PLATFORM_PLACES) {
+            if (hasOwn(value, key) && typeof value[key] === "boolean") result[key] = value[key] as boolean;
+        }
+        return Object.freeze(result);
+    }
+
+    function parse(text: string): { features: SettingsSnapshot; preferences: PreferencesSnapshot; nitro: NitroOptions; platform: PlatformOptions; extras: ExtrasSnapshot } {
         const data: unknown = JSON.parse(text);
         if (!isRecord(data)) throw new Error("Invalid disk settings");
         if (!hasOwn(data, "version") || !hasOwn(data, "features") ||
@@ -88,6 +103,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
             }),
             preferences: Object.freeze({ compact: hasOwn(savedPreferences, "compact") && savedPreferences.compact === true }),
             nitro: data.version === 2 && hasOwn(data, "nitro") ? parseNitro(data.nitro) : DEFAULT_NITRO,
+            platform: data.version === 2 && hasOwn(data, "platform") ? parsePlatform(data.platform) : DEFAULT_PLATFORM,
             extras: data.version === 2 && hasOwn(data, "extras") ? parseExtras(data.extras) : Object.freeze([]),
         };
     }
@@ -95,8 +111,9 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
     function save(): Promise<void> {
         revision++;
         // Persist even an unchanged choice: the previous write may have failed, or disk may still hold an old value.
-        const snapshot = JSON.stringify(extras.length ? { version: 2, features: values, preferences, nitro, extras }
-            : { version: 2, features: values, preferences, nitro });
+        const snapshot = JSON.stringify({ version: 2, features: values, preferences, nitro,
+            ...(extras.length ? { extras } : {}),
+            ...(PLATFORM_PLACES.some(key => platform[key] !== DEFAULT_PLATFORM[key]) ? { platform } : {}) });
         // Queue before notifying: a listener may synchronously change a feature or preference.
         const pending = saveQueue.then(() => storage.write(snapshot));
         saveQueue = pending.catch(report);
@@ -108,6 +125,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         get(): SettingsSnapshot { return values; },
         getPreferences(): PreferencesSnapshot { return preferences; },
         getNitro(): NitroOptions { return nitro; },
+        getPlatform(): PlatformOptions { return platform; },
         getExtras(): ExtrasSnapshot { return extras; },
         /** Load once; failures keep the all-off defaults and are reported. A concurrent local change wins over disk. */
         load(): Promise<void> {
@@ -122,11 +140,13 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
                         values = loaded.features;
                         preferences = loaded.preferences;
                         nitro = loaded.nitro;
+                        platform = loaded.platform;
                         extras = loaded.extras;
                         notify(listeners, () => values);
                         notify(extrasListeners, () => extras);
                         notify(preferenceListeners, () => preferences);
                         notify(nitroListeners, () => nitro);
+                        notify(platformListeners, () => platform);
                     }
                 } catch (error) { report(error); }
                 finally { initialized = true; loading = null; }
@@ -166,6 +186,19 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
             const pending = save();
             if (changed) notify(nitroListeners, () => nitro);
             return pending;
+        },
+        setPlatform(key: PlatformPlace, enabled: boolean): Promise<void> {
+            if (!PLATFORM_PLACES.includes(key) || typeof enabled !== "boolean")
+                return Promise.reject(new TypeError("Invalid platform location"));
+            const changed = platform[key] !== enabled;
+            platform = Object.freeze({ ...platform, [key]: enabled });
+            const pending = save();
+            if (changed) notify(platformListeners, () => platform);
+            return pending;
+        },
+        subscribePlatform(listener: (value: PlatformOptions) => void): () => void {
+            platformListeners.add(listener);
+            return () => { platformListeners.delete(listener); };
         },
         setExtra(key: ExtraKey, enabled: boolean): Promise<void> {
             if (!EXTRA_KEYS.includes(key) || typeof enabled !== "boolean")
