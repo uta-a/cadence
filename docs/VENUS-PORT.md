@@ -46,7 +46,7 @@
 | Messages | Reply without pinging | 実装（サーバー別・グループDM別・自分宛て例外の設定は未移植） |
 | Messages | Bulk delete、Hide blocked or ignored、Message highlights、Translate、Keep media playing、Banners in DND、Favourite any image | v0.2以降 |
 | Servers | Read all button | 実装（Androidの3ボタンAlert） |
-| Servers | Show hidden channels | **一部**。長押しメニューの読み取り専用一覧。ネイティブ一覧への鍵付き表示はしない |
+| Servers | Show hidden channels | **一部**。長押しメニューの読み取り専用一覧（実際の拒否権限で実機確認済み）。ネイティブ一覧への鍵付き表示はしない |
 | Servers | Server info | **一部**。読み込み済みの基本情報のみ。友達一覧・所有者遷移・コピー・装飾シートなし |
 | Servers | Edit servers locally、Clone emojis and stickers、Clean channel names、Preview servers、Pause invites、Fast delete channels | v0.2以降 |
 
@@ -89,7 +89,7 @@
 - **Venusと同じネイティブ一覧への混在表示ではない。** サーバー長押しメニューに項目を追加し、読み込み済みのメタデータをダイアログへ表示する。PermissionStore.can、標準チャンネル一覧、未読集計、入室、履歴取得は一切変更しない。
 - ユーザー操作時のみChannelStore **4855**のfull/basicテーブルとPermissionStore **4935**を読む。共有Constants **1098**の実際の`Permissions.VIEW_CHANNEL`を使い、権限が明確にfalseの項目だけを表示する。basic専用レコードには`canBasicChannel`を使い、APIがなければ判定不能として省く。判定不能・例外は非表示として推測しない。
 - チャンネル名が未取得ならその旨を表示。表示40件、走査は各テーブル2,000件まで。DM・スレッド・別サーバーの項目は含めない。追加通信・チャンネルへの移動ボタン・メッセージ取得はなし。
-- pipaで初期オフ・設定保存・メニュー・空の情報画面を確認。試験サーバーに実際の拒否権限の項目がないため、**非表示項目を含む実機の表示は未確認**。単体テストでは明確な拒否、未知の判定、full優先、件数制限、既存処理の維持を確認した。
+- pipaで初期オフ・設定保存・メニュー・空の情報画面を確認。2026-11-12にpipa（0.1.0）で、相手アカウントがDevサーバーのテキストチャンネルにtest-accountの閲覧拒否を設定したところ、ネイティブ一覧には出ず、読み取り専用一覧に🔒付きのチャンネル名・種類・IDが表示されることを確認（再起動不要、エラーなし）。単体テストでは明確な拒否、未知の判定、full優先、件数制限、既存処理の維持を確認した。
 - `hidden-channels opened`、FATAL/TypeError/ReferenceErrorなし。証跡は`work/phase4-device/hidden-channel-metadata.png`。Node **135件**、Python **24件**、型検査、Gradleテスト、smoke APKビルド成功。
 
 ### Platform Indicatorの場所別拡張
