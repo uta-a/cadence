@@ -17,7 +17,7 @@ Phase 0〜3は完了。Phase 4の機能実装とPhase 5の配布準備を進め�
 - [x] Fake Nitroのピッカー、アニメ絵文字、スタンプ、設定。
 - [x] PrivacyのJS analytics・広告ID・Sentry・AppsFlyer。通信の対照試験済み。
 - [x] Platform IndicatorのDM一覧・ヘッダー・メンバー一覧・プロフィール名・メッセージ名と場所別設定。実機でオン/オフと再起動後の復元を確認。
-- [ ] 音声通話中のMemberRowItemの実機確認。自分1人の通話で描画フックの動作とエラーなしは確認済み（2026-11-12）。他人の行のバッジ表示が未確認。
+- [x] 音声通話中のMemberRowItemの実機確認（2026-11-12）。通話プレビューの参加者行で相手のPCバッジを確認。サイドバーの通話参加者行は別部品で対象外。
 - [x] Venusと突き合わせ、v0.1に含める差と制限を確定（`VENUS-PORT.md`）。
 
 ## Phase 4V-3 — Servers

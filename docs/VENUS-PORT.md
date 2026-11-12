@@ -29,7 +29,7 @@
 
 | グループ | Venusの機能 | disk v0.1 |
 | --- | --- | --- |
-| 既存強化 | Show device indicators | 実装。場所別6設定とメッセージ名の文字表示。Venusの「モバイルを隠す」設定は未移植。通話中のMemberRowItemは実機未確認 |
+| 既存強化 | Show device indicators | 実装。場所別6設定とメッセージ名の文字表示。Venusの「モバイルを隠す」設定は未移植。通話中のMemberRowItem（通話プレビューの参加者行）は実機確認済み。サイドバーの通話参加者行は対象外 |
 | 既存強化 | Send Nitro stickers and emojis as links | 実装（disk独自のFake Nitro。サイズ・名前付きリンク設定あり） |
 | Privacy | Disable analytics | 実装（JSのtrack送信を破棄） |
 | Privacy | Disable crash reporting | 実装（Sentry SDKを起動しない） |
@@ -100,7 +100,7 @@
 - 設定はschema2の任意の`platform`オブジェクト。`avatars`、`dmList`、`dmHeader`、`memberList`、`profile`、`messages`の6項目。旧ファイルは全場所オンを既定とし、機能の主スイッチ自体は従来どおり初期オフ。全場所が既定なら追加フィールドを省略する。
 - ネイティブのメッセージ欄はRowGenerator **8165**の表示結果だけを複製し、表示用`username`へPC/M/W/VRを付加する。CreateMessageContent **8301**のusername/authorIdの構築を静的確認。送信内容・MessageRecord・authorIdは変更しない。音声保存CTAとの併存をテスト。
 - pipaでDM一覧の行、DMヘッダー、DMのメンバー一覧、プロフィール名、過去メッセージの`peer-account · PC`を目視確認。その他AvatarをオンのままDM行とヘッダーを個別オフにして表示が消えること、プロセス再起動後の設定復元も確認した。DMカードのAvatarは「その他のアバター」で別に制御する。
-- メッセージ欄の端末表示は再描画時点のPresenceを使う。設定変更後はチャンネルを開き直す。音声通話のMemberRowItemは、2026-11-12にpipa（0.1.0）で自分1人のボイスチャンネル参加中に、9196の読み込み・`placement installed`・`memberList rendered`とエラーなしを確認した。自分の行にバッジは出なかった（自分の端末状態がPresenceStoreに無いためと推定、未検証）。他人の行のバッジ表示は未確認。
+- メッセージ欄の端末表示は再描画時点のPresenceを使う。設定変更後はチャンネルを開き直す。音声通話のMemberRowItemは、2026-11-12にpipa（0.1.0）で自分1人のボイスチャンネル参加中に、9196の読み込み・`placement installed`・`memberList rendered`とエラーなしを確認した。自分の行にバッジは出なかった（自分の端末状態がPresenceStoreに無いためと推定、未検証）。続けて相手アカウントがPCから参加し、通話プレビューの「会話中」一覧の行に`PC`バッジと`memberList badge`を確認した。サイドバーのボイスチャンネル下の参加者行は9196とは別の部品で、バッジは付かない（v0.1の対象外）。
 - 証跡は`work/phase4-device/platform-new-header.png`、`platform-new-profile.png`、`platform-native-messages.png`、`platform-scoped-off.png`。固定文字列の場所別診断のみを記録し、IDやPresence値はログに出さない。Node **130件**、Python **24件**、型検査、Gradleテスト、smoke APKビルド成功。場所設定は試験後にすべて既定へ戻した。
 
 ### Server info（基本情報を実機確認）
