@@ -100,7 +100,7 @@
 - 設定はschema2の任意の`platform`オブジェクト。`avatars`、`dmList`、`dmHeader`、`memberList`、`profile`、`messages`の6項目。旧ファイルは全場所オンを既定とし、機能の主スイッチ自体は従来どおり初期オフ。全場所が既定なら追加フィールドを省略する。
 - ネイティブのメッセージ欄はRowGenerator **8165**の表示結果だけを複製し、表示用`username`へPC/M/W/VRを付加する。CreateMessageContent **8301**のusername/authorIdの構築を静的確認。送信内容・MessageRecord・authorIdは変更しない。音声保存CTAとの併存をテスト。
 - pipaでDM一覧の行、DMヘッダー、DMのメンバー一覧、プロフィール名、過去メッセージの`peer-account · PC`を目視確認。その他AvatarをオンのままDM行とヘッダーを個別オフにして表示が消えること、プロセス再起動後の設定復元も確認した。DMカードのAvatarは「その他のアバター」で別に制御する。
-- メッセージ欄の端末表示は再描画時点のPresenceを使う。設定変更後はチャンネルを開き直す。音声通話のMemberRowItemはフック実装・単体テストまでで、通話中の実機確認は未実施。
+- メッセージ欄の端末表示は再描画時点のPresenceを使う。設定変更後はチャンネルを開き直す。音声通話のMemberRowItemは、2026-11-12にpipa（0.1.0）で自分1人のボイスチャンネル参加中に、9196の読み込み・`placement installed`・`memberList rendered`とエラーなしを確認した。自分の行にバッジは出なかった（自分の端末状態がPresenceStoreに無いためと推定、未検証）。他人の行のバッジ表示は未確認。
 - 証跡は`work/phase4-device/platform-new-header.png`、`platform-new-profile.png`、`platform-native-messages.png`、`platform-scoped-off.png`。固定文字列の場所別診断のみを記録し、IDやPresence値はログに出さない。Node **130件**、Python **24件**、型検査、Gradleテスト、smoke APKビルド成功。場所設定は試験後にすべて既定へ戻した。
 
 ### Server info（基本情報を実機確認）
@@ -126,7 +126,7 @@
 - 実バンドルでVenus 9990 → 352.17 **10119 / factory10120** を確認。通常返信`createPendingReply`（export offset89、closure53522）と浅い返信`createShallowPendingReply`（offset100、closure53523）は、ともに引数の`shouldMention`をdispatchする。
 - サーバー／グループDMの返信開始時だけ`shouldMention:false`にする。引数は変更せず複製し、手動の`setPendingReplyShouldMention`（offset111）は包まない。未知の形・1対1DM・既にオフの返信は元のまま。
 - Venusのサーバー別／グループDM別設定と「自分へのメンションには通知する」例外設定は未移植。今回は単一スイッチ。
-- 実機で、設定オン→サーバー返信欄が`@ OFF`で開始、返信欄をタップ→`@ ON`、設定オフ→通常どおり`@ ON`で開始することを確認した。返信本文の送信や相手端末の通知受信は試していない。グループDMと浅い返信の経路はユニットテストのみ。
+- 実機で、設定オン→サーバー返信欄が`@ OFF`で開始、返信欄をタップ→`@ ON`、設定オフ→通常どおり`@ ON`で開始することを確認した。返信本文の送信や相手端末の通知受信は試していない。グループDMと浅い返信の経路はユニットテストのみ。浅い返信（`createShallowPendingReply`）の呼び出し元はmodule 17904（通知タブの`ForYouItemActionButtons`、フレンド承認などの「👋」）だけで、相手がいないと発火しない。
 - 以前の「返信欄が出ない」症状を、無patch・disk単独・disk+quietReplies・全機能で比較した。無patchとdisk単独は正常。quietRepliesのラッパーをループ内で作る形から、元関数を引数に受け取る関数ファクトリへ変えると、全機能ビルドでも解消した（引数の複製方式は元のまま）。Android Hermes eval上のループ内クロージャが、通常返信を浅い返信へ誤って渡していた可能性がある。手元のNode／Hermes CLIでは旧コードの小再現が成功せず、エンジン内部の原因までは断定しない。通常・浅い返信に異なる元関数を使うテストを追加した。
 - 実機証跡（ローカルのみ）: `reply-unpatched-control.png`、`quiet-replies-fixed-off.png`（設定オン時の`@ OFF`）、`quiet-replies-manual-on.png`、`quiet-replies-feature-disabled.png`、いずれも`work/phase4-device/`内。検証後はquietRepliesをオフに戻した。
 - 再開時の切り分け用にPendingReplyStore **7785 / factory7786** を静的確認し、自然ロード時のみ捕捉する診断を追加した。ユーザーの返信操作後に既存の`getPendingReply(channelId)`を読むだけで、モジュールの強制ロードや状態変更はしない。本文・ID・相手の情報は出さず、`quiet-replies state-quiet` / `state-mention` / `state-missing` / `state-unavailable`のいずれかだけを記録する。設定オフでも同じ操作を比較できる。浅い返信の状態は別マップなので、この診断の`missing`だけでは浅い返信の失敗を意味しない。
