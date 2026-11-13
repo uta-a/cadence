@@ -292,33 +292,48 @@ test("feature captures exist only for built features, and install hooks on natur
     assert.equal(events.at(-1), "platform-indicator unavailable");
 });
 
-test("settings page shows switches only for built features and states which are not included", () => {
+test("settings page is grouped by category with Discord's table rows and buttons, and only offers built features", () => {
     const { createSettingsOverview } = api();
     const native = { View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Switch: "Switch", Modal: "Modal" };
-    const state = { phase: "ready", save: "idle", features: { fakeNitro: true, platformIndicator: false }, nitro: { emojiSize: 64 } };
+    const discord = { TableRowGroup: "TableRowGroup", TableRow: "TableRow", TableSwitchRow: "TableSwitchRow",
+        TableRadioGroup: "TableRadioGroup", TableRadioRow: "TableRadioRow", Button: "Button" };
+    const state = { phase: "ready", save: "idle", features: { fakeNitro: true, platformIndicator: false }, nitro: { emojiSize: 64 },
+        platform: { avatars: true, dmList: true, dmHeader: true, memberList: true, profile: true, messages: true } };
     const changes = [];
     const controller = { get: () => state, subscribe: () => () => {}, setFeature: async (key, value) => { changes.push([key, value]); },
-        setNitro: async change => { changes.push(["nitro", change]); } };
+        setNitro: async change => { changes.push(["nitro", change]); }, setPlatform: async (key, value) => { changes.push([key, value]); } };
     const react = { Fragment: "F", createElement(type, props, ...children) { return { type, props: props ?? {}, children }; },
         useState(initial) { const value = typeof initial === "function" ? initial() : initial; return [initial === false ? true : value, () => {}]; },
         useEffect() {} };
-    const tree = createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, ["fakeNitro", "disableAnalytics"])({});
-    const all = flat(tree);
-    const fake = all.find(node => node.props.accessibilityLabel === "cadence:feature:fakeNitro");
-    assert.equal(fake.type, "Switch");
+    const render = (built, ui = discord) => flat(createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, built, () => ui)({}));
+    const all = render(["fakeNitro", "disableAnalytics"]);
+    assert.deepEqual(all.filter(node => node.type === "TableRowGroup").map(node => node.props.title).filter(Boolean),
+        ["メッセージ", "表示", "プライバシー", "情報"], "categories, with no Venus section");
+    assert.equal(all.some(node => node.type === "Switch" || node.type === "Pressable"), false, "no hand-drawn controls when Discord's exist");
+    const fake = all.find(node => node.type === "TableSwitchRow" && node.props.label === "Fake Nitro");
     assert.equal(fake.props.value, true);
     fake.props.onValueChange(false);
     assert.deepEqual(changes, [["fakeNitro", false]]);
-    assert.ok(all.some(node => node.props.accessibilityLabel === "cadence:feature:platformIndicator:false"));
-    assert.equal(all.find(node => node.props.accessibilityLabel === "cadence:feature:platformIndicator"), undefined);
-    assert.ok(all.some(node => node.children?.includes("このビルドには含まれていません")));
-    assert.ok(all.some(node => String(node.children?.[0]).startsWith("Analytics：JS の track 送信を停止しています")));
-    const size64 = all.find(node => node.props.accessibilityLabel === "cadence:nitro-size:64");
-    assert.equal(size64.props.accessibilityState.selected, true);
-    all.find(node => node.props.accessibilityLabel === "cadence:nitro-size:128").props.onPress();
-    assert.deepEqual(plain(changes.slice(1)), [["nitro", { emojiSize: 128 }]]);
-    const without = flat(createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, ["platformIndicator"])({}));
-    assert.equal(without.find(node => node.props.accessibilityLabel === "cadence:nitro-size:48"), undefined, "no options unless Fake Nitro is built");
+    const platform = all.find(node => node.props.label === "Platform Indicator");
+    assert.equal(platform.type, "TableRow", "a feature that is not built is shown without a switch");
+    assert.equal(platform.props.subLabel, "このビルドには含まれていません");
+    assert.equal(all.find(node => node.props.label === "Analytics の送信停止").props.subLabel, "JS の track 送信を止めています（Morphe で選択）");
+    const sizes = all.find(node => node.type === "TableRadioGroup");
+    assert.equal(sizes.props.value, 64);
+    assert.deepEqual(sizes.children.map(node => node.props.value), [48, 64, 96, 128]);
+    sizes.props.onChange(128);
+    assert.deepEqual(plain(changes.at(-1)), ["nitro", { emojiSize: 128 }]);
+    assert.ok(all.some(node => node.type === "Button" && node.props.text === "戻る"));
+    assert.ok(all.some(node => node.type === "TableRow" && node.props.label === "Cadence" && node.props.arrow === true), "settings entry");
+    assert.equal(all.some(node => node.props.title === "端末アイコンを出す場所"), false, "places only while Platform Indicator is on");
+    state.features = { fakeNitro: false, platformIndicator: true };
+    const places = render(["platformIndicator"]).filter(node => node.type === "TableSwitchRow").map(node => node.props.label);
+    assert.deepEqual(places, ["Platform Indicator", "その他のアバター", "DM一覧の行", "DMヘッダー", "メンバー一覧", "プロフィール名", "メッセージの名前"]);
+    assert.equal(render(["platformIndicator"]).some(node => node.type === "TableRadioGroup"), false, "no size options unless Fake Nitro is built");
+    const fallback = render(["fakeNitro"], {});
+    assert.ok(fallback.some(node => node.type === "Switch" && node.props.accessibilityLabel === "Fake Nitro"), "plain views when Discord's are missing");
+    assert.equal(fallback.some(node => typeof node.type === "string" && node.type.startsWith("Table")), false);
+    state.features = { fakeNitro: true, platformIndicator: false };
 });
 
 test("conversion follows the chosen size and always sends the plain URL", () => {

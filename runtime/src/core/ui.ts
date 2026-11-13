@@ -3,14 +3,13 @@ import type { BuildFeature } from "./features";
 import { getLogs } from "./log";
 import { REVISION } from "./version";
 import { EMOJI_SIZES, PLATFORM_PLACES, DEFAULT_PLATFORM } from "./settings";
-const PLATFORM_LABELS = { avatars: "その他のアバター", dmList: "DM一覧の行", dmHeader: "DMヘッダー", memberList: "メンバー一覧",
-    profile: "プロフィール名", messages: "メッセージの名前" };
-import type { FeatureKey } from "./settings";
-
-const FEATURE_ROWS: ReadonlyArray<{ id: FeatureKey; title: string; description: string }> = Object.freeze([
-    { id: "fakeNitro", title: "Fake Nitro", description: "使えない絵文字を画像リンクとして送信します" },
-    { id: "platformIndicator", title: "Platform Indicator", description: "アバターに接続中のデバイスを表示します" },
-]);
+import type { FeatureKey, PlatformPlace } from "./settings";
+const PLATFORM_LABELS: Readonly<Record<PlatformPlace, string>> = Object.freeze({ avatars: "その他のアバター", dmList: "DM一覧の行",
+    dmHeader: "DMヘッダー", memberList: "メンバー一覧", profile: "プロフィール名", messages: "メッセージの名前" });
+const FEATURES: Readonly<Record<FeatureKey, { title: string; description: string }>> = Object.freeze({
+    fakeNitro: { title: "Fake Nitro", description: "使えない絵文字とスタンプを画像リンクとして送信します" },
+    platformIndicator: { title: "Platform Indicator", description: "接続中のデバイスをアイコンで表示します" },
+});
 
 export interface ReactApi {
     Fragment: unknown;
@@ -18,12 +17,23 @@ export interface ReactApi {
     useState<T>(initial: T | (() => T)): [T, (value: T | ((previous: T) => T)) => void];
     useEffect(effect: () => void | (() => void), deps: readonly unknown[]): void;
 }
-export interface NativeUi { View: unknown; Text: unknown; Pressable: unknown; ScrollView: unknown; Switch: unknown; Modal: unknown; }
+export interface NativeUi {
+    View: unknown; Text: unknown; Pressable: unknown; ScrollView: unknown; Switch: unknown; Modal: unknown;
+    /** Android draws the Modal under the status bar; its height in dp, when React Native reports it. */
+    statusBarHeight?: number;
+}
+/**
+ * Discord's own settings components (design/components/TableRow and Button). Each may be missing; a missing one is drawn
+ * with plain React Native views instead, so a changed Discord build degrades the look but never the settings themselves.
+ */
+export interface DiscordUi {
+    TableRowGroup?: unknown; TableRow?: unknown; TableSwitchRow?: unknown; TableRadioGroup?: unknown; TableRadioRow?: unknown; Button?: unknown;
+}
 
 /** Wrap only Overview. Keep its element mounted; the Cadence page lives in an independent native Modal. */
 export function createSettingsOverview(react: ReactApi, resolveNative: () => NativeUi | null, original: unknown,
     controller: SettingsController, onStatus: (status: string) => void = () => {}, navigationReady: () => boolean = () => true,
-    features: readonly BuildFeature[] = []) {
+    features: readonly BuildFeature[] = [], discordUi: () => DiscordUi = () => ({})) {
     const colors = { background: "#1E1F22", surface: "#2B2D31", text: "#F2F3F5", secondary: "#B5BAC1", accent: "#5865F2", warning: "#F0B132" };
     const h = (type: unknown, props: unknown, ...children: unknown[]) => react.createElement(type, props, ...children);
     function report(value: string): void { try { onStatus(value); } catch (_) { /* Diagnostics only. */ } }
@@ -57,77 +67,79 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
         const native = ready ? resolveNative() : null;
         const originalElement = h(original, { ...props, key: "discord-overview" });
         if (!native) return h(react.Fragment, null, originalElement);
-        const spacing = 20;
+        const ui = discordUi();
+        const busy = state.phase !== "ready" || state.save === "saving";
         const text = (value: string, extra: Record<string, unknown> = {}) => h(native.Text,
             { style: { color: colors.text, fontSize: 16 }, ...extra }, value);
-        const button = (label: string, onPress: () => void, accessibilityLabel = label) => h(native.Pressable,
-            { accessibilityRole: "button", accessibilityLabel, onPress,
-                style: { padding: spacing, minHeight: 48, justifyContent: "center" } }, text(label));
+        const button = (key: string, label: string, onPress: () => void, variant = "secondary") => ui.Button
+            ? h(native.View, { key, style: { marginTop: 12 } }, h(ui.Button, { text: label, onPress, variant, size: "md" }))
+            : h(native.Pressable, { key, accessibilityRole: "button", accessibilityLabel: label, onPress,
+                style: { padding: 16, minHeight: 48, justifyContent: "center", marginTop: 12, borderRadius: 8, backgroundColor: colors.surface } },
+                text(label));
+        const group = (key: string, title: string, ...rows: unknown[]) => ui.TableRowGroup
+            ? h(native.View, { key, style: { marginTop: 24 } }, h(ui.TableRowGroup, { title }, ...rows))
+            : h(native.View, { key, style: { marginTop: 24 } },
+                text(title, { accessibilityRole: "header", style: { color: colors.secondary, fontSize: 13, fontWeight: "600", marginBottom: 8 } }),
+                h(native.View, { style: { backgroundColor: colors.surface, borderRadius: 12, overflow: "hidden" } }, ...rows));
+        const plainRow = (key: string, label: string, subLabel: string | undefined, trailing: unknown) => h(native.View,
+            { key, style: { flexDirection: "row", alignItems: "center", padding: 16, minHeight: 56 } },
+            h(native.View, { style: { flex: 1 } }, text(label),
+                subLabel ? text(subLabel, { style: { color: colors.secondary, fontSize: 14, marginTop: 4 } }) : null), trailing);
+        const switchRow = (key: string, label: string, subLabel: string | undefined, value: boolean, onChange: (value: boolean) => void) =>
+            ui.TableSwitchRow ? h(ui.TableSwitchRow, { key, label, subLabel, value, disabled: busy, onValueChange: onChange })
+                : plainRow(key, label, subLabel, h(native.Switch, { accessibilityLabel: label, value, disabled: busy,
+                    trackColor: { false: "#4E5058", true: colors.accent }, onValueChange: onChange }));
+        const infoRow = (key: string, label: string, subLabel?: string, onPress?: () => void) => ui.TableRow
+            ? h(ui.TableRow, { key, label, subLabel, onPress, arrow: !!onPress })
+            : onPress ? h(native.Pressable, { key, accessibilityRole: "button", accessibilityLabel: label, onPress },
+                plainRow(key, label, subLabel, null)) : plainRow(key, label, subLabel, null);
         const status = state.phase === "loading" ? "設定を読み込んでいます" : state.phase === "error" ? "設定を読み込めません。書き込みは停止しています。" :
             state.save === "saving" ? "保存中…" : state.save === "error" ? "保存できませんでした。再試行してください。" :
             state.save === "saved" ? "保存しました" : "設定はこの端末内に保存されます";
+        const feature = (id: FeatureKey) => features.includes(id)
+            ? switchRow(id, FEATURES[id].title, FEATURES[id].description, state.features[id] === true,
+                value => { void controller.setFeature(id, value).catch(() => {}); })
+            : infoRow(id, FEATURES[id].title, "このビルドには含まれていません");
+        const sizes = () => ui.TableRadioGroup && ui.TableRadioRow
+            ? h(native.View, { key: "nitro-size", style: { marginTop: 24 } }, h(ui.TableRadioGroup, { title: "絵文字の画像サイズ", value: state.nitro.emojiSize,
+                onChange: (size: unknown) => { void controller.setNitro({ emojiSize: size as typeof EMOJI_SIZES[number] }).catch(() => {}); } },
+                ...EMOJI_SIZES.map(size => h(ui.TableRadioRow, { key: String(size), label: `${size}px`, value: size, disabled: busy }))))
+            : group("nitro-size", "絵文字の画像サイズ", ...EMOJI_SIZES.map(size => switchRow(`size-${size}`, `${size}px`, undefined,
+                state.nitro.emojiSize === size, on => { if (on) void controller.setNitro({ emojiSize: size }).catch(() => {}); })));
+        const platformOn = features.includes("platformIndicator") && state.features.platformIndicator === true;
         const page = h(native.View, { style: { flex: 1, backgroundColor: colors.background } },
-            h(native.View, { style: { flexDirection: "row", alignItems: "center", backgroundColor: colors.surface } },
-                button("戻る", () => setOpen(false), "cadence:back"), text("Cadence 設定", { accessibilityRole: "header", style: { color: colors.text, fontSize: 20, fontWeight: "600" } })),
-            h(native.ScrollView, { contentContainerStyle: { padding: spacing }, style: { flex: 1 } },
-                text(status, { accessibilityLabel: state.save === "saved" ? "cadence:saved" : "cadence:status", accessibilityLiveRegion: "polite",
-                    style: { color: state.phase === "error" || state.save === "error" ? colors.warning : colors.secondary, fontSize: 14, marginTop: spacing } }),
-                state.phase === "error" ? button("読み込みを再試行", () => { void controller.retryLoad(); }) : null,
-                state.save === "error" ? button("保存を再試行", () => { void controller.retrySave().catch(() => {}); }) : null,
-                text("機能", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginTop: spacing * 2 } }),
-                ...FEATURE_ROWS.map(row => {
-                    const built = features.includes(row.id);
-                    const on = built && state.features[row.id] === true;
-                    return h(native.View, { key: row.id, style: { backgroundColor: colors.surface, padding: spacing, borderRadius: 12,
-                        flexDirection: "row", alignItems: "center", marginTop: spacing } },
-                        h(native.View, { style: { flex: 1 } }, text(row.title),
-                            text(built ? row.description : "このビルドには含まれていません",
-                                { accessibilityLabel: `cadence:feature:${row.id}:${on}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
-                        built ? h(native.Switch, { accessibilityLabel: `cadence:feature:${row.id}`, value: on,
-                            disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
-                            onValueChange: (value: boolean) => { void controller.setFeature(row.id, value).catch(() => {}); } }) : null);
-                }),
-                features.includes("platformIndicator") ? h(native.View, { key: "platform-options", style: {
-                    backgroundColor: colors.surface, padding: spacing, borderRadius: 12, marginTop: spacing } },
-                    text("端末表示の場所", { accessibilityRole: "header" }),
-                    text("メッセージ欄はPC/M/W/VRの文字表示です。変更後はチャンネルを開き直してください", {
-                        style: { color: colors.secondary, fontSize: 13, marginTop: 4 } }),
-                    ...PLATFORM_PLACES.map(place => {
-                        const on = (state.platform ?? DEFAULT_PLATFORM)[place];
-                        return h(native.View, { key: place, style: { flexDirection: "row", alignItems: "center", marginTop: spacing } },
-                            h(native.View, { style: { flex: 1 } }, text(PLATFORM_LABELS[place]),
-                                text(on ? "オン" : "オフ", { accessibilityLabel: `cadence:platform:${place}:${on}`,
-                                    style: { color: colors.secondary, fontSize: 13 } })),
-                            h(native.Switch, { accessibilityLabel: `cadence:platform:${place}`, value: on,
-                                disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
-                                onValueChange: (value: boolean) => { void controller.setPlatform(place, value).catch(() => {}); } }));
-                    })) : null,
-                features.includes("fakeNitro") ? h(native.View, { key: "nitro-options", style: { backgroundColor: colors.surface,
-                    padding: spacing, borderRadius: 12, marginTop: spacing } },
-                    text("Fake Nitro の画像サイズ"),
-                    h(native.View, { style: { flexDirection: "row", flexWrap: "wrap", marginTop: 4 } },
-                        ...EMOJI_SIZES.map(size => {
-                            const selected = state.nitro.emojiSize === size;
-                            return h(native.Pressable, { key: String(size), accessibilityRole: "button",
-                                accessibilityLabel: `cadence:nitro-size:${size}`, accessibilityState: { selected },
-                                disabled: state.phase !== "ready" || state.save === "saving",
-                                onPress: () => { void controller.setNitro({ emojiSize: size }).catch(() => {}); },
-                                style: { paddingHorizontal: 14, minHeight: 40, justifyContent: "center", marginRight: 8, marginTop: 4,
-                                    borderRadius: 8, backgroundColor: selected ? colors.accent : "#3F4147" } },
-                                text(String(size), { style: { color: colors.text, fontSize: 14 } }));
-                        }))) : null,
-                text(features.includes("disableAnalytics") ? "Analytics：JS の track 送信を停止しています（Morphe で選択）" : "Analytics：このビルドでは停止していません",
-                    { accessibilityLabel: "cadence:feature:disableAnalytics", style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
-                text("情報", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginTop: spacing * 2 } }),
-                text(`Cadence ${REVISION} / Discord 352.17`, { style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
-                text(`組み込み機能: ${features.length ? features.join(", ") : "なし"}`, { accessibilityLabel: "cadence:features", style: { color: colors.secondary, fontSize: 14, marginTop: 8 } }),
-                text("アカウント情報やメッセージは保存しません。", { style: { color: colors.secondary, fontSize: 14, marginTop: 8 } }),
-                button(showLogs ? "診断ログを閉じる" : "診断ログを表示", () => setShowLogs(value => !value), "cadence:logs"),
-                showLogs ? text(getLogs().join("\n") || "ログはありません", { accessibilityLabel: "cadence:log-content", selectable: true,
-                    style: { color: colors.secondary, fontSize: 12, fontFamily: "monospace" } }) : null));
+            h(native.View, { style: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingBottom: 12,
+                paddingTop: 12 + (native.statusBarHeight ?? 0), gap: 12, backgroundColor: colors.surface } },
+                ui.Button ? h(ui.Button, { text: "戻る", onPress: () => setOpen(false), variant: "secondary", size: "sm" })
+                    : h(native.Pressable, { accessibilityRole: "button", accessibilityLabel: "戻る", onPress: () => setOpen(false),
+                        style: { padding: 12, minHeight: 48, justifyContent: "center" } }, text("戻る")),
+                text("Cadence", { accessibilityRole: "header", style: { color: colors.text, fontSize: 20, fontWeight: "600" } })),
+            h(native.ScrollView, { contentContainerStyle: { padding: 16, paddingBottom: 48 }, style: { flex: 1 } },
+                text(status, { accessibilityLiveRegion: "polite",
+                    style: { color: state.phase === "error" || state.save === "error" ? colors.warning : colors.secondary, fontSize: 14 } }),
+                state.phase === "error" ? button("retry-load", "読み込みを再試行", () => { void controller.retryLoad(); }, "primary") : null,
+                state.save === "error" ? button("retry-save", "保存を再試行", () => { void controller.retrySave().catch(() => {}); }, "primary") : null,
+                group("messages", "メッセージ", feature("fakeNitro")),
+                features.includes("fakeNitro") ? sizes() : null,
+                group("display", "表示", feature("platformIndicator")),
+                platformOn ? group("platform-places", "端末アイコンを出す場所", ...PLATFORM_PLACES.map(place => switchRow(place, PLATFORM_LABELS[place],
+                    place === "messages" ? "PC・M・W・VRの文字で表示します" : undefined, (state.platform ?? DEFAULT_PLATFORM)[place],
+                    value => { void controller.setPlatform(place, value).catch(() => {}); }))) : null,
+                group("privacy", "プライバシー", infoRow("analytics", "Analytics の送信停止",
+                    features.includes("disableAnalytics") ? "JS の track 送信を止めています（Morphe で選択）" : "このビルドには含まれていません")),
+                group("about", "情報",
+                    infoRow("version", `Cadence ${REVISION}`, `Discord 352.17 / 組み込み機能: ${features.length ? features.join(", ") : "なし"}`),
+                    infoRow("logs", showLogs ? "診断ログを閉じる" : "診断ログを表示", "アカウント情報やメッセージは含みません",
+                        () => setShowLogs(value => !value))),
+                showLogs ? text(getLogs().join("\n") || "ログはありません", { selectable: true,
+                    style: { color: colors.secondary, fontSize: 12, fontFamily: "monospace", marginTop: 12 } }) : null));
         return h(react.Fragment, null, originalElement,
-            h(native.View, { key: "cadence-entry", style: { display: open ? "none" : "flex", backgroundColor: colors.surface, borderTopWidth: 1, borderColor: "#3F4147" } },
-                button("Cadence", () => setOpen(true))),
+            h(native.View, { key: "cadence-entry", style: { display: open ? "none" : "flex", paddingHorizontal: 16, paddingBottom: 24 } },
+                ui.TableRowGroup && ui.TableRow ? h(ui.TableRowGroup, {},
+                    h(ui.TableRow, { label: "Cadence", subLabel: "Fake Nitro・端末表示", onPress: () => setOpen(true), arrow: true }))
+                    : h(native.Pressable, { accessibilityRole: "button", accessibilityLabel: "Cadence", onPress: () => setOpen(true),
+                        style: { padding: 16, minHeight: 48, justifyContent: "center", borderRadius: 12, backgroundColor: colors.surface } },
+                        text("Cadence"))),
             h(native.Modal, { key: "cadence-modal", visible: open, animationType: "slide", onRequestClose: () => setOpen(false) }, page));
     };
 }

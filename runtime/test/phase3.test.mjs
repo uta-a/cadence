@@ -204,7 +204,7 @@ test("Cadence overview entry renders original as an element, opens settings, sav
     assert.equal(nodes(tree).find(node => node.type === original).props.original, props.original);
     nodes(tree).find(node => node.props.accessibilityLabel === "Cadence").props.onPress();
     tree = harness.render(component);
-    assert.ok(nodes(tree).some(node => node.children?.includes("Cadence 設定")));
+    assert.ok(nodes(tree).some(node => node.props.accessibilityRole === "header" && node.children?.includes("Cadence")));
     let toggle = nodes(tree).find(node => node.type === "Switch");
     assert.equal(toggle.props.value, false);
     toggle.props.onValueChange(true);
@@ -212,11 +212,11 @@ test("Cadence overview entry renders original as an element, opens settings, sav
     tree = harness.render(component);
     toggle = nodes(tree).find(node => node.type === "Switch");
     assert.equal(toggle.props.value, true);
-    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "cadence:saved"));
-    nodes(tree).find(node => node.props.accessibilityLabel === "cadence:logs").props.onPress();
+    assert.ok(nodes(tree).some(node => node.children?.includes("保存しました")));
+    nodes(tree).find(node => node.props.accessibilityLabel === "診断ログを表示").props.onPress();
     tree = harness.render(component);
-    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "cadence:log-content"));
-    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "cadence:features"));
+    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "診断ログを閉じる"));
+    assert.ok(nodes(tree).some(node => node.children?.includes("Discord 352.17 / 組み込み機能: fakeNitro")));
     assert.equal(m.writes.at(-1).features.fakeNitro, true);
     assert.ok(nodes(tree).some(node => node.type === original), "original stays mounted behind modal");
     nodes(tree).find(node => node.type === "Modal").props.onRequestClose();

@@ -1,7 +1,7 @@
 import { createSettingsController } from "./settings-controller";
 import type { BuildFeature } from "./features";
 import { createSettingsOverview } from "./ui";
-import type { NativeUi, ReactApi } from "./ui";
+import type { DiscordUi, NativeUi, ReactApi } from "./ui";
 import type { ModuleCapture } from "../diagnostics/observer";
 import { installAnalyticsBlock } from "../features/analytics";
 import { installEmojiPickerUnlock, installSendMessageHook, installStickerHooks } from "../features/fakeNitro";
@@ -21,6 +21,12 @@ export function dataProperty(value: unknown, key: string): unknown {
     }
     return undefined;
 }
+
+// Discord's settings components (design/components/TableRow/native and Button/native), loaded when the Cadence UI renders.
+const DISCORD_UI_MODULES: ReadonlyArray<{ id: number; name: keyof DiscordUi }> = Object.freeze([
+    { id: 7019, name: "TableRowGroup" }, { id: 6935, name: "TableRow" }, { id: 7327, name: "TableSwitchRow" },
+    { id: 7017, name: "TableRadioGroup" }, { id: 7016, name: "TableRadioRow" }, { id: 5276, name: "Button" },
+]);
 
 // Platform icon components (docs/PHASE4-RESEARCH.md, 4b): one module per icon, a single named export each.
 const ICON_MODULES: ReadonlyArray<{ id: number; name: string; platform: Platform }> = Object.freeze([
@@ -63,6 +69,10 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                 parts[key] = value;
             }
             native = parts as unknown as NativeUi;
+            try {
+                const height = Reflect.get(Reflect.get(rn, "StatusBar") as object, "currentHeight");
+                if (typeof height === "number" && height >= 0 && height < 200) native.statusBarHeight = height;
+            } catch (_) { /* The header then starts at the top edge. */ }
         } catch (_) { native = null; report("ui unavailable"); }
         return native;
     }
@@ -87,7 +97,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             const descriptor = exports && typeof exports === "object" ? Object.getOwnPropertyDescriptor(exports, "default") : undefined;
             if (!descriptor || !("value" in descriptor) || typeof descriptor.value !== "function") throw new Error("Overview export immutable");
             if (!replaceDefault(exports, original => createSettingsOverview(react as ReactApi, resolveNative, original, settings,
-                value => report(`ui ${value}`), navigationReady, features))) throw new Error("Overview export immutable");
+                value => report(`ui ${value}`), navigationReady, features, discordUi))) throw new Error("Overview export immutable");
             uiInstalled = true;
             report("ui installed");
         } catch (_) { report("ui unavailable"); }
@@ -178,6 +188,15 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             if (component && (typeof component === "function" || typeof component === "object")) icons[icon.platform] = component;
         }
         return icons;
+    }
+    const discordComponents: DiscordUi = {};
+    function discordUi(): DiscordUi {
+        for (const item of DISCORD_UI_MODULES) {
+            if (discordComponents[item.name]) continue;
+            const component = dataProperty(onDemand(item.id), item.name);
+            if (component && (typeof component === "function" || typeof component === "object")) discordComponents[item.name] = component;
+        }
+        return discordComponents;
     }
     function openSettings(): boolean {
         if (!navigationReady()) return false;
