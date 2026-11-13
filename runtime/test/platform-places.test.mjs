@@ -124,9 +124,9 @@ test("native message rows show each platform as an icon in a free tag chip, stay
     assert.notEqual(next.message.clanBadgeUrl, next.message.lobbyTagIconUrl, "desktop and mobile are different icons");
     assert.equal(result.message.clanTag, undefined); assert.equal(source.message.content, "unchanged");
     assert.equal(runtime.messageRow(next, source), next);
-    const tagged = { message: { ...result.message, clanTag: "CODE", clanBadgeUrl: "https://badge", clanTagGuildId: "9" }, rowType: 1 };
+    const tagged = { message: { ...result.message, clanTag: "TAG", clanBadgeUrl: "https://badge", clanTagGuildId: "9" }, rowType: 1 };
     const kept = runtime.messageRow(tagged, source).message;
-    assert.deepEqual([kept.clanTag, kept.clanBadgeUrl, kept.clanTagGuildId], ["CODE", "https://badge", "9"], "a real server tag is kept");
+    assert.deepEqual([kept.clanTag, kept.clanBadgeUrl, kept.clanTagGuildId], ["TAG", "https://badge", "9"], "a real server tag is kept");
     assert.equal(kept.lobbyTagIconUrl, next.message.clanBadgeUrl, "the first platform moves to the lobby chip");
     const lobby = { message: { ...tagged.message, lobbyAdditionalName: "game", lobbyTagIconUrl: "https://app" }, rowType: 1 };
     assert.equal(runtime.messageRow(lobby, source), lobby, "no free chip leaves the row unchanged");
