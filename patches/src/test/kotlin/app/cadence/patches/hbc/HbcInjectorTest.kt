@@ -266,7 +266,7 @@ class HbcInjectorTest {
                     HbcInjector.inject(marked, runtime + ";print('[cadence] revision',globalThis.__cadence.revision);" + if (throws) "throw 1;" else "")
                     val (exit, output) = execute(hermes.path, "-b", marked.path)
                     assertEquals(1, exit)
-                    assertTrue(output.startsWith("[cadence] loaded 0.1.0 (console)\n[cadence] observer installed (console)\n[cadence] revision 0.1.0\n"), output)
+                    assertTrue(output.startsWith("[cadence] loaded 0.2.0 (console)\n[cadence] observer installed (console)\n[cadence] revision 0.2.0\n"), output)
                     assertTrue(output.contains("__fbBatchedBridgeConfig is not set"), output)
                 }
             } finally { marked.delete() }
