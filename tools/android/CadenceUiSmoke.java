@@ -45,12 +45,6 @@ public class CadenceUiSmoke extends UiAutomatorTestCase {
             entry.click();
             assertTrue("CADENCE_UI page missing", new UiObject(new UiSelector().packageName("com.discord").text("Cadence 設定")).waitForExists(5000));
             System.out.println("CADENCE_UI Cadence page visible");
-        } else if (action.equals("toggle-compact")) {
-            UiObject toggle = control("cadence:compact");
-            assertTrue("CADENCE_UI compact control missing", toggle.waitForExists(5000));
-            toggle.click();
-            getUiDevice().waitForIdle();
-            System.out.println("CADENCE_UI compact toggled");
         } else if (action.equals("show-logs")) {
             assertTrue("CADENCE_UI feature info missing", control("cadence:features").waitForExists(5000));
             assertEquals("組み込み機能: なし", control("cadence:features").getText());
@@ -109,11 +103,6 @@ public class CadenceUiSmoke extends UiAutomatorTestCase {
                 assertEquals("CADENCE_UI feature state mismatch", Boolean.parseBoolean(expected), control(prefix + feature).isChecked());
                 System.out.println("CADENCE_UI feature matches expected");
             }
-        } else if (action.equals("check-compact")) {
-            String expected = getParams().getString("expected", "false");
-            assertTrue("CADENCE_UI invalid expected value", expected.equals("true") || expected.equals("false"));
-            assertTrue("CADENCE_UI persisted compact state mismatch", control("cadence:compact:" + expected).waitForExists(5000));
-            System.out.println("CADENCE_UI compact matches expected");
         } else {
             fail("CADENCE_UI unsupported action");
         }

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { build } from "esbuild";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
-const NITRO_DEFAULT = { emojiSize: 48, maskedLinks: false };
+const NITRO_DEFAULT = { emojiSize: 48 };
 
 const { outputFiles } = await build({ stdin: { contents: [
     'export * from "./features/fakeNitro";', 'export * from "./features/analytics";', 'export * from "./features/platformIndicator";',
@@ -216,7 +216,7 @@ test("feature switches persist schema2 features and isEnabled is off until ready
     await c.setFeature("fakeNitro", true);
     assert.equal(c.isEnabled("fakeNitro"), true);
     assert.equal(c.isEnabled("platformIndicator"), false);
-    assert.deepEqual(m.writes.at(-1), { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: false }, nitro: NITRO_DEFAULT });
+    assert.deepEqual(m.writes.at(-1), { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: {}, nitro: NITRO_DEFAULT });
     await assert.rejects(c.setFeature("unknown", true));
     await assert.rejects(c.setFeature("fakeNitro", "yes"));
     const reloaded = createSettingsController(() => {}, () => m.storage);
@@ -256,8 +256,7 @@ test("feature captures exist only for built features, and install hooks on natur
 test("settings page shows switches only for built features and states which are not included", () => {
     const { createSettingsOverview } = api();
     const native = { View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Switch: "Switch", Modal: "Modal" };
-    const state = { phase: "ready", save: "idle", preferences: { compact: false }, features: { fakeNitro: true, platformIndicator: false },
-        nitro: { emojiSize: 64, maskedLinks: true } };
+    const state = { phase: "ready", save: "idle", features: { fakeNitro: true, platformIndicator: false }, nitro: { emojiSize: 64 } };
     const changes = [];
     const controller = { get: () => state, subscribe: () => () => {}, setFeature: async (key, value) => { changes.push([key, value]); },
         setNitro: async change => { changes.push(["nitro", change]); } };
@@ -278,19 +277,17 @@ test("settings page shows switches only for built features and states which are 
     const size64 = all.find(node => node.props.accessibilityLabel === "cadence:nitro-size:64");
     assert.equal(size64.props.accessibilityState.selected, true);
     all.find(node => node.props.accessibilityLabel === "cadence:nitro-size:128").props.onPress();
-    all.find(node => node.props.accessibilityLabel === "cadence:nitro-masked").props.onValueChange(false);
-    assert.deepEqual(plain(changes.slice(1)), [["nitro", { emojiSize: 128 }], ["nitro", { maskedLinks: false }]]);
-    assert.ok(all.some(node => node.props.accessibilityLabel === "cadence:nitro-masked:true"));
+    assert.deepEqual(plain(changes.slice(1)), [["nitro", { emojiSize: 128 }]]);
     const without = flat(createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, ["platformIndicator"])({}));
     assert.equal(without.find(node => node.props.accessibilityLabel === "cadence:nitro-size:48"), undefined, "no options unless Fake Nitro is built");
 });
 
-test("conversion follows the chosen size and masked-link option", () => {
+test("conversion follows the chosen size and always sends the plain URL", () => {
     const { convertMessage, emojiUrl } = api();
     const message = { content: "a <a:dance:333> b", invalidEmojis: [locked("333", "dance", true)] };
-    assert.equal(convertMessage(message, { emojiSize: 128, maskedLinks: false }).content, `a ${emojiUrl("333", true, "dance", 128)} b`);
-    assert.equal(convertMessage(message, { emojiSize: 96, maskedLinks: true }).content, `a [dance](${emojiUrl("333", true, "dance", 96)}) b`);
-    assert.match(convertMessage(message, { emojiSize: 1000, maskedLinks: false }).content, /size=48&/, "unknown sizes fall back to 48");
+    assert.equal(convertMessage(message, { emojiSize: 128 }).content, `a ${emojiUrl("333", true, "dance", 128)} b`);
+    assert.equal(convertMessage(message, { emojiSize: 96, maskedLinks: true }).content, `a ${emojiUrl("333", true, "dance", 96)} b`, "an old masked option is ignored");
+    assert.match(convertMessage(message, { emojiSize: 1000 }).content, /size=48&/, "unknown sizes fall back to 48");
 });
 
 test("Fake Nitro options persist in schema 2, default safely, and reject invalid values without writing", async () => {
@@ -300,22 +297,21 @@ test("Fake Nitro options persist in schema 2, default safely, and reject invalid
     const storage = { read: async () => text, write: async value => { writes.push(JSON.parse(value)); text = value; } };
     const c = createSettingsController(() => {}, () => storage);
     await c.attach({});
-    assert.deepEqual(plain(c.get().nitro), { emojiSize: 48, maskedLinks: false });
+    assert.deepEqual(plain(c.get().nitro), { emojiSize: 48 });
     await c.setNitro({ emojiSize: 96 });
-    await c.setNitro({ maskedLinks: true });
-    assert.deepEqual(writes.at(-1).nitro, { emojiSize: 96, maskedLinks: true });
+    assert.deepEqual(writes.at(-1).nitro, { emojiSize: 96 });
     const count = writes.length;
-    for (const bad of [{ emojiSize: 50 }, { maskedLinks: "yes" }, { other: 1 }, {}, null])
+    for (const bad of [{ emojiSize: 50 }, { maskedLinks: true }, { other: 1 }, {}, null])
         await assert.rejects(c.setNitro(bad));
     assert.equal(writes.length, count);
     const reloaded = createSettingsController(() => {}, () => storage);
     await reloaded.attach({});
-    assert.deepEqual(plain(reloaded.get().nitro), { emojiSize: 96, maskedLinks: true });
+    assert.deepEqual(plain(reloaded.get().nitro), { emojiSize: 96 });
     for (const [stored, expected] of [
-        ['{"version":2,"features":{},"preferences":{}}', { emojiSize: 48, maskedLinks: false }],
-        ['{"version":2,"features":{},"preferences":{},"nitro":{"emojiSize":7,"maskedLinks":1}}', { emojiSize: 48, maskedLinks: false }],
-        ['{"version":2,"features":{},"preferences":{},"nitro":[]}', { emojiSize: 48, maskedLinks: false }],
-        ['{"version":1,"features":{},"nitro":{"emojiSize":128}}', { emojiSize: 48, maskedLinks: false }]]) {
+        ['{"version":2,"features":{},"preferences":{}}', { emojiSize: 48 }],
+        ['{"version":2,"features":{},"preferences":{},"nitro":{"emojiSize":7,"maskedLinks":1}}', { emojiSize: 48 }],
+        ['{"version":2,"features":{},"preferences":{},"nitro":[]}', { emojiSize: 48 }],
+        ['{"version":1,"features":{},"nitro":{"emojiSize":128}}', { emojiSize: 48 }]]) {
         text = stored;
         const fresh = createSettingsController(() => {}, () => storage);
         await fresh.attach({});
@@ -335,9 +331,9 @@ function stickerFixture() {
         sendMessage(...args) { sends.push([this, args]); return "message-result"; },
         sendStickers(...args) { stickerSends.push([this, args]); return "sticker-result"; },
     };
-    let enabled = true, masked = false, converted = 0;
-    const ok = installStickerHooks(sendability, { default: target }, () => enabled, () => ({ emojiSize: 48, maskedLinks: masked }), () => converted++);
-    return { ok, sendability, target, sends, stickerSends, stickerUrl, results, setEnabled: v => { enabled = v; }, setMasked: v => { masked = v; },
+    let enabled = true, converted = 0;
+    const ok = installStickerHooks(sendability, { default: target }, () => enabled, () => converted++);
+    return { ok, sendability, target, sends, stickerSends, stickerUrl, results, setEnabled: v => { enabled = v; },
         get converted() { return converted; } };
 }
 const sticker = (id, format_type = 1, name = "pog") => ({ id, format_type, name, guild_id: "1" });
@@ -367,14 +363,12 @@ test("remembered stickers are sent as links through sendMessage; anything else u
     assert.equal(third, undefined);
     assert.deepEqual(plain(options), { location: "STICKER_REPLY" });
     assert.equal(f.converted, 1);
-    f.setMasked(true);
     f.target.sendStickers("ch", ["10"]);
-    assert.equal(f.sends[1][1][1].content, `[dance](${f.stickerUrl("10", "gif")})`);
+    assert.equal(f.sends[1][1][1].content, f.stickerUrl("10", "gif"));
     assert.equal(f.target.sendStickers("ch", ["13"], ""), "sticker-result", "a sticker that was never upgraded");
     assert.equal(f.target.sendStickers("ch", ["10", "13"], ""), "sticker-result", "a mixed send is left to Discord");
     assert.equal(f.target.sendStickers("ch", ["10"], { other: 1 }), "sticker-result", "an object without text is left to Discord");
     assert.equal(f.target.sendStickers("ch", ["10"], 5), "sticker-result", "an unknown content type is left to Discord");
-    f.setMasked(false);
     // The real picker passes the validation result (not the text) as the third argument.
     f.target.sendStickers("ch", ["10"], true, { location: "STICKER_REPLY" });
     assert.equal(f.sends.at(-1)[1][1].content, f.stickerUrl("10", "gif"));
@@ -441,17 +435,6 @@ test("a remembered sticker is forgotten once Discord itself no longer needs Nitr
     assert.equal(g.sendability.getStickerSendability(sticker("11")), 1);
     g.setEnabled(true);
     assert.equal(g.target.sendStickers("ch", ["11"]), "sticker-result", "a check while the feature was off forgets it");
-});
-
-test("masked sticker labels keep only plain characters", () => {
-    const f = stickerFixture();
-    f.setMasked(true);
-    f.sendability.getStickerSendability(sticker("10", 1, "@everyone `x` *b* <#1>"));
-    f.target.sendStickers("ch", ["10"]);
-    assert.equal(f.sends[0][1][1].content, `[everyone x b 1](${f.stickerUrl("10", "png")})`);
-    f.sendability.getStickerSendability(sticker("11", 1, "【】!!"));
-    f.target.sendStickers("ch", ["11"]);
-    assert.equal(f.sends[1][1][1].content, `[sticker](${f.stickerUrl("11", "png")})`);
 });
 
 test("the picker list's lock follows the same answer, and the sticker is remembered from it", () => {

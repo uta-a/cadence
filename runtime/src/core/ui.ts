@@ -57,8 +57,7 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
         const native = ready ? resolveNative() : null;
         const originalElement = h(original, { ...props, key: "discord-overview" });
         if (!native) return h(react.Fragment, null, originalElement);
-        const compact = state.preferences.compact;
-        const spacing = compact ? 12 : 20;
+        const spacing = 20;
         const text = (value: string, extra: Record<string, unknown> = {}) => h(native.Text,
             { style: { color: colors.text, fontSize: 16 }, ...extra }, value);
         const button = (label: string, onPress: () => void, accessibilityLabel = label) => h(native.Pressable,
@@ -71,17 +70,10 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
             h(native.View, { style: { flexDirection: "row", alignItems: "center", backgroundColor: colors.surface } },
                 button("戻る", () => setOpen(false), "cadence:back"), text("Cadence 設定", { accessibilityRole: "header", style: { color: colors.text, fontSize: 20, fontWeight: "600" } })),
             h(native.ScrollView, { contentContainerStyle: { padding: spacing }, style: { flex: 1 } },
-                text("表示", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginBottom: spacing } }),
-                h(native.View, { style: { backgroundColor: colors.surface, padding: spacing, borderRadius: 12, flexDirection: "row", alignItems: "center" } },
-                    h(native.View, { style: { flex: 1 } }, text("コンパクト表示"),
-                        text(compact ? "オン" : "オフ", { accessibilityLabel: `cadence:compact:${compact}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
-                    h(native.Switch, { accessibilityLabel: "cadence:compact", value: compact,
-                        disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
-                        onValueChange: (value: boolean) => { void controller.setCompact(value).catch(() => {}); } })),
                 text(status, { accessibilityLabel: state.save === "saved" ? "cadence:saved" : "cadence:status", accessibilityLiveRegion: "polite",
                     style: { color: state.phase === "error" || state.save === "error" ? colors.warning : colors.secondary, fontSize: 14, marginTop: spacing } }),
                 state.phase === "error" ? button("読み込みを再試行", () => { void controller.retryLoad(); }) : null,
-                state.save === "error" ? button("保存を再試行", () => { void controller.setCompact(compact).catch(() => {}); }) : null,
+                state.save === "error" ? button("保存を再試行", () => { void controller.retrySave().catch(() => {}); }) : null,
                 text("機能", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginTop: spacing * 2 } }),
                 ...FEATURE_ROWS.map(row => {
                     const built = features.includes(row.id);
@@ -123,14 +115,7 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                                 style: { paddingHorizontal: 14, minHeight: 40, justifyContent: "center", marginRight: 8, marginTop: 4,
                                     borderRadius: 8, backgroundColor: selected ? colors.accent : "#3F4147" } },
                                 text(String(size), { style: { color: colors.text, fontSize: 14 } }));
-                        })),
-                    h(native.View, { style: { flexDirection: "row", alignItems: "center", marginTop: spacing } },
-                        h(native.View, { style: { flex: 1 } }, text("名前付きリンク"),
-                            text(state.nitro.maskedLinks ? "[name](URL) の形で送信" : "URL をそのまま送信",
-                                { accessibilityLabel: `cadence:nitro-masked:${state.nitro.maskedLinks}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
-                        h(native.Switch, { accessibilityLabel: "cadence:nitro-masked", value: state.nitro.maskedLinks,
-                            disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
-                            onValueChange: (value: boolean) => { void controller.setNitro({ maskedLinks: value }).catch(() => {}); } }))) : null,
+                        }))) : null,
                 text(features.includes("disableAnalytics") ? "Analytics：JS の track 送信を停止しています（Morphe で選択）" : "Analytics：このビルドでは停止していません",
                     { accessibilityLabel: "cadence:feature:disableAnalytics", style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
                 text("情報", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginTop: spacing * 2 } }),

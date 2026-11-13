@@ -210,7 +210,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
             if (features.includes("fakeNitro") && (id === 7598 || id === 7475) && modules.has(7598) && modules.has(7475) && !stickersInstalled) {
                 stickersInstalled = true;
                 report(installStickerHooks(modules.get(7475), modules.get(7598), () => settings.isEnabled("fakeNitro"),
-                    () => settings.get().nitro, () => report("fake-nitro sticker-linked")) ? "fake-nitro stickers installed" : "fake-nitro stickers unavailable");
+                    () => report("fake-nitro sticker-linked")) ? "fake-nitro stickers installed" : "fake-nitro stickers unavailable");
             }
             if ((id === 4953 || id === 1395) && modules.has(4953) && modules.has(1395) && !pickerInstalled) {
                 pickerInstalled = true;

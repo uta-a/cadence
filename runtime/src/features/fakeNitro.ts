@@ -8,8 +8,8 @@ const TOKEN = /<(a?):([A-Za-z0-9_~]{1,64}):([0-9]{1,25})>/;
 
 interface Locked { readonly animated: boolean; readonly name: string; }
 
-export interface ConvertOptions { readonly emojiSize: number; readonly maskedLinks: boolean; }
-const DEFAULT_OPTIONS: ConvertOptions = Object.freeze({ emojiSize: EMOJI_SIZE, maskedLinks: false });
+export interface ConvertOptions { readonly emojiSize: number; }
+const DEFAULT_OPTIONS: ConvertOptions = Object.freeze({ emojiSize: EMOJI_SIZE });
 
 export function emojiUrl(id: string, animated: boolean, name: string, size = EMOJI_SIZE): string {
     return `https://cdn.discordapp.com/emojis/${id}.${animated ? "gif" : "webp"}?size=${size}&name=${encodeURIComponent(name)}`;
@@ -52,8 +52,7 @@ export function convertMessage(message: unknown, options: ConvertOptions = DEFAU
         const next = content.charAt(start + match[0].length);
         const after = next && !/\s/.test(next) ? " " : "";
         const url = emojiUrl(id, match[1] === "a" || emoji.animated, emoji.name, size);
-        // A masked link shows the emoji name instead of the URL; the name is limited to [A-Za-z0-9_~] by TOKEN.
-        out += before + (options.maskedLinks === true ? `[${match[2]}](${url})` : url) + after;
+        out += before + url + after;
         last = start + match[0].length;
         replaced.add(id);
     }
@@ -112,7 +111,7 @@ export function stickerUrl(id: string, extension: string): string {
     return `https://media.discordapp.net/stickers/${id}.${extension}?size=160`;
 }
 
-interface Remembered { readonly extension: string; readonly name: string; }
+interface Remembered { readonly extension: string; }
 
 /**
  * The text that Discord's own sendStickers would send, or null when it cannot be known. The sticker picker
@@ -130,7 +129,7 @@ export function stickerText(content: unknown): string | null {
 }
 
 export function installStickerHooks(sendability: unknown, actions: unknown, enabled: () => boolean,
-    options: () => ConvertOptions = () => DEFAULT_OPTIONS, onConverted: () => void = () => {}): boolean {
+    onConverted: () => void = () => {}): boolean {
     if (!sendability || typeof sendability !== "object" || !actions || typeof actions !== "object") return false;
     const enumHolder = Object.getOwnPropertyDescriptor(sendability, "StickerSendability");
     const values = enumHolder && "value" in enumHolder ? enumHolder.value as Record<string, unknown> : undefined;
@@ -165,7 +164,7 @@ export function installStickerHooks(sendability: unknown, actions: unknown, enab
             const extension = sticker && typeof sticker.format_type === "number" ? STICKER_LINK_FORMATS[sticker.format_type] : undefined;
             if (typeof id !== "string" || !/^[0-9]{1,25}$/.test(id) || !extension) return result;
             remembered.delete(id);
-            remembered.set(id, { extension, name: typeof sticker!.name === "string" ? sticker!.name : "sticker" });
+            remembered.set(id, { extension });
             if (remembered.size > REMEMBERED_LIMIT) remembered.delete(remembered.keys().next().value as string);
             return SENDABLE;
         } catch (_) { return result; }
@@ -177,13 +176,7 @@ export function installStickerHooks(sendability: unknown, actions: unknown, enab
             const body = stickerText(content);
             if (enabled() && Array.isArray(stickerIds) && stickerIds.length > 0 && body !== null &&
                 stickerIds.every(id => typeof id === "string" && remembered.has(id))) {
-                const masked = options().maskedLinks === true;
-                const links = (stickerIds as string[]).map(id => {
-                    const sticker = remembered.get(id)!, url = stickerUrl(id, sticker.extension);
-                    // Sticker names are chosen by other people: keep a plain allowlist so no markdown or mention survives.
-                    const label = sticker.name.replace(/[^A-Za-z0-9_ -]/g, "").trim().slice(0, 64) || "sticker";
-                    return masked ? `[${label}](${url})` : url;
-                }).join("\n");
+                const links = (stickerIds as string[]).map(id => stickerUrl(id, remembered.get(id)!.extension)).join("\n");
                 const text = body.trim() ? `${body}\n${links}` : links;
                 const send = target && typeof target === "object" ? Reflect.get(target, "sendMessage") : undefined;
                 if (text.length <= MAX_CONTENT_LENGTH && typeof send === "function") {
