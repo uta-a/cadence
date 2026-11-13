@@ -164,6 +164,45 @@ test("avatar wrapper keeps the original element, a fixed hook count, and only ov
     assert.equal(listeners.size, 0);
 });
 
+test("platform icons that Discord has not loaded yet are required on demand, only after navigation is ready", async () => {
+    const { createCoreModules } = api({ setTimeout() {} });
+    const core = createCoreModules(() => {}, false, ["platformIndicator"]);
+    const capture = new Map(core.captures.map(c => [c.id, c.onExports]));
+    const required = [];
+    let ready = false;
+    const iconExports = {};
+    for (const [id, name] of [[9515, "ScreenIcon"], [7085, "MobilePhoneIcon"], [9524, "GlobeEarthIcon"], [16280, "VrHeadsetIcon"]])
+        iconExports[id] = { [name]: Object.assign(function () {}, { iconName: name }) };
+    const context = { requireModule(id) { required.push(id); return iconExports[id]; } };
+    const harness = hookHarness();
+    capture.get(19)({ ...harness.react, Fragment: "F" }, context);
+    const rn = {};
+    for (const key of ["View", "Text", "Pressable", "ScrollView", "Switch", "Modal"]) rn[key] = function () {};
+    capture.get(17)(rn, context);
+    capture.get(5183)({ getRootNavigationRef: () => ({ isReady: () => ready }) }, context);
+    capture.get(504)({ useStateFromStores: (stores, getter) => getter() }, context);
+    capture.get(5744)({ default: { getClientStatus: () => ({ mobile: "online", desktop: "online" }) } }, context);
+    const files = { getConstants: () => ({ DocumentsDirPath: "/data/user/0/com.discord/files" }), fileExists: async () => true,
+        readFile: async () => JSON.stringify({ version: 2, features: { platformIndicator: true }, preferences: {} }), writeFile: async () => "" };
+    capture.get(1164)({ default: files }, context);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(core.settings.isEnabled("platformIndicator"), true);
+    capture.get(9515)(iconExports[9515], context);
+    const avatar = { default: { memo: "Avatar" } };
+    capture.get(15449)(avatar, context);
+    const render = () => harness.render(avatar.default, { user: { id: "1" } }).tree;
+    render();
+    assert.deepEqual(required, [], "nothing is required before navigation is ready");
+    ready = true;
+    const badge = render().children[1];
+    const icons = flat(badge).slice(1);
+    assert.deepEqual(icons.map(node => node.type.iconName), ["ScreenIcon", "MobilePhoneIcon"]);
+    assert.deepEqual(plain(icons[0].props.style), { width: 12, height: 12 });
+    assert.deepEqual(required.sort((a, b) => a - b), [7085, 9524, 16280], "only icons that are still missing are required");
+    render();
+    assert.equal(required.length, 3, "each icon is required once");
+});
+
 test("an avatar rendered before native UI is ready gains the badge later; one without presence never adds the store hook", () => {
     const { createPlatformAvatar } = api(), harness = hookHarness();
     let available = false, hookUsed = 0;

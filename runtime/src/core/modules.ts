@@ -134,7 +134,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                 if (!badges.has(place)) badges.set(place, createPlatformAvatar({
                     react: react as AvatarReact, original: null, inline: true,
                     native: () => { const ui = resolveNative(); return ui ? { View: ui.View, Text: ui.Text } : null; },
-                    presence: presenceSource, icons: () => icons, enabled: () => platformPlaceEnabled(place),
+                    presence: presenceSource, icons: platformIcons, enabled: () => platformPlaceEnabled(place),
                     userId: props => typeof props.userId === "string" ? props.userId : undefined,
                     subscribe: listener => settings.subscribe(listener),
                     onEvent: event => { if (event === "badge") report(`platform-indicator ${place} badge`); },
@@ -153,13 +153,31 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                 react: react as AvatarReact, original,
                 native: () => { const ui = resolveNative(); return ui ? { View: ui.View, Text: ui.Text } : null; },
                 presence: presenceSource,
-                icons: () => icons,
+                icons: platformIcons,
                 enabled: () => platformPlaceEnabled("avatars"), suppressContext: getPlatformContext(),
                 subscribe: listener => settings.subscribe(listener),
                 onEvent: event => report(`platform-indicator ${event}`),
             }));
             report(ok ? "platform-indicator installed" : "platform-indicator unavailable");
         } catch (_) { report("platform-indicator unavailable"); }
+    }
+    /**
+     * A module loaded on demand if it has not loaded naturally yet. Only called while rendering after root navigation
+     * is ready, never during boot; failures read as missing.
+     */
+    function onDemand(id: number): unknown {
+        if (modules.has(id)) return modules.get(id);
+        if (!requireModule || !navigationReady()) return undefined;
+        try { return requireModule(id); } catch (_) { return undefined; }
+    }
+    /** Discord's platform icons are separate lazy modules that may not have loaded yet; load the missing ones once needed. */
+    function platformIcons(): Partial<Record<Platform, unknown>> {
+        for (const icon of ICON_MODULES) {
+            if (icons[icon.platform]) continue;
+            const component = dataProperty(onDemand(icon.id), icon.name);
+            if (component && (typeof component === "function" || typeof component === "object")) icons[icon.platform] = component;
+        }
+        return icons;
     }
     function openSettings(): boolean {
         if (!navigationReady()) return false;
