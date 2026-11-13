@@ -23,15 +23,15 @@ provided that such references:
 Venus Patches NOTICE
 ====================
 
-Parts of disk are ported from Venus Patches (https://github.com/VenusIsJaded/Venus-Patches,
+Parts of Cadence are ported from Venus Patches (https://github.com/VenusIsJaded/Venus-Patches,
 Copyright VenusIsJaded and contributors, GPL-3.0), file patches/src/main/resources/venus/bootstrap.js
-at commit 987b7a22d96d41a0ba80c060b485291e1c7bcc4b, which targets Discord 351.11. disk modified that
+at commit 987b7a22d96d41a0ba80c060b485291e1c7bcc4b, which targets Discord 351.11. Cadence modified that
 code to run on Discord 352.17 (module IDs, export shapes and settings were changed). Ported files say
 so at the top and are listed in docs/VENUS-PORT.md with the Venus feature they come from.
 
 Features that Venus credits to community plugins keep those credits:
 
-  disk file (runtime/src/features/venus/)  Venus feature                    Based on
+  Cadence file (runtime/src/features/venus/)  Venus feature                    Based on
   quickConfirm.ts                           Skip delete confirmation         (Venus)
   quickConfirm.ts                           Skip pin confirmation            NoConfirmPin by Skamt
   alwaysTrust.ts                            Always trust links and files     AlwaysTrust by zt and Trwy
@@ -43,13 +43,13 @@ Features that Venus credits to community plugins keep those credits:
   platformPlacements.ts                     Show device indicators           PlatformIndicators
   hiddenChannels.ts                         Show hidden channels             (Venus; read-only adaptation)
   messageHistory.ts                         Keep deleted messages            (Venus; session-only adaptation)
-  historyUi.ts                              History viewer                   disk
+  historyUi.ts                              History viewer                   Cadence
   gestures.ts                               Double-tap to reply              Geastures+ by kmmiio99o
   fullImages.ts                             Load full-quality images         Uncompressed Discord Images by
                                                                              Knewest; HighResProfileImages
                                                                              by Kawtious
 
 The method list of the "Disable telemetry and touch logging" patch
-(patches/src/main/kotlin/app/disk/patches/dex/MethodStub.kt, PrivacyStubs.telemetry) follows
+(patches/src/main/kotlin/app/cadence/patches/dex/MethodStub.kt, PrivacyStubs.telemetry) follows
 Venus Patches' patches/src/main/kotlin/app/venus/patches/PrivacyPatches.kt (NativePrivacy.telemetry)
-at the same commit. disk stubs a subset, pinned to Discord 352.17 by method digests.
+at the same commit. Cadence stubs a subset, pinned to Discord 352.17 by method digests.

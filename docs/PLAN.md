@@ -51,7 +51,7 @@ Phase 0〜3は完了。Phase 4の機能実装とPhase 5の配布準備を進め�
 - [x] 公開しないActionsの手動準備ワークフロー。
 - [x] 通常MPPの配布準備をローカルで実行。成果物は`work/release-staging/local-prepare-1/`で、公開なし。
 - [x] `def4aa2`のクリーン作業ディレクトリでビルド・MPP検査・配布準備成功。実入力なしのためKotlin57件中48件、Python24件中6件はskip。元の環境ではKotlin57件とPython24件をskipなしで確認。
-- [x] 一時仕事用プロファイルで新規データのDiscord起動とdiskの読み込みを確認。試験後にプロファイルを削除し、元のユーザーへ復帰。
+- [x] 一時仕事用プロファイルで新規データのDiscord起動とCadenceの読み込みを確認。試験後にプロファイルを削除し、元のユーザーへ復帰。
 - [x] 同プロファイルでMorphe ManagerへローカルMPPを取り込み。
 - [x] 公式Manager 2.5.0へ同署名更新。新規プロファイルでMPP→20 patch適用→APK保存を確認し、開発用の同署名へそろえて導入・起動も確認。CLI版とJSバンドルが完全一致。詳細と署名上の注意は`RELEASE.md`。
 - [x] v0.1の機能範囲を確定（`VENUS-PORT.md`の「v0.1の範囲」）。Privacyの不足分`Disable telemetry and touch logging`を追加し、他の未移植機能はv0.2以降。

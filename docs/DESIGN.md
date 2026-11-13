@@ -1,4 +1,4 @@
-# disk 設計書 (draft v0.1)
+# Cadence 設計書 (draft v0.1)
 
 Discord Android 向けの Morphe パッチバンドル。Fake Nitro、Platform Indicator、プライバシー保護などをオフラインで追加する。
 [Venus Patches](https://github.com/VenusIsJaded/Venus-Patches) のアーキテクチャを参考にするが、コードは一から書く。
@@ -10,8 +10,8 @@ Discord Android 向けの Morphe パッチバンドル。Fake Nitro、Platform I
 ### 目標
 - Morphe Manager に「ソース」として追加し、元の Discord APKM にパッチを当てて使えること
 - 機能はすべて**オフライン・端末内**で動く。外部サーバーへの通信は追加しない（必要な機能だけ例外として明記する）
-- 機能は Morphe 側で選んで組み込み、Discord 内の **disk 設定画面** でオン/オフを切り替える。初期状態はすべてオフ
-- 対応バージョンの Discord では確実に動くこと。合わない場合は Discord を壊さずに**フェイルオープン**する（disk が無効になるだけで、Discord はそのまま起動する）
+- 機能は Morphe 側で選んで組み込み、Discord 内の **Cadence 設定画面** でオン/オフを切り替える。初期状態はすべてオフ
+- 対応バージョンの Discord では確実に動くこと。合わない場合は Discord を壊さずに**フェイルオープン**する（Cadence が無効になるだけで、Discord はそのまま起動する）
 
 ### 非目標（v0.1 時点）
 - 複数の Discord バージョンへの同時対応（1 バージョン固定で始める）
@@ -40,13 +40,13 @@ JS バンドルはソースではなくバイトコードなので、テキス�
 ┌───────────────────────── Morphe パッチバンドル (.mpp) ─────────────────────────┐
 │                                                                                │
 │  patches/  (Kotlin)                                                            │
-│   ├─ RuntimeInjection   … disk ランタイムを HBC の global #0 に注入            │
+│   ├─ RuntimeInjection   … Cadence ランタイムを HBC の global #0 に注入            │
 │   ├─ BundlePin          … OTA バンドルを無効化し、APK 同梱バンドルに固定       │
 │   ├─ NativeBridge       … JS↔ネイティブの通信路（既存ネイティブメソッドに仕込む）│
 │   ├─ Feature patches    … Fake Nitro / Platform Indicator など（機能フラグを立てる）│
 │   └─ Privacy patches    … DEX トラッカーのスタブ化 (Sentry, AppsFlyer, AdId)   │
 │                                                                                │
-│  resources/disk/runtime.js   ← runtime/ (TypeScript) をビルドしたもの          │
+│  resources/cadence/runtime.js   ← runtime/ (TypeScript) をビルドしたもの          │
 │                                                                                │
 │  extensions/ (Kotlin, 任意) … ネイティブ側の補助コード（APK の DEX に追加される）│
 └────────────────────────────────────────────────────────────────────────────────┘
@@ -54,13 +54,13 @@ JS バンドルはソースではなくバイトコードなので、テキス�
                      ▼
 ┌──────────────────────────── パッチ後の Discord ────────────────────────────────┐
 │ index.android.bundle                                                           │
-│   global #0 の先頭: [disk prelude] → eval(runtime) → 元の Discord コード       │
+│   global #0 の先頭: [Cadence prelude] → eval(runtime) → 元の Discord コード       │
 │                                                                                │
-│ disk runtime (JS)                                                              │
+│ Cadence runtime (JS)                                                              │
 │   ├─ core/loader     … __d をラップし、対象モジュールの exports を差し替える    │
 │   ├─ core/modules    … バージョン固定のモジュール ID 表と形チェック             │
 │   ├─ core/settings   … 設定の保存・読み込み・変更通知                          │
-│   ├─ core/ui         … Discord 設定画面に「disk」セクションを追加               │
+│   ├─ core/ui         … Discord 設定画面に「Cadence」セクションを追加               │
 │   └─ features/*      … 機能ごとのフック                                        │
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -68,7 +68,7 @@ JS バンドルはソースではなくバイトコードなので、テキス�
 処理は 3 層に分ける。
 
 1. **Morphe パッチ（Kotlin）**: APK を書き換える層。パッチ時に端末上で一度だけ実行される
-2. **disk ランタイム（JS）**: Discord の JS 内で動く層。機能の中身はほぼすべてここに置く
+2. **Cadence ランタイム（JS）**: Discord の JS 内で動く層。機能の中身はほぼすべてここに置く
 3. **extensions（Kotlin、任意）**: JS だけでは実現できないネイティブ処理。v0.1 では最小限にする
 
 ---
@@ -108,8 +108,8 @@ prelude が使う定数（global #0 のオフセット、サイズ、ハッシ�
 
 注入した prelude は **APK 同梱の `assets/index.android.bundle`** にしか入っていない。しかし Discord は
 OTA バンドルをダウンロードして SharedPreferences に記録し、起動時にそちらを読み込むことがある。
-そのままだと、OTA がコミット済みの端末では disk が読み込まれない。`bundle pin` パッチは
-バンドル選択を APK 同梱側に固定する。`disk` パッチは `bundle pin` に依存する。
+そのままだと、OTA がコミット済みの端末では Cadence が読み込まれない。`bundle pin` パッチは
+バンドル選択を APK 同梱側に固定する。`Cadence` パッチは `bundle pin` に依存する。
 
 #### 352.17 で確認した実装（DEX 実測）
 
@@ -158,8 +158,8 @@ OTA バンドルをダウンロードして SharedPreferences に記録し、起
 - その `classes.dex` SHA-256: `3efc30958ce4de776f1240448e3ee7c99061928b70b2ed158c8eb04f9b0458be`
   （ローカルの抽出済み `classes.dex` も同値）
 - 全 DEX の method reference を調べ、`Lw6/z;->i()Lw6/v;` への実呼び出しが上記 4 メソッドにあることを確認。
-  PC・active count・debug を含む調査出力はローカルの `/tmp/disk-dex-evidence.txt`、
-  canonical 出力は `/tmp/disk-bundle-pin-snapshots.txt`（調査用。テストやビルドはこれらに依存しない）。
+  PC・active count・debug を含む調査出力はローカルの `/tmp/cadence-dex-evidence.txt`、
+  canonical 出力は `/tmp/cadence-bundle-pin-snapshots.txt`（調査用。テストやビルドはこれらに依存しない）。
 
 `BundlePin.semanticSnapshot(method)` の文字列を UTF-8 にして SHA-256 を計算したものが
 `semanticDigest` / `CALLERS` の値になる。スナップショットは LF 区切り、最後にも LF がある。
@@ -184,7 +184,7 @@ OTA バンドルをダウンロードして SharedPreferences に記録し、起
 
 ```bash
 GITHUB_ACTOR=<user> GITHUB_TOKEN=$(gh auth token) ./gradlew :patches:test \
-  --tests 'app.disk.patches.BundlePinTest.guards accept the packaged Discord layout' --rerun-tasks
+  --tests 'app.cadence.patches.BundlePinTest.guards accept the packaged Discord layout' --rerun-tasks
 ```
 
 #### debug items の短縮・書き出し検証
@@ -220,12 +220,12 @@ address がないことを確認する。末尾 sentinel に debug を加えた�
   `i()` は null を返すため、この経路でも同梱バンドルが読まれる。判断は実機で呼び出し元の意味論を
   確認してから行う。
 - `i()` が SharedPreferences を読まなくなるため、OTA の状態表示（manifest 情報）は常に APK 同梱側を指す。
-- **実機未検証**。パッチ済み APK の起動と `adb logcat` の `[disk] loaded` は Phase 2 の完了条件として残る。
+- **実機未検証**。パッチ済み APK の起動と `adb logcat` の `[cadence] loaded` は Phase 2 の完了条件として残る。
 - Discord が更新されたら、まず `BundlePinTest` を実行してガードの失敗箇所を確認する。
 
 ---
 
-## 5. disk ランタイム（JS）
+## 5. Cadence ランタイム（JS）
 
 ### 5.1 言語とビルド
 - ソースは **TypeScript** で書き、`runtime/` 以下に機能ごとのファイルに分ける（Venus は 23k 行の単一ファイル）
@@ -263,9 +263,9 @@ function wrap(define) {
 - 実行時に全モジュールを走査して探すことはしない（起動が遅くなるため）。探索は開発時のツールで行う（§9）
 
 ### 5.4 設定（`core/settings`）
-- v1 は `{ version: 1, features: { fakeNitro: false, platformIndicator: false } }` の JSON 1 ファイルを想定する。`documents/disk/settings-v1.json` 用アダプターは自然に初期化済みのFileModuleから読み取り専用で接続し、実機readyまで確認した。これはconstants/rootとfileExists処理までで、完全なnative I/O・書込・失敗時の挙動は未検証。機能オプションを追加する場合はスキーマを明示的に更新する
+- v1 は `{ version: 1, features: { fakeNitro: false, platformIndicator: false } }` の JSON 1 ファイルを想定する。`documents/cadence/settings-v1.json` 用アダプターは自然に初期化済みのFileModuleから読み取り専用で接続し、実機readyまで確認した。これはconstants/rootとfileExists処理までで、完全なnative I/O・書込・失敗時の挙動は未検証。機能オプションを追加する場合はスキーマを明示的に更新する
 - 変更は購読者（React フック `useSetting`）に通知する。再起動が必要な機能だけ再起動を促す
-- パッチ時に組み込まれた機能（`/*__DISK_FEATURES__*/` に Kotlin 側が埋め込む）以外は、設定画面に表示しない
+- パッチ時に組み込まれた機能（`/*__CADENCE_FEATURES__*/` に Kotlin 側が埋め込む）以外は、設定画面に表示しない
 
 **設定コアの進捗:** `runtime/src/core/settings.ts` は allowlist・初期オフ・保存順序・失敗後の再試行を単体テスト済み。`storage.ts` は private root と固定パスだけを受け入れ、native がrename失敗を検出しないため書込後の最終内容を確認する。実機ではread-only bootstrapのみ接続し、writeは拒否する。ストアは Discord のアカウント情報を読まない。詳細は [保存 API 調査](STORAGE-RESEARCH.md)。
 
@@ -328,7 +328,7 @@ JS 層の方法はランタイムが動いていることが前提なので、Mo
 DEXで `documents=getFilesDir()`、`readFile(absolutePath, encoding)`、`writeFile(storageDir, relativePath, data, encoding)` を追跡した。
 `readAsset` もnative specに存在するが、コマンド通信路としては使用しない。
 
-- v0.1 の保存は既存APIと固定のdisk専用pathを使う。現段階は読み取り専用bootstrapのみ接続
+- v0.1 の保存は既存APIと固定のCadence専用pathを使う。現段階は読み取り専用bootstrapのみ接続
 - renameのboolean破棄、fileExistsでmissingとアクセス不能を区別できない可能性、decode時の置換と耐久性の制限がある
 - 既存APIで不足する場合に限りDEX分岐方式を再設計する。native書込は契約・失敗時の検証前に接続しない
 
@@ -337,9 +337,9 @@ DEXで `documents=getFilesDir()`、`readFile(absolutePath, encoding)`、`writeFi
 ## 8. リポジトリ構成（予定のファイルを含む）
 
 ```
-disk/
+cadence/
 ├─ patches/                     Kotlin: Morphe パッチ
-│  └─ src/main/kotlin/app/disk/patches/
+│  └─ src/main/kotlin/app/cadence/patches/
 │     ├─ Compatibility.kt       対応する Discord（パッケージ名、バージョン）
 │     ├─ hbc/HbcFile.kt         HBC98 の読み込み（ヘッダ、関数、文字列）
 │     ├─ hbc/HbcInjector.kt     prelude の生成と注入
@@ -350,7 +350,7 @@ disk/
 │     ├─ FeaturePatches.kt      Fake Nitro / Platform Indicator など
 │     └─ PrivacyPatches.kt
 ├─ extensions/                  Kotlin: APK に追加するネイティブコード（任意）
-├─ runtime/                     TypeScript: disk ランタイム
+├─ runtime/                     TypeScript: Cadence ランタイム
 │  ├─ src/core/{loader,modules,settings,ui,log}.ts
 │  ├─ src/features/{fakeNitro,platformIndicator,privacy}.ts
 │  ├─ modules/352.17.json       モジュール ID 表
@@ -368,7 +368,7 @@ disk/
 
 ### ビルド
 - Morphe 公式の [morphe-patches-template](https://github.com/MorpheApp/morphe-patches-template)（Gradle プラグイン）を使う。GitHub Packages の PAT（`read:packages`）が必要
-- Gradle タスクの前段で `runtime/` をビルドし、`patches/src/main/resources/disk/runtime.js` に出力する
+- Gradle タスクの前段で `runtime/` をビルドし、`patches/src/main/resources/cadence/runtime.js` に出力する
 - GitHub Actions でタグを付けると `.mpp` をビルドして Release に公開し、`patches-bundle.json` を更新する
 
 ---
@@ -417,7 +417,7 @@ Phase 0 準備 ─→ Phase 1 解析 ─→ Phase 2 注入 ─→ Phase 3 core �
 | 0-1 | §13 の未決事項のうち、ライセンスと Custom branding の扱いを決める |
 | 0-2 | `git init`、`.gitignore`（`work/`、APK、ビルド成果物）、LICENSE |
 | 0-3 | morphe-patches-template をもとに Gradle 雛形を作る（GitHub Packages の PAT を設定） |
-| 0-4 | `runtime/` の TypeScript + esbuild 環境。出力を `patches/src/main/resources/disk/runtime.js` へ |
+| 0-4 | `runtime/` の TypeScript + esbuild 環境。出力を `patches/src/main/resources/cadence/runtime.js` へ |
 | 0-5 | 固定バージョンの `hermesc` で出力を HBC98 にコンパイルするチェック（ここで esbuild の target を決める） |
 | 0-6 | GitHub Actions: push ごとに `.mpp` をビルドして artifact に上げる |
 
@@ -442,11 +442,11 @@ Phase 0 準備 ─→ Phase 1 解析 ─→ Phase 2 注入 ─→ Phase 3 core �
 | 2-2 | `HbcInjector.kt`: 既存の文字列を貪欲法で組み合わせてランタイム文字列を作る prelude を生成する |
 | 2-3 | `HbcInjector.kt`: prelude と元の global #0 を再配置し、関数ヘッダ・例外テーブル・ファイル長・SHA-1 フッタを更新する |
 | 2-4 | `BundlePinPatch.kt`: OTA バンドルを無効にし、APK 同梱のバンドルに固定する（実装済み。`Lw6/z;->i()` を null 固定。§4.4） |
-| 2-5 | `console.log("[disk] loaded")` だけのランタイムで、注入済みバンドルを Hermes VM で実行して確かめる |
+| 2-5 | `console.log("[cadence] loaded")` だけのランタイムで、注入済みバンドルを Hermes VM で実行して確かめる |
 | 2-6 | 実機でパッチ → インストール → `adb logcat` でログを確認する |
 | 2-7 | わざと例外を出すランタイムで、Discord が普通に起動すること（フェイルオープン）を確かめる |
 
-**完了条件:** 実機の起動ログに `[disk] loaded` が出る。ランタイムが例外を出しても Discord は起動する。
+**完了条件:** 実機の起動ログに `[cadence] loaded` が出る。ランタイムが例外を出しても Discord は起動する。
 
 **現状:** 2-1〜2-5 はローカル検証済み（`:patches:test`、実バンドル・実 DEX）。2-4 は `bundle pin` として
 実装したが、起動時 OTA チェックの停止は未実装で、実機確認（2-6 / 2-7）も未実施。
@@ -458,10 +458,10 @@ Phase 0 準備 ─→ Phase 1 解析 ─→ Phase 2 注入 ─→ Phase 3 core �
 | 3-2 | `core/modules`: 固定IDのcaptureと依存別shapeチェック。対応表と静的/実機根拠はJSONに記録する |
 | 3-3 | `core/log`: 固定診断ログを80件・各1024文字までメモリに保持し、設定画面から表示する |
 | 3-4 | `core/settings`: privateな固定パスへschema2を保存し、controllerとReact購読で読み込み・変更・保存失敗の表示/再試行を扱う |
-| 3-5 | `core/ui`: Discord の設定画面に「disk」セクションと機能一覧を追加する |
-| 3-6 | Kotlin側: `BuildFeatures.render`が引用符付き`/*__DISK_FEATURES__*/`を検証し、機能配列を埋め込む。現時点は選択可能な機能patchが0件なので`[]` |
+| 3-5 | `core/ui`: Discord の設定画面に「Cadence」セクションと機能一覧を追加する |
+| 3-6 | Kotlin側: `BuildFeatures.render`が引用符付き`/*__CADENCE_FEATURES__*/`を検証し、機能配列を埋め込む。現時点は選択可能な機能patchが0件なので`[]` |
 
-**完了条件:** Discord の設定に disk セクションが出て、トグルの状態が再起動後も残る。
+**完了条件:** Discord の設定に Cadence セクションが出て、トグルの状態が再起動後も残る。
 
 **完了:** UI/永続化条件に加えてログ表示・空の機能表を実機確認し、最新通常版（自動遷移なし）へ同署名更新済み。追加差分も独立レビューで問題なし。Node77件・Kotlin42件・Python20件のテスト、型検査・HBC98・MPPビルドが成功した。[検証記録](PHASE3.md)。
 
@@ -500,7 +500,7 @@ Phase 0 準備 ─→ Phase 1 解析 ─→ Phase 2 注入 ─→ Phase 3 core �
 | 利用規約違反によるアカウント処分 | Fake Nitro（リンク送信）は比較的リスクが低い。Platform spoof など目立つものは警告を出す。README に明記する |
 | HBC 注入の失敗で起動しなくなる | prelude を try/catch で囲む。注入後の HBC を検証するテスト |
 | 起動が遅くなる | 遅延 `eval`、`__d` 判定の最小化。起動時間を計測してから最適化する |
-| ライセンス | Venus（GPL-3.0）のコードは写さない。Morphe テンプレートや patcher の利用条件に合わせて、disk も GPL-3.0 にする想定 |
+| ライセンス | Venus（GPL-3.0）のコードは写さない。Morphe テンプレートや patcher の利用条件に合わせて、Cadence も GPL-3.0 にする想定 |
 
 ---
 
@@ -509,6 +509,6 @@ Phase 0 準備 ─→ Phase 1 解析 ─→ Phase 2 注入 ─→ Phase 3 core �
 - [x] ライセンス → **GPL-3.0**（Morphe テンプレートと同じ。Morphe の NOTICE に従い、名前に「Morphe」は使わない）
 - [x] esbuild の target → **es2019、class は使わない**（`supported: { class: false }` でビルドを止める）。`hermesc 250829098.0.19` が HBC98 を出力することを確認済み。ただし実機では Discord 自身の Hermes がソースを `eval` するので、構文の最終確認は Phase 2 の実機テストで行う
 - [ ] 方式 D（ネイティブ経由のアセット読み込み）を試すか
-- [x] 設定の保存先 → 自然ロード済みNativeFileModuleからprivate files rootを検査し、`disk/settings-v1.json`だけを使う。schema2でも同じパス。writeの戻りpathとread-backを確認するが、耐久性までは保証しない
+- [x] 設定の保存先 → 自然ロード済みNativeFileModuleからprivate files rootを検査し、`cadence/settings-v1.json`だけを使う。schema2でも同じパス。writeの戻りpathとread-backを確認するが、耐久性までは保証しない
 - [x] Custom branding → **v0.2 に回す**（v0.1 は公式 Discord を置き換えてインストールする。共存が必要になったら前倒しする）
 - [ ] v0.2 以降に追加する「その他」の機能

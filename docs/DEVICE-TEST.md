@@ -7,7 +7,7 @@
 - 対象: Android 13、pipa / model 23043RP34G。Discord 352.17 - Stable、com.discord。
 - ユーザーが既存LSPatch版の削除・再導入（ローカルデータ消失、再ログインが必要）を明示承認。
 - 既存APK4本をローカルのgitignore対象へ退避した。アカウントデータのバックアップ・復元は行っていない。
-- 元の352.17 APK4本の公式署名一致を確認し、Morphe Desktop 2.1.1でsplitをmerge、diskと依存のbundle pinを適用。
+- 元の352.17 APK4本の公式署名一致を確認し、Morphe Desktop 2.1.1でsplitをmerge、Cadenceと依存のbundle pinを適用。
 - FULLモードでDEXを出力。出力APKのBundlePin対象メソッドがconst/4 + return-objectであることを再読して確認した。
 - HBC98の注入済みglobal先頭・SHA-1 footer・19,539件のMetro登録を出力から確認した。
 - 開発用ローカル鍵で署名。apksignerのv2/v3検証とzipalign検証に成功。
@@ -17,13 +17,13 @@
 
 ## 初回導入時に確認できなかったこと（起動ログは下記追記で確認）
 
-**ログイン画面の起動確認は、disk runtimeの実行確認と同義ではない。**
+**ログイン画面の起動確認は、Cadence runtimeの実行確認と同義ではない。**
 
-- 対象PIDの選択したlogcat buffers/tagsで `[disk] loaded` を確認できなかった。
+- 対象PIDの選択したlogcat buffers/tagsで `[cadence] loaded` を確認できなかった。
   同じ条件でfatal/errorの該当行も観測しなかったが、全例外・将来のクラッシュがないという保証ではない。
 - 初回entryはpreludeの時点でconsoleが存在するときだけconsole.logする。
   未観測の原因は未確定。native側のログ経路やconsole初期化との関係を次に調べる。
-- `globalThis.__disk` の実形、Metro loader・settings・native storageの実行時検証はしていない。
+- `globalThis.__cadence` の実形、Metro loader・settings・native storageの実行時検証はしていない。
   coreは引き続きindex.tsから未接続。
 - 新規導入でデータを消去したため、**既にOTAがコミット済みの状態**で同梱バンドルが選択されるかは未検証。
 - runtime例外時の実機fail-open、長時間動作、ログイン後の画面、機能本体は未検証。
@@ -52,10 +52,10 @@
 - 再起動はCOLD / Status: ok。新PIDのmain/crash buffersで次の固定マーカーを観測した。
 
 ```text
-11-10 09:44:29.349 I ReactNativeJS: [disk] loaded 0.0.1 (native)
+11-10 09:44:29.349 I ReactNativeJS: [cadence] loaded 0.0.1 (native)
 ```
 
-これにより、今回の上書きAPKで**同梱HBCのpreludeからdisk entryが実行され、native loggerで出力した**ことを確認した。
+これにより、今回の上書きAPKで**同梱HBCのpreludeからCadence entryが実行され、native loggerで出力した**ことを確認した。
 同時点でプロセスと前面Activityが存在し、対象PIDのbuffersにfatal markerは見つからなかった。
 ログイン状態の画面を読み取ったり、アカウントやメッセージの情報を取得したりはしていない。
 上書き後のログイン状態そのものはユーザー側の確認に委ねる。

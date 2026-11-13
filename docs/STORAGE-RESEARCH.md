@@ -23,7 +23,7 @@ JADX 1.5.6 の対象クラス出力と dexlib2 の命令を照合した。**以�
 ```sh
 # 読み取り専用の DEX 証拠テスト。対象 APK がなければ明示的に skip。
 GITHUB_ACTOR=<user> GITHUB_TOKEN=$(gh auth token) ./gradlew :patches:test \
-  --tests app.disk.patches.FileStorageContractTest
+  --tests app.cadence.patches.FileStorageContractTest
 
 # 補助的な decompile（命令の正確性は上記テストを優先する）
 mkdir -p work/352.17/research/native-file
@@ -48,10 +48,10 @@ JS module **1164 → factory 1165** は `TurboModuleRegistry.getEnforcing("Nativ
 | `fileExists(absolutePath)` → Promise<boolean> | FileModule → `androidx.lifecycle.q` の branch 8 → `File.exists()` |
 | `readFile(absolutePath, "utf8")` → Promise<string> | FileModule → `ey.j` branch 5。root 引数はない |
 | `writeFile("documents", relativePath, data, "utf8")` → Promise<absolutePath> | FileModule → `sb.o`。4文字列の順序に注意 |
-| `readAsset(assetUri, encoding)` | 今回 DEX で存在を確認。ただし disk 保存アダプターでは使用しない |
+| `readAsset(assetUri, encoding)` | 今回 DEX で存在を確認。ただし Cadence 保存アダプターでは使用しない |
 
 `readAsset` は以前の HBC 調査だけでは存在を確認できなかったが、今回の DEX spec / FileModule で
-確認できた。アセット・URI 読み込み API であり、disk-v1 コマンド用の通信路ではない。
+確認できた。アセット・URI 読み込み API であり、cadence-v1 コマンド用の通信路ではない。
 
 ### private root
 
@@ -62,8 +62,8 @@ JS module **1164 → factory 1165** は `TurboModuleRegistry.getEnforcing("Nativ
 アダプターは native の constants を取得し、現在の固定パッケージについて標準的な
 `/data/user/<数字>/com.discord/files` または `/data/data/com.discord/files` だけを受け入れる。
 **これらの実端末上の値を確認したわけではない。** 別の root / package はフォールバックせず失敗させる。
-アクセス対象は固定の **`disk/settings-v1.json`** のみ。呼び出し側から任意の path / root は受け取らない。
-この名前は disk が予約する候補であり、全設定ファイルとの衝突や symlink の不存在を保証するものではない。
+アクセス対象は固定の **`cadence/settings-v1.json`** のみ。呼び出し側から任意の path / root は受け取らない。
+この名前は Cadence が予約する候補であり、全設定ファイルとの衝突や symlink の不存在を保証するものではない。
 
 ### 書き込みの注意点
 
@@ -104,7 +104,7 @@ native 側のファイル読込量を制限するものではない。
 - `runtime/test/storage.test.mjs` は mock native で固定 path、receiver、誤った shape/root/結果の拒否と読み戻しを検証する。
 - `runtime/test/core-compile.test.mjs` は未接続のloader/settings/storageを隔離bundleにまとめ、HBC98へコンパイルできることを確認する。コードの実行やnative検証は行わない。
 - 初回静的調査ではnative実行・端末操作なし。後続検証でデータ保持更新と読み取り専用bootstrapを実行した。
-  disk設定の作成・変更・削除はしていない。readyだけではreadFileが実行されたかは区別できない。
+  Cadence設定の作成・変更・削除はしていない。readyだけではreadFileが実行されたかは区別できない。
 - 接続前に、自然に初期化済みの native export / getConstants の実形、起動順、初回の missing / read / write / failed write を
   許可された隔離環境で確認する必要がある。アクセス不能が false になる場合・不正 UTF-8 の場合の扱いも確認し、
   既存ファイルを誤って missing として上書きするリスクを接続前に再評価する。

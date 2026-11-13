@@ -9,9 +9,9 @@
 Android 13 / pipa、Discord 352.17 - Stableで、同署名のデータ保持更新後に次を確認した。
 
 ```text
-[disk] loaded 0.0.1 (native)
-[disk] observer installed (native)
-[disk] settings read-only ready (native)
+[cadence] loaded 0.0.1 (native)
+[cadence] observer installed (native)
+[cadence] settings read-only ready (native)
 ```
 
 全12候補中8件が自然にロードされ、exportsのdescriptor種別を観測できた。
@@ -54,7 +54,7 @@ SettingsRegistry 15865、SettingsScreens 16016、SettingsOverview 18400、Settin
 1. 自然に完了した1164のdefaultがdata descriptorで、必要なnative methodがfunction descriptorであることを検査。
 2. `core/read-only-settings.ts` はPromiseが使える場合に限り、現在のJS stackの終了後へ処理を送る。
    これは一般的なRN初期化完了の保証ではない。利用不能・形の不一致は固定のunavailableログにして無効化する。
-3. `core/storage.ts` のgetConstantsとprivate root guardを使い、固定の `disk/settings-v1.json` だけを対象に読む。
+3. `core/storage.ts` のgetConstantsとprivate root guardを使い、固定の `cadence/settings-v1.json` だけを対象に読む。
    他のDiscordファイル、KV storage、アカウント情報は参照しない。
 4. 設定コアにはread capabilityだけを渡し、writeは必ず拒否する。未知のJSON fieldは保持しない。
    snapshotは既知の2機能のbooleanだけで、機能本体へ適用したり、外部へ公開したりはしていない。
