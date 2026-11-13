@@ -168,7 +168,7 @@ function reactHarness() {
         beforeEffects();
         for (const [id, fn] of nextEffects) { cleanups[id]?.(); cleanups[id] = fn(); }
         nextEffects = [];
-        assert.equal(hookCalls, 8, "wrapper hook order stays fixed, including the history modal state");
+        assert.equal(hookCalls, 7, "wrapper hook order stays fixed");
         return tree;
     }, unmount() { cleanups.forEach(fn => fn?.()); } };
 }

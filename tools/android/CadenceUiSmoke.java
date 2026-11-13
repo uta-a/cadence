@@ -68,25 +68,6 @@ public class CadenceUiSmoke extends UiAutomatorTestCase {
             getUiDevice().waitForIdle();
             assertTrue("CADENCE_UI overview entry missing after back", control("Cadence").waitForExists(5000));
             System.out.println("CADENCE_UI hardware back preserved overview");
-        } else if (action.equals("open-history")) {
-            UiObject entry = scrolled("cadence:history:open");
-            assertTrue("CADENCE_UI history entry missing", entry.waitForExists(5000)); entry.click();
-            assertTrue("CADENCE_UI history panel missing", control("cadence:history:count").waitForExists(5000));
-            System.out.println("CADENCE_UI history panel visible");
-        } else if (action.equals("check-history")) {
-            String expected = getParams().getString("expected", "false");
-            assertTrue("CADENCE_UI invalid expected value", expected.equals("true") || expected.equals("false"));
-            UiObject count = control("cadence:history:count"); assertTrue("CADENCE_UI history count missing", count.waitForExists(5000));
-            assertEquals("CADENCE_UI history count mismatch", expected.equals("false"), count.getText().equals("保持件数: 0"));
-            System.out.println("CADENCE_UI history count matches expected");
-        } else if (action.equals("clear-history")) {
-            control("cadence:history:clear").click();
-            assertTrue("CADENCE_UI history did not clear", control("cadence:history:empty").waitForExists(5000));
-            System.out.println("CADENCE_UI history cleared");
-        } else if (action.equals("close-history")) {
-            control("cadence:history:back").click();
-            assertTrue("CADENCE_UI settings missing after history", new UiObject(new UiSelector().packageName("com.discord").text("Cadence 設定")).waitForExists(5000));
-            System.out.println("CADENCE_UI history closed");
         } else if (action.equals("toggle-platform") || action.equals("check-platform")) {
             String place = getParams().getString("feature", "");
             assertTrue("CADENCE_UI invalid platform location", place.equals("avatars") || place.equals("dmList") || place.equals("dmHeader")
@@ -108,9 +89,8 @@ public class CadenceUiSmoke extends UiAutomatorTestCase {
             }
         } else if (action.equals("toggle-feature") || action.equals("check-feature")) {
             String feature = getParams().getString("feature", "");
-            boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin") || feature.equals("alwaysTrust") || feature.equals("jumpToTop") || feature.equals("gestures") || feature.equals("gestureTripleDelete") || feature.equals("fullImages") || feature.equals("readAll") || feature.equals("quietReplies") || feature.equals("voiceDownload") || feature.equals("serverInfo") || feature.equals("hiddenChannels") || feature.equals("messageHistory");
-            assertTrue("CADENCE_UI invalid feature", extra || feature.equals("fakeNitro") || feature.equals("platformIndicator"));
-            String prefix = extra ? "cadence:extra:" : "cadence:feature:";
+            assertTrue("CADENCE_UI invalid feature", feature.equals("fakeNitro") || feature.equals("platformIndicator"));
+            String prefix = "cadence:feature:";
             if (action.equals("toggle-feature")) {
                 String current = getParams().getString("expected", "false");
                 assertTrue("CADENCE_UI invalid current value", current.equals("true") || current.equals("false"));

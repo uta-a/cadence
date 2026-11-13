@@ -2,13 +2,13 @@
 # Named-control tests only. Does not install APKs, dump account/chat UI, or take screenshots.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SERIAL="${1:?Usage: tools/run_ui_smoke.sh SERIAL ACTION [true|false] [fakeNitro|platformIndicator|quickDelete|noConfirmPin]}"
+SERIAL="${1:?Usage: tools/run_ui_smoke.sh SERIAL ACTION [true|false] [fakeNitro|platformIndicator|PLACE]}"
 ACTION="${2:?Missing action}"
 EXPECTED="${3:-false}"
 FEATURE="${4:-}"
-case "$ACTION" in open-cadence|toggle-compact|check-compact|check-saved|close-cadence|show-logs|toggle-feature|check-feature|toggle-platform|check-platform|open-history|check-history|clear-history|close-history) ;; *) echo 'Unsupported action' >&2; exit 2;; esac
+case "$ACTION" in open-cadence|toggle-compact|check-compact|check-saved|close-cadence|show-logs|toggle-feature|check-feature|toggle-platform|check-platform) ;; *) echo 'Unsupported action' >&2; exit 2;; esac
 case "$EXPECTED" in true|false) ;; *) exit 2;; esac
-case "$FEATURE" in ""|fakeNitro|platformIndicator|quickDelete|noConfirmPin|alwaysTrust|jumpToTop|gestures|gestureTripleDelete|fullImages|readAll|quietReplies|voiceDownload|serverInfo|hiddenChannels|messageHistory|avatars|dmList|dmHeader|memberList|profile|messages) ;; *) exit 2;; esac
+case "$FEATURE" in ""|fakeNitro|platformIndicator|avatars|dmList|dmHeader|memberList|profile|messages) ;; *) exit 2;; esac
 SDK="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 JAVA="${JAVA_HOME:?Set JAVA_HOME to JDK21}"
 OUT="$ROOT/work/phase3-ui-smoke"

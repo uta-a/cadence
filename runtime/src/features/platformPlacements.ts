@@ -1,10 +1,10 @@
 // Ported from Venus Patches (https://github.com/VenusIsJaded/Venus-Patches, GPL-3.0),
 // bootstrap.js platformName/platformHeader/platformDmRow/placePlatformTree, commit
 // 987b7a22d96d41a0ba80c060b485291e1c7bcc4b. Adapted to 352.17 and Cadence's badges/settings.
-import type { AvatarReact } from "../platformIndicator";
-import { platformsOf } from "../platformIndicator";
-import type { PlatformPlace } from "../../core/settings";
-import { wrapExport } from "./gestures";
+import type { AvatarReact } from "./platformIndicator";
+import { platformsOf } from "./platformIndicator";
+import type { PlatformPlace } from "../core/settings";
+import { wrapExport } from "../core/exports";
 
 type Fn = (...args: unknown[]) => unknown;
 type Place = Exclude<PlatformPlace, "avatars" | "messages">;

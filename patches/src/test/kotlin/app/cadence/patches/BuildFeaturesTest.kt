@@ -45,7 +45,7 @@ class BuildFeaturesTest {
 
     @Test
     fun `runtime feature patches depend on the runtime and are selected by default`() {
-        for (patch in listOf(fakeNitro, platformIndicator, disableAnalytics, skipDeleteConfirmation, skipPinConfirmation, alwaysTrustLinksAndFiles, jumpToFirstMessage, doubleTapToReply, loadFullQualityImages, readAll, replyWithoutPinging, downloadVoiceMessages, serverInformation, showHiddenChannels, keepDeletedMessages)) {
+        for (patch in listOf(fakeNitro, platformIndicator, disableAnalytics)) {
             assertTrue(patch.default)
             assertTrue(patch.dependencies.contains(cadenceRuntime))
             assertEquals("com.discord", patch.compatibility!!.single().packageName)

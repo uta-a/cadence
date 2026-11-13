@@ -1,6 +1,6 @@
 import { createSettingsStore, DEFAULT_NITRO, DEFAULT_PLATFORM } from "./settings";
 import { createNativeSettingsStorage } from "./storage";
-import type { ExtraKey, ExtrasSnapshot, FeatureKey, NitroOptions, PlatformPlace, PlatformOptions, PreferencesSnapshot, SettingsSnapshot, SettingsStorage } from "./settings";
+import type { FeatureKey, NitroOptions, PlatformPlace, PlatformOptions, PreferencesSnapshot, SettingsSnapshot, SettingsStorage } from "./settings";
 
 export interface SettingsViewState {
     readonly phase: "loading" | "ready" | "error";
@@ -9,7 +9,6 @@ export interface SettingsViewState {
     readonly features: SettingsSnapshot;
     readonly nitro: NitroOptions;
     readonly platform: PlatformOptions;
-    readonly extras: ExtrasSnapshot;
 }
 export function createSettingsController(onStatus: (status: string) => void = () => {},
     storageFactory: (native: unknown) => SettingsStorage = createNativeSettingsStorage) {
@@ -19,7 +18,7 @@ export function createSettingsController(onStatus: (status: string) => void = ()
     let store: ReturnType<typeof createSettingsStore> | undefined;
     let saving = 0;
     let state: SettingsViewState = Object.freeze({ phase: "loading", save: "idle",
-        preferences: Object.freeze({ compact: false }), features: Object.freeze({ fakeNitro: false, platformIndicator: false }), nitro: DEFAULT_NITRO, platform: DEFAULT_PLATFORM, extras: Object.freeze([]) });
+        preferences: Object.freeze({ compact: false }), features: Object.freeze({ fakeNitro: false, platformIndicator: false }), nitro: DEFAULT_NITRO, platform: DEFAULT_PLATFORM });
     const listeners = new Set<() => void>();
     function report(value: string): void { try { onStatus(value); } catch (_) { /* Ignore diagnostics. */ } }
     function publish(patch: Partial<SettingsViewState>): void {
@@ -38,10 +37,9 @@ export function createSettingsController(onStatus: (status: string) => void = ()
                 store.subscribePreferences(() => publish({ preferences: candidate.getPreferences() }));
                 store.subscribe(() => publish({ features: candidate.get() }));
                 store.subscribeNitro(() => publish({ nitro: candidate.getNitro() }));
-                store.subscribeExtras(() => publish({ extras: candidate.getExtras() }));
                 store.subscribePlatform(() => publish({ platform: candidate.getPlatform() }));
                 publish({ phase: "ready", preferences: store.getPreferences(), features: store.get(), nitro: store.getNitro(),
-                    extras: store.getExtras(), platform: store.getPlatform() });
+                    platform: store.getPlatform() });
                 report("ready");
             } catch (_) {
                 store = undefined;
@@ -71,8 +69,6 @@ export function createSettingsController(onStatus: (status: string) => void = ()
         get(): SettingsViewState { return state; },
         /** Feature hooks read this on every use: off while loading, after a load error, or when the user turned it off. */
         isEnabled(key: FeatureKey): boolean { return state.phase === "ready" && state.features[key] === true; },
-        /** Ported Venus features: off while loading or after a load error. */
-        isExtraEnabled(key: ExtraKey): boolean { return state.phase === "ready" && state.extras.includes(key); },
         subscribe(listener: () => void): () => void { listeners.add(listener); return () => { listeners.delete(listener); }; },
         attach(value: unknown): Promise<void> | undefined {
             if (attached) return pending ?? undefined;
@@ -89,10 +85,6 @@ export function createSettingsController(onStatus: (status: string) => void = ()
         async setCompact(value: boolean): Promise<void> {
             if (typeof value !== "boolean") throw new Error("Settings not ready");
             await persist(ready => ready.setPreference("compact", value));
-        },
-        async setExtra(key: ExtraKey, value: boolean): Promise<void> {
-            if (typeof value !== "boolean") throw new Error("Settings not ready");
-            await persist(ready => ready.setExtra(key, value));
         },
         async setPlatform(key: PlatformPlace, value: boolean): Promise<void> {
             await persist(ready => ready.setPlatform(key, value));

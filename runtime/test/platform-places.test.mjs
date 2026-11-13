@@ -4,7 +4,7 @@ import { build } from "esbuild";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 const { outputFiles } = await build({ stdin: { contents: [
-    'export * from "./features/venus/platformPlacements";', 'export * from "./core/settings";',
+    'export * from "./features/platformPlacements";', 'export * from "./core/settings";',
     'export * from "./core/settings-controller";'].join(" "),
     resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
 const host = { module: { exports: {} }, Promise }; vm.runInNewContext(outputFiles[0].text, host);
