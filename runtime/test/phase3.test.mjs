@@ -20,38 +20,38 @@ function memory() {
     return { storage, writes, setText: value => { text = value; }, readFail: value => { failRead = value; }, writeFail: value => { failWrite = value; } };
 }
 
-test("settings controller defers load, refuses premature writes, and persists schema2 compact", async () => {
+test("settings controller defers load, refuses premature writes, and persists schema2 features", async () => {
     const m = memory(), events = [], { createSettingsController } = api();
     const c = createSettingsController(value => events.push(value), () => m.storage);
-    await assert.rejects(c.setCompact(true));
+    await assert.rejects(c.setFeature("fakeNitro", true));
     const pending = c.attach({});
     assert.equal(c.get().phase, "loading");
     assert.deepEqual(m.writes, []);
     await pending;
     assert.equal(c.get().phase, "ready");
-    await c.setCompact(true);
-    assert.equal(c.get().preferences.compact, true);
+    await c.setFeature("fakeNitro", true);
+    assert.equal(c.get().features.fakeNitro, true);
     assert.equal(c.get().save, "saved");
-    assert.deepEqual(m.writes, [{ version: 2, features: { fakeNitro: false, platformIndicator: false }, preferences: { compact: true }, nitro: NITRO_DEFAULT }]);
+    assert.deepEqual(m.writes, [{ version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: {}, nitro: NITRO_DEFAULT }]);
     const reloaded = createSettingsController(() => {}, () => m.storage);
     await reloaded.attach({});
-    assert.equal(reloaded.get().preferences.compact, true);
+    assert.equal(reloaded.get().features.fakeNitro, true);
     assert.deepEqual(events, ["ready", "saved"]);
 });
 
 test("failed initial read disables writes; retry is explicit and succeeds without resetting Cadence", async () => {
     const m = memory(), { createSettingsController } = api();
-    m.setText('{"version":2,"features":{},"preferences":{"compact":true}}');
+    m.setText('{"version":2,"features":{"fakeNitro":true},"preferences":{}}');
     m.readFail(true);
     const c = createSettingsController(() => {}, () => m.storage);
     await c.attach({});
     assert.equal(c.get().phase, "error");
-    await assert.rejects(c.setCompact(false));
+    await assert.rejects(c.setFeature("fakeNitro", false));
     assert.deepEqual(m.writes, []);
     m.readFail(false);
     await c.retryLoad();
     assert.equal(c.get().phase, "ready");
-    assert.equal(c.get().preferences.compact, true);
+    assert.equal(c.get().features.fakeNitro, true);
     assert.deepEqual(m.writes, []);
 });
 
@@ -61,11 +61,11 @@ test("failed save is visible and can retry the same optimistic value; listener f
     c.subscribe(() => { throw new Error("UI subscriber"); });
     await c.attach({});
     m.writeFail(true);
-    await assert.rejects(c.setCompact(true));
+    await assert.rejects(c.setFeature("platformIndicator", true));
     assert.equal(c.get().save, "error");
-    assert.equal(c.get().preferences.compact, true);
+    assert.equal(c.get().features.platformIndicator, true);
     m.writeFail(false);
-    await c.setCompact(true);
+    await c.retrySave();
     assert.equal(c.get().save, "saved");
     assert.equal(m.writes.length, 1);
 });
@@ -96,7 +96,7 @@ test("per-module gate does not import anything before root navigation readiness"
     assert.deepEqual(f.imports, [7522]);
     assert.equal(f.opens, 1);
 });
-const NITRO_DEFAULT = { emojiSize: 48, maskedLinks: false };
+const NITRO_DEFAULT = { emojiSize: 48 };
 
 test("overview wraps before its first consumer but defers native lazy getters until navigation becomes ready", () => {
     const f = moduleFixture(), original = () => {}, exports = { default: original };
@@ -168,7 +168,7 @@ function reactHarness() {
         beforeEffects();
         for (const [id, fn] of nextEffects) { cleanups[id]?.(); cleanups[id] = fn(); }
         nextEffects = [];
-        assert.equal(hookCalls, 8, "wrapper hook order stays fixed, including the history modal state");
+        assert.equal(hookCalls, 7, "wrapper hook order stays fixed");
         return tree;
     }, unmount() { cleanups.forEach(fn => fn?.()); } };
 }
@@ -179,31 +179,32 @@ function nodes(tree) {
 
 test("UI resynchronizes changes between initial render and effect subscription", () => {
     const { createSettingsOverview } = api(), harness = reactHarness();
-    let state = { phase: "loading", save: "idle", preferences: { compact: false }, nitro: NITRO_DEFAULT }, subscribed = false;
+    const off = { fakeNitro: false, platformIndicator: false };
+    let state = { phase: "loading", save: "idle", features: off, nitro: NITRO_DEFAULT }, subscribed = false;
     const c = { get: () => state, subscribe() { subscribed = true; return () => {}; } };
     const native = { View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Switch: "Switch", Modal: "Modal" };
-    const component = createSettingsOverview(harness.react, () => native, () => {}, c);
-    harness.render(component, {}, () => { assert.equal(subscribed, false); state = { phase: "ready", save: "idle", preferences: { compact: true }, nitro: NITRO_DEFAULT }; });
+    const component = createSettingsOverview(harness.react, () => native, () => {}, c, () => {}, () => true, ["fakeNitro"]);
+    harness.render(component, {}, () => { assert.equal(subscribed, false); state = { phase: "ready", save: "idle", features: { ...off, fakeNitro: true }, nitro: NITRO_DEFAULT }; });
     const tree = harness.render(component);
     assert.equal(nodes(tree).find(node => node.type === "Switch").props.value, true);
     assert.equal(nodes(tree).find(node => node.type === "Switch").props.disabled, false);
     harness.unmount();
 });
 
-test("Cadence overview entry renders original as an element, opens settings, saves compact, and handles back", async () => {
+test("Cadence overview entry renders original as an element, opens settings, saves a feature, and handles back", async () => {
     const { createSettingsOverview, createSettingsController } = api(), m = memory();
     const c = createSettingsController(() => {}, () => m.storage);
     await c.attach({});
     const harness = reactHarness();
     const native = { View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Switch: "Switch", Modal: "Modal" };
     const original = () => assert.fail("original may only be rendered by React, never directly called");
-    const component = createSettingsOverview(harness.react, () => native, original, c);
+    const component = createSettingsOverview(harness.react, () => native, original, c, () => {}, () => true, ["fakeNitro"]);
     const props = { original: "preserved" };
     let tree = harness.render(component, props);
     assert.equal(nodes(tree).find(node => node.type === original).props.original, props.original);
     nodes(tree).find(node => node.props.accessibilityLabel === "Cadence").props.onPress();
     tree = harness.render(component);
-    assert.ok(nodes(tree).some(node => node.children?.includes("Cadence 設定")));
+    assert.ok(nodes(tree).some(node => node.props.accessibilityRole === "header" && node.children?.includes("Cadence")));
     let toggle = nodes(tree).find(node => node.type === "Switch");
     assert.equal(toggle.props.value, false);
     toggle.props.onValueChange(true);
@@ -211,12 +212,12 @@ test("Cadence overview entry renders original as an element, opens settings, sav
     tree = harness.render(component);
     toggle = nodes(tree).find(node => node.type === "Switch");
     assert.equal(toggle.props.value, true);
-    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "cadence:saved"));
-    nodes(tree).find(node => node.props.accessibilityLabel === "cadence:logs").props.onPress();
+    assert.ok(nodes(tree).some(node => node.children?.includes("保存しました")));
+    nodes(tree).find(node => node.props.accessibilityLabel === "診断ログを表示").props.onPress();
     tree = harness.render(component);
-    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "cadence:log-content"));
-    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "cadence:features"));
-    assert.equal(m.writes.at(-1).preferences.compact, true);
+    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "診断ログを閉じる"));
+    assert.ok(nodes(tree).some(node => node.children?.includes("Discord 352.17 / 組み込み機能: fakeNitro")));
+    assert.equal(m.writes.at(-1).features.fakeNitro, true);
     assert.ok(nodes(tree).some(node => node.type === original), "original stays mounted behind modal");
     nodes(tree).find(node => node.type === "Modal").props.onRequestClose();
     tree = harness.render(component);

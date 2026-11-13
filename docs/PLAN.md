@@ -69,3 +69,14 @@ Phase 0〜3は完了。Phase 4の機能実装とPhase 5の配布準備を進め�
 - リポジトリの公開、push、タグ作成。
 - GitHub ReleaseとダウンロードURLの公開。
 - 公開済みソースの「Add to Morphe」と更新確認。
+
+## 0.2 に向けた整理（2026-11-13）
+
+- [x] 名前を Cadence に変更し、リポジトリを`uta-a/cadence`へ。設定の保存先は`cadence/settings-v1.json`。
+- [x] 使っていないVenus由来の13機能、コンパクト表示、Fake Nitroの名前付きリンクを削除。旧設定ファイルの`extras`・`compact`・`maskedLinks`は読み飛ばし、残る設定は引き継ぐことをXIG07で確認。
+- [x] 設定画面をDiscordのTableRowGroup・TableRow・TableSwitchRow・TableRadioGroup・TableRadioRow・Buttonで描き、カテゴリ別に分けた。部品が取れない場合はReact Nativeの部品で描く。XIG07で表示・切替・保存・戻るを確認。
+- [x] 端末アイコンのモジュールを描画時に読み込み、文字表示に落ちていた問題を修正。XIG07のDM一覧・DMヘッダーでアイコン表示を確認。
+- [x] メッセージ欄はサーバータグとロビータグの枠にアイコンを入れる。XIG07で2つのアイコン表示と、タップしても何も開かないことを確認。
+- [x] サーバーのチャンネルで、本物のサーバータグがそのまま残ること、アバターのタップでプロフィール、長押しでメッセージメニューが開くことを確認。
+- [ ] 本物のサーバータグを付けたオンラインの作成者の行（ロビー枠にアイコン1つ）、Web・VRのアイコン、ライトテーマでの見え方は未確認。
+- [ ] smokeテスト（`tools/run_ui_smoke.sh`）は新しい画面向けに書き換えたが、実機ではまだ実行していない。XIG07ではTableSwitchRowの切替後にアクセシビリティ上のcheckedが更新されない様子が見えたので、`check-*`の判定方法を見直す必要がある。

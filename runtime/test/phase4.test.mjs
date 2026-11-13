@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { build } from "esbuild";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
-const NITRO_DEFAULT = { emojiSize: 48, maskedLinks: false };
+const NITRO_DEFAULT = { emojiSize: 48 };
 
 const { outputFiles } = await build({ stdin: { contents: [
     'export * from "./features/fakeNitro";', 'export * from "./features/analytics";', 'export * from "./features/platformIndicator";',
@@ -164,6 +164,45 @@ test("avatar wrapper keeps the original element, a fixed hook count, and only ov
     assert.equal(listeners.size, 0);
 });
 
+test("platform icons that Discord has not loaded yet are required on demand, only after navigation is ready", async () => {
+    const { createCoreModules } = api({ setTimeout() {} });
+    const core = createCoreModules(() => {}, false, ["platformIndicator"]);
+    const capture = new Map(core.captures.map(c => [c.id, c.onExports]));
+    const required = [];
+    let ready = false;
+    const iconExports = {};
+    for (const [id, name] of [[9515, "ScreenIcon"], [7085, "MobilePhoneIcon"], [9524, "GlobeEarthIcon"], [16280, "VrHeadsetIcon"]])
+        iconExports[id] = { [name]: Object.assign(function () {}, { iconName: name }) };
+    const context = { requireModule(id) { required.push(id); return iconExports[id]; } };
+    const harness = hookHarness();
+    capture.get(19)({ ...harness.react, Fragment: "F" }, context);
+    const rn = {};
+    for (const key of ["View", "Text", "Pressable", "ScrollView", "Switch", "Modal"]) rn[key] = function () {};
+    capture.get(17)(rn, context);
+    capture.get(5183)({ getRootNavigationRef: () => ({ isReady: () => ready }) }, context);
+    capture.get(504)({ useStateFromStores: (stores, getter) => getter() }, context);
+    capture.get(5744)({ default: { getClientStatus: () => ({ mobile: "online", desktop: "online" }) } }, context);
+    const files = { getConstants: () => ({ DocumentsDirPath: "/data/user/0/com.discord/files" }), fileExists: async () => true,
+        readFile: async () => JSON.stringify({ version: 2, features: { platformIndicator: true }, preferences: {} }), writeFile: async () => "" };
+    capture.get(1164)({ default: files }, context);
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(core.settings.isEnabled("platformIndicator"), true);
+    capture.get(9515)(iconExports[9515], context);
+    const avatar = { default: { memo: "Avatar" } };
+    capture.get(15449)(avatar, context);
+    const render = () => harness.render(avatar.default, { user: { id: "1" } }).tree;
+    render();
+    assert.deepEqual(required, [], "nothing is required before navigation is ready");
+    ready = true;
+    const badge = render().children[1];
+    const icons = flat(badge).slice(1);
+    assert.deepEqual(icons.map(node => node.type.iconName), ["ScreenIcon", "MobilePhoneIcon"]);
+    assert.deepEqual(plain(icons[0].props.style), { width: 12, height: 12 });
+    assert.deepEqual(required.sort((a, b) => a - b), [7085, 9524, 16280], "only icons that are still missing are required");
+    render();
+    assert.equal(required.length, 3, "each icon is required once");
+});
+
 test("an avatar rendered before native UI is ready gains the badge later; one without presence never adds the store hook", () => {
     const { createPlatformAvatar } = api(), harness = hookHarness();
     let available = false, hookUsed = 0;
@@ -216,7 +255,7 @@ test("feature switches persist schema2 features and isEnabled is off until ready
     await c.setFeature("fakeNitro", true);
     assert.equal(c.isEnabled("fakeNitro"), true);
     assert.equal(c.isEnabled("platformIndicator"), false);
-    assert.deepEqual(m.writes.at(-1), { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: { compact: false }, nitro: NITRO_DEFAULT });
+    assert.deepEqual(m.writes.at(-1), { version: 2, features: { fakeNitro: true, platformIndicator: false }, preferences: {}, nitro: NITRO_DEFAULT });
     await assert.rejects(c.setFeature("unknown", true));
     await assert.rejects(c.setFeature("fakeNitro", "yes"));
     const reloaded = createSettingsController(() => {}, () => m.storage);
@@ -228,11 +267,10 @@ test("feature captures exist only for built features, and install hooks on natur
     const { createCoreModules } = api({ setTimeout() {} });
     const ids = core => plain(core.captures.map(c => c.id).sort((a, b) => a - b));
     assert.deepEqual(ids(createCoreModules(() => {})), [17, 19, 1164, 5183, 7522, 18400]);
-    assert.deepEqual(ids(createCoreModules(() => {}, false, ["noConfirmPin"])), [17, 19, 1128, 1164, 5183, 5941, 7522, 18400]);
-    assert.deepEqual(ids(createCoreModules(() => {}, false, ["quietReplies"])), [17, 19, 1164, 5183, 7522, 7785, 10119, 18400]);
+    assert.deepEqual(ids(createCoreModules(() => {}, false, ["fakeNitro"])), [17, 19, 1164, 1395, 4953, 5183, 7475, 7522, 7598, 18400]);
     const events = [];
     const core = createCoreModules(value => events.push(value), false, ["fakeNitro", "platformIndicator", "disableAnalytics"]);
-    assert.deepEqual(ids(core), [17, 19, 504, 1164, 1267, 1395, 4855, 4953, 5183, 5744, 7085, 7475, 7522, 7598, 8165, 8778, 9196, 9515, 9524, 10659, 11110, 14049, 15449, 16280, 17494, 17499, 18400]);
+    assert.deepEqual(ids(core), [17, 19, 504, 1164, 1267, 1395, 4855, 4953, 5183, 5744, 7085, 7475, 7522, 7598, 8165, 8778, 9196, 9515, 9524, 10105, 10659, 11110, 11269, 14049, 15449, 16280, 17494, 17499, 18400]);
     const capture = new Map(core.captures.map(c => [c.id, c.onExports]));
     const analytics = { default: { track() { return new Promise(() => {}); } } };
     capture.get(1267)(analytics, {});
@@ -254,44 +292,56 @@ test("feature captures exist only for built features, and install hooks on natur
     assert.equal(events.at(-1), "platform-indicator unavailable");
 });
 
-test("settings page shows switches only for built features and states which are not included", () => {
+test("settings page is grouped by category with Discord's table rows and buttons, and only offers built features", () => {
     const { createSettingsOverview } = api();
     const native = { View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Switch: "Switch", Modal: "Modal" };
-    const state = { phase: "ready", save: "idle", preferences: { compact: false }, features: { fakeNitro: true, platformIndicator: false },
-        nitro: { emojiSize: 64, maskedLinks: true } };
+    const discord = { TableRowGroup: "TableRowGroup", TableRow: "TableRow", TableSwitchRow: "TableSwitchRow",
+        TableRadioGroup: "TableRadioGroup", TableRadioRow: "TableRadioRow", Button: "Button" };
+    const state = { phase: "ready", save: "idle", features: { fakeNitro: true, platformIndicator: false }, nitro: { emojiSize: 64 },
+        platform: { avatars: true, dmList: true, dmHeader: true, memberList: true, profile: true, messages: true } };
     const changes = [];
     const controller = { get: () => state, subscribe: () => () => {}, setFeature: async (key, value) => { changes.push([key, value]); },
-        setNitro: async change => { changes.push(["nitro", change]); } };
+        setNitro: async change => { changes.push(["nitro", change]); }, setPlatform: async (key, value) => { changes.push([key, value]); } };
     const react = { Fragment: "F", createElement(type, props, ...children) { return { type, props: props ?? {}, children }; },
         useState(initial) { const value = typeof initial === "function" ? initial() : initial; return [initial === false ? true : value, () => {}]; },
         useEffect() {} };
-    const tree = createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, ["fakeNitro", "disableAnalytics"])({});
-    const all = flat(tree);
-    const fake = all.find(node => node.props.accessibilityLabel === "cadence:feature:fakeNitro");
-    assert.equal(fake.type, "Switch");
+    const render = (built, ui = discord) => flat(createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, built, () => ui)({}));
+    const all = render(["fakeNitro", "disableAnalytics"]);
+    assert.deepEqual(all.filter(node => node.type === "TableRowGroup").map(node => node.props.title).filter(Boolean),
+        ["メッセージ", "表示", "プライバシー", "情報"], "categories, with no Venus section");
+    assert.equal(all.some(node => node.type === "Switch" || node.type === "Pressable"), false, "no hand-drawn controls when Discord's exist");
+    const fake = all.find(node => node.type === "TableSwitchRow" && node.props.label === "Fake Nitro");
     assert.equal(fake.props.value, true);
     fake.props.onValueChange(false);
     assert.deepEqual(changes, [["fakeNitro", false]]);
-    assert.ok(all.some(node => node.props.accessibilityLabel === "cadence:feature:platformIndicator:false"));
-    assert.equal(all.find(node => node.props.accessibilityLabel === "cadence:feature:platformIndicator"), undefined);
-    assert.ok(all.some(node => node.children?.includes("このビルドには含まれていません")));
-    assert.ok(all.some(node => String(node.children?.[0]).startsWith("Analytics：JS の track 送信を停止しています")));
-    const size64 = all.find(node => node.props.accessibilityLabel === "cadence:nitro-size:64");
-    assert.equal(size64.props.accessibilityState.selected, true);
-    all.find(node => node.props.accessibilityLabel === "cadence:nitro-size:128").props.onPress();
-    all.find(node => node.props.accessibilityLabel === "cadence:nitro-masked").props.onValueChange(false);
-    assert.deepEqual(plain(changes.slice(1)), [["nitro", { emojiSize: 128 }], ["nitro", { maskedLinks: false }]]);
-    assert.ok(all.some(node => node.props.accessibilityLabel === "cadence:nitro-masked:true"));
-    const without = flat(createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, ["platformIndicator"])({}));
-    assert.equal(without.find(node => node.props.accessibilityLabel === "cadence:nitro-size:48"), undefined, "no options unless Fake Nitro is built");
+    const platform = all.find(node => node.props.label === "Platform Indicator");
+    assert.equal(platform.type, "TableRow", "a feature that is not built is shown without a switch");
+    assert.equal(platform.props.subLabel, "このビルドには含まれていません");
+    assert.equal(all.find(node => node.props.label === "Analytics の送信停止").props.subLabel, "JS の track 送信を止めています（Morphe で選択）");
+    const sizes = all.find(node => node.type === "TableRadioGroup");
+    assert.equal(sizes.props.value, 64);
+    assert.deepEqual(sizes.children.map(node => node.props.value), [48, 64, 96, 128]);
+    sizes.props.onChange(128);
+    assert.deepEqual(plain(changes.at(-1)), ["nitro", { emojiSize: 128 }]);
+    assert.ok(all.some(node => node.type === "Button" && node.props.text === "戻る"));
+    assert.ok(all.some(node => node.type === "TableRow" && node.props.label === "Cadence" && node.props.arrow === true), "settings entry");
+    assert.equal(all.some(node => node.props.title === "端末アイコンを出す場所"), false, "places only while Platform Indicator is on");
+    state.features = { fakeNitro: false, platformIndicator: true };
+    const places = render(["platformIndicator"]).filter(node => node.type === "TableSwitchRow").map(node => node.props.label);
+    assert.deepEqual(places, ["Platform Indicator", "その他のアバター", "DM一覧の行", "DMヘッダー", "メンバー一覧", "プロフィール名", "メッセージの名前"]);
+    assert.equal(render(["platformIndicator"]).some(node => node.type === "TableRadioGroup"), false, "no size options unless Fake Nitro is built");
+    const fallback = render(["fakeNitro"], {});
+    assert.ok(fallback.some(node => node.type === "Switch" && node.props.accessibilityLabel === "Fake Nitro"), "plain views when Discord's are missing");
+    assert.equal(fallback.some(node => typeof node.type === "string" && node.type.startsWith("Table")), false);
+    state.features = { fakeNitro: true, platformIndicator: false };
 });
 
-test("conversion follows the chosen size and masked-link option", () => {
+test("conversion follows the chosen size and always sends the plain URL", () => {
     const { convertMessage, emojiUrl } = api();
     const message = { content: "a <a:dance:333> b", invalidEmojis: [locked("333", "dance", true)] };
-    assert.equal(convertMessage(message, { emojiSize: 128, maskedLinks: false }).content, `a ${emojiUrl("333", true, "dance", 128)} b`);
-    assert.equal(convertMessage(message, { emojiSize: 96, maskedLinks: true }).content, `a [dance](${emojiUrl("333", true, "dance", 96)}) b`);
-    assert.match(convertMessage(message, { emojiSize: 1000, maskedLinks: false }).content, /size=48&/, "unknown sizes fall back to 48");
+    assert.equal(convertMessage(message, { emojiSize: 128 }).content, `a ${emojiUrl("333", true, "dance", 128)} b`);
+    assert.equal(convertMessage(message, { emojiSize: 96, maskedLinks: true }).content, `a ${emojiUrl("333", true, "dance", 96)} b`, "an old masked option is ignored");
+    assert.match(convertMessage(message, { emojiSize: 1000 }).content, /size=48&/, "unknown sizes fall back to 48");
 });
 
 test("Fake Nitro options persist in schema 2, default safely, and reject invalid values without writing", async () => {
@@ -301,22 +351,21 @@ test("Fake Nitro options persist in schema 2, default safely, and reject invalid
     const storage = { read: async () => text, write: async value => { writes.push(JSON.parse(value)); text = value; } };
     const c = createSettingsController(() => {}, () => storage);
     await c.attach({});
-    assert.deepEqual(plain(c.get().nitro), { emojiSize: 48, maskedLinks: false });
+    assert.deepEqual(plain(c.get().nitro), { emojiSize: 48 });
     await c.setNitro({ emojiSize: 96 });
-    await c.setNitro({ maskedLinks: true });
-    assert.deepEqual(writes.at(-1).nitro, { emojiSize: 96, maskedLinks: true });
+    assert.deepEqual(writes.at(-1).nitro, { emojiSize: 96 });
     const count = writes.length;
-    for (const bad of [{ emojiSize: 50 }, { maskedLinks: "yes" }, { other: 1 }, {}, null])
+    for (const bad of [{ emojiSize: 50 }, { maskedLinks: true }, { other: 1 }, {}, null])
         await assert.rejects(c.setNitro(bad));
     assert.equal(writes.length, count);
     const reloaded = createSettingsController(() => {}, () => storage);
     await reloaded.attach({});
-    assert.deepEqual(plain(reloaded.get().nitro), { emojiSize: 96, maskedLinks: true });
+    assert.deepEqual(plain(reloaded.get().nitro), { emojiSize: 96 });
     for (const [stored, expected] of [
-        ['{"version":2,"features":{},"preferences":{}}', { emojiSize: 48, maskedLinks: false }],
-        ['{"version":2,"features":{},"preferences":{},"nitro":{"emojiSize":7,"maskedLinks":1}}', { emojiSize: 48, maskedLinks: false }],
-        ['{"version":2,"features":{},"preferences":{},"nitro":[]}', { emojiSize: 48, maskedLinks: false }],
-        ['{"version":1,"features":{},"nitro":{"emojiSize":128}}', { emojiSize: 48, maskedLinks: false }]]) {
+        ['{"version":2,"features":{},"preferences":{}}', { emojiSize: 48 }],
+        ['{"version":2,"features":{},"preferences":{},"nitro":{"emojiSize":7,"maskedLinks":1}}', { emojiSize: 48 }],
+        ['{"version":2,"features":{},"preferences":{},"nitro":[]}', { emojiSize: 48 }],
+        ['{"version":1,"features":{},"nitro":{"emojiSize":128}}', { emojiSize: 48 }]]) {
         text = stored;
         const fresh = createSettingsController(() => {}, () => storage);
         await fresh.attach({});
@@ -336,9 +385,9 @@ function stickerFixture() {
         sendMessage(...args) { sends.push([this, args]); return "message-result"; },
         sendStickers(...args) { stickerSends.push([this, args]); return "sticker-result"; },
     };
-    let enabled = true, masked = false, converted = 0;
-    const ok = installStickerHooks(sendability, { default: target }, () => enabled, () => ({ emojiSize: 48, maskedLinks: masked }), () => converted++);
-    return { ok, sendability, target, sends, stickerSends, stickerUrl, results, setEnabled: v => { enabled = v; }, setMasked: v => { masked = v; },
+    let enabled = true, converted = 0;
+    const ok = installStickerHooks(sendability, { default: target }, () => enabled, () => converted++);
+    return { ok, sendability, target, sends, stickerSends, stickerUrl, results, setEnabled: v => { enabled = v; },
         get converted() { return converted; } };
 }
 const sticker = (id, format_type = 1, name = "pog") => ({ id, format_type, name, guild_id: "1" });
@@ -368,14 +417,12 @@ test("remembered stickers are sent as links through sendMessage; anything else u
     assert.equal(third, undefined);
     assert.deepEqual(plain(options), { location: "STICKER_REPLY" });
     assert.equal(f.converted, 1);
-    f.setMasked(true);
     f.target.sendStickers("ch", ["10"]);
-    assert.equal(f.sends[1][1][1].content, `[dance](${f.stickerUrl("10", "gif")})`);
+    assert.equal(f.sends[1][1][1].content, f.stickerUrl("10", "gif"));
     assert.equal(f.target.sendStickers("ch", ["13"], ""), "sticker-result", "a sticker that was never upgraded");
     assert.equal(f.target.sendStickers("ch", ["10", "13"], ""), "sticker-result", "a mixed send is left to Discord");
     assert.equal(f.target.sendStickers("ch", ["10"], { other: 1 }), "sticker-result", "an object without text is left to Discord");
     assert.equal(f.target.sendStickers("ch", ["10"], 5), "sticker-result", "an unknown content type is left to Discord");
-    f.setMasked(false);
     // The real picker passes the validation result (not the text) as the third argument.
     f.target.sendStickers("ch", ["10"], true, { location: "STICKER_REPLY" });
     assert.equal(f.sends.at(-1)[1][1].content, f.stickerUrl("10", "gif"));
@@ -444,17 +491,6 @@ test("a remembered sticker is forgotten once Discord itself no longer needs Nitr
     assert.equal(g.target.sendStickers("ch", ["11"]), "sticker-result", "a check while the feature was off forgets it");
 });
 
-test("masked sticker labels keep only plain characters", () => {
-    const f = stickerFixture();
-    f.setMasked(true);
-    f.sendability.getStickerSendability(sticker("10", 1, "@everyone `x` *b* <#1>"));
-    f.target.sendStickers("ch", ["10"]);
-    assert.equal(f.sends[0][1][1].content, `[everyone x b 1](${f.stickerUrl("10", "png")})`);
-    f.sendability.getStickerSendability(sticker("11", 1, "【】!!"));
-    f.target.sendStickers("ch", ["11"]);
-    assert.equal(f.sends[1][1][1].content, `[sticker](${f.stickerUrl("11", "png")})`);
-});
-
 test("the picker list's lock follows the same answer, and the sticker is remembered from it", () => {
     const f = stickerFixture();
     assert.equal(f.sendability.isSendableSticker(sticker("10")), true, "premium image sticker shows unlocked");
@@ -471,151 +507,6 @@ test("the picker list's lock follows the same answer, and the sticker is remembe
     assert.equal(noChecker.getStickerSendability, original, "nothing replaced without isSendableSticker");
 });
 
-test("quick confirm skips only Discord's own delete and pin alerts, only while enabled", async () => {
-    const { build } = await import("esbuild");
-    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/quickConfirm";',
-        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
-    const host = { module: { exports: {} } };
-    vm.runInNewContext(out[0].text, host);
-    const { installQuickConfirm } = host.module.exports;
-    const strings = { DEL: "Delete Message", DEL2: "Delete this message?", PIN: "Pin It. Pin It Good.", UNPIN: "Remove pinned message?" };
-    const intl = { intl: { string: token => strings[token] }, t: { AMvpS4: "DEL", "vXZ+Fo": "DEL2", WG5dyo: "PIN", NjEPp7: "UNPIN" } };
-    const shown = [];
-    const target = { show(popup) { shown.push(popup); return "shown"; }, close() {} };
-    let del = true, pin = false, skipped = 0;
-    assert.equal(installQuickConfirm({ default: target }, intl, { quickDelete: () => del, noConfirmPin: () => pin }, () => skipped++), true);
-    let confirmed = 0;
-    const alert = (fields) => ({ onConfirm: () => { confirmed++; return "confirmed"; }, ...fields });
-    assert.equal(target.show(alert({ body: "Delete this message?" })), "confirmed");
-    assert.equal(target.show(alert({ children: { props: { title: "Delete Message" } } })), "confirmed");
-    assert.equal(target.show(alert({ body: "Leave server?" })), "shown", "other alerts are untouched");
-    assert.equal(target.show(alert({ body: "Delete Messag" })), "shown", "no partial matching");
-    const pinAlert = alert({ children: { props: { children: [{ props: { children: "Pin It. Pin It Good." } }] } } });
-    assert.equal(target.show(pinAlert), "shown", "pin is off");
-    pin = true;
-    assert.equal(target.show(pinAlert), "confirmed");
-    assert.equal(target.show(alert({ body: "Remove pinned message?" })), "confirmed");
-    del = false; pin = false;
-    assert.equal(target.show(alert({ body: "Delete this message?" })), "shown", "disabled");
-    assert.equal(target.show(null), "shown");
-    assert.equal(confirmed, 4);
-    assert.equal(skipped, 4);
-    const failing = alert({ body: "Delete this message?", onConfirm: () => { throw new Error("x"); } });
-    del = true;
-    assert.equal(target.show(failing), undefined, "once confirming has started, Discord's alert is not shown on top of it");
-    assert.equal(installQuickConfirm({ default: Object.freeze({ show() {} }) }, intl, { quickDelete: () => true, noConfirmPin: () => true }), false);
-    assert.equal(installQuickConfirm({ default: target }, { intl: {}, t: {} }, { quickDelete: () => true, noConfirmPin: () => true }), false);
-});
-
-test("extras are stored as an optional list of known IDs and omitted while none is enabled", async () => {
-    const { createSettingsController } = api();
-    let text = null;
-    const writes = [];
-    const storage = { read: async () => text, write: async value => { writes.push(JSON.parse(value)); text = value; } };
-    const c = createSettingsController(() => {}, () => storage);
-    await c.attach({});
-    assert.equal(c.isExtraEnabled("quickDelete"), false);
-    await c.setExtra("noConfirmPin", true);
-    await c.setExtra("quickDelete", true);
-    assert.deepEqual(writes.at(-1).extras, ["quickDelete", "noConfirmPin"], "a stable order");
-    await c.setExtra("quickDelete", false);
-    await c.setExtra("noConfirmPin", false);
-    assert.equal("extras" in writes.at(-1), false, "omitted when empty");
-    await assert.rejects(c.setExtra("unknown", true));
-    text = '{"version":2,"features":{},"preferences":{},"extras":["noConfirmPin","unknown","noConfirmPin",3]}';
-    const loaded = createSettingsController(() => {}, () => storage);
-    await loaded.attach({});
-    assert.deepEqual(plain(loaded.get().extras), ["noConfirmPin"]);
-    assert.equal(loaded.isExtraEnabled("noConfirmPin"), true);
-});
-
-test("ported feature switches appear only for the features built into this APK", () => {
-    const { createSettingsOverview } = api();
-    const native = { View: "View", Text: "Text", Pressable: "Pressable", ScrollView: "ScrollView", Switch: "Switch", Modal: "Modal" };
-    const state = { phase: "ready", save: "idle", preferences: { compact: false }, features: { fakeNitro: false, platformIndicator: false },
-        nitro: { emojiSize: 48, maskedLinks: false }, extras: ["quickDelete"] };
-    const controller = { get: () => state, subscribe: () => () => {}, setExtra: async () => {} };
-    const react = { Fragment: "F", createElement(type, props, ...children) { return { type, props: props ?? {}, children }; },
-        useState(initial) { const value = typeof initial === "function" ? initial() : initial; return [initial === false ? true : value, () => {}]; },
-        useEffect() {} };
-    const render = built => flat(createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, built)({}));
-    const none = render([]);
-    assert.equal(none.find(node => node.props.accessibilityLabel === "cadence:extra:quickDelete"), undefined);
-    assert.ok(!none.some(node => node.children?.includes("Venus から移植した機能")));
-    const one = render(["quickDelete"]);
-    assert.equal(one.find(node => node.props.accessibilityLabel === "cadence:extra:quickDelete").props.value, true);
-    assert.equal(one.find(node => node.props.accessibilityLabel === "cadence:extra:noConfirmPin"), undefined);
-});
-
-test("always trust answers trusted and not suspicious only while enabled, without touching the store class", async () => {
-    const { build } = await import("esbuild");
-    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/alwaysTrust";',
-        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
-    const host = { module: { exports: {} } };
-    vm.runInNewContext(out[0].text, host);
-    const { installAlwaysTrust } = host.module.exports;
-    class Store { isTrustedDomain(url) { return url === "https://discord.com"; } }
-    const store = new Store(), other = new Store();
-    const downloads = { isSuspiciousDownload: name => name.endsWith(".exe") ? "exe" : null };
-    let on = false;
-    assert.equal(installAlwaysTrust({ default: store }, downloads, () => on), true);
-    assert.equal(store.isTrustedDomain("https://example.com"), false, "off: Discord's answer");
-    assert.equal(downloads.isSuspiciousDownload("a.exe"), "exe");
-    on = true;
-    assert.equal(store.isTrustedDomain("https://example.com"), true);
-    assert.equal(downloads.isSuspiciousDownload("a.exe"), null);
-    assert.equal(other.isTrustedDomain("https://example.com"), false, "the class itself is unchanged");
-    assert.equal(Store.prototype.isTrustedDomain.call(store, "https://example.com"), false);
-    assert.equal(installAlwaysTrust({ default: Object.freeze(new Store()) }, { isSuspiciousDownload() {} }, () => true), false);
-    assert.equal(installAlwaysTrust({ default: new Store() }, {}, () => true), false);
-});
-
-test("jump to top keeps Discord's button and its hooks, and adds a flipped jump to the first message", async () => {
-    const { build } = await import("esbuild");
-    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/jumpToTop";',
-        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
-    const host = { module: { exports: {} } };
-    vm.runInNewContext(out[0].text, host);
-    const { createJumpToTop } = host.module.exports;
-    const react = {
-        createElement(type, props, ...children) { return { type, props: { ...(props ?? {}), children: children.length > 1 ? children : children[0] } }; },
-        cloneElement(element, props) { return { ...element, props: { ...element.props, ...props } }; },
-    };
-    const hooks = [], jumps = [];
-    let shown = true, on = true, events = 0;
-    const original = props => shown ? { type: "Wrapper", props: { children: { type: "Button", props: { onPress: () => "present" } } } } : null;
-    const component = createJumpToTop({ react, original, native: () => ({ View: "View" }),
-        chatHeight: () => ({ useChatInputContainerHeight: i => { hooks.push(["input", i]); return 80; }, useSmallSuggestionBarHeight: i => { hooks.push(["bar", i]); return 10; } }),
-        messageStore: () => ({ getMessages: () => ({ ready: true, hasMoreBefore: true, length: 50, last: () => ({ id: "999" }) }) }),
-        messageActions: () => ({ jumpToMessage(options) { jumps.push(options); } }),
-        pill: () => "Pill", icon: () => 42, enabled: () => on, onEvent: () => events++ });
-    let tree = component({ channelId: "c1", screenIndex: 0 });
-    assert.equal(tree.type, "Wrapper");
-    const group = tree.props.children;
-    assert.equal(group.type, "View");
-    const [flip, present] = group.props.children;
-    assert.deepEqual(plain(flip.props.style), { transform: [{ scaleY: -1 }] });
-    assert.equal(present.type, "Button");
-    flip.props.children.props.onPress();
-    assert.deepEqual(plain(jumps[0]), { channelId: "c1", messageId: "c1", flash: true, jumpType: "ANIMATED", returnMessageId: "999" });
-    assert.equal(events, 1);
-    shown = false;
-    tree = component({ channelId: "c1", screenIndex: 0 });
-    assert.equal(tree.props.style.bottom, 80 + 10 + 12, "Discord's pill above the input and suggestion bar");
-    assert.equal(tree.props.children.props.children.type, "Pill");
-    assert.equal(tree.props.children.props.children.props.icon, 42);
-    on = false;
-    assert.equal(component({ channelId: "c1", screenIndex: 0 }), null, "disabled: Discord's own result");
-    assert.equal(hooks.length, 6, "both hooks run on every render, enabled or not");
-    const empty = createJumpToTop({ react, original: () => null, native: () => ({ View: "View" }), chatHeight: () => ({}),
-        messageStore: () => ({ getMessages: () => ({ ready: true, hasMoreBefore: false, length: 1 }) }),
-        messageActions: () => ({ jumpToMessage() {} }), pill: () => "Pill", icon: () => 1, enabled: () => true });
-    assert.equal(empty({ channelId: "c2" }), null, "nothing to jump to in a one-message chat");
-    const throwing = createJumpToTop({ react, original: () => "orig", native: () => { throw new Error("x"); }, chatHeight: () => null,
-        messageStore: () => null, messageActions: () => ({}), pill: () => null, icon: () => null, enabled: () => true });
-    assert.equal(throwing({ channelId: "c3" }), "orig", "a failure returns Discord's own element");
-});
-
 test("every module captured with all features built is an observation target, so the observer never rejects the set", async () => {
     const { build } = await import("esbuild");
     const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./core/modules"; export { MODULE_PROBES } from "./diagnostics/probes"; export * from "./diagnostics/observer"; export { FEATURE_IDS } from "./core/features";',
@@ -630,215 +521,3 @@ test("every module captured with all features built is an observation target, so
     assert.doesNotThrow(() => createMetroObserver({}, MODULE_PROBES, () => {}, () => {}, core.captures));
 });
 
-test("MessageActions captured for Venus features is not hooked for Fake Nitro unless Fake Nitro is built", async () => {
-    const { build } = await import("esbuild");
-    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./core/modules";',
-        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
-    const host = { module: { exports: {} }, setTimeout() {} };
-    vm.runInNewContext(out[0].text, host);
-    const reports = [];
-    const core = host.module.exports.createCoreModules(event => reports.push(event), false, ["jumpToTop", "gestures"]);
-    const capture = core.captures.find(c => c.id === 7598);
-    assert.ok(capture, "7598 is captured for the Venus features");
-    const sendMessage = () => "sent";
-    const target = { sendMessage, default: undefined };
-    target.default = target;
-    capture.onExports(target, {});
-    assert.equal(target.sendMessage, sendMessage, "sendMessage is untouched without Fake Nitro");
-    assert.ok(!reports.some(r => String(r).includes("fake-nitro")));
-});
-
-async function gesturesApi() {
-    const { build } = await import("esbuild");
-    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/gestures";',
-        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
-    const host = { module: { exports: {} } };
-    vm.runInNewContext(out[0].text, host);
-    return host.module.exports;
-}
-function gestureFixture(createGestures, options = {}) {
-    let clock = 1000, timers = [], on = true, triple = options.triple ?? false;
-    const calls = [];
-    const g = createGestures({
-        enabled: () => on, tripleDelete: () => triple, currentUser: () => ({ id: "me" }),
-        canReply: () => (channel, message) => options.canReply ?? true, reply: () => o => calls.push(["reply", o.message.id, o.actionSource]),
-        canEdit: () => (message, userId) => message.author.id === userId, edit: () => (m, c, ref, source) => calls.push(["edit", m.id, source]),
-        undeletable: () => new Set([7]), deleteMessage: () => (channelId, id) => { calls.push(["delete", channelId, id]); return Promise.resolve(); },
-        haptic: () => calls.push(["haptic"]), setTimeout: (fn, ms) => { timers.push(fn); return timers.length; }, clearTimeout: () => { timers = []; },
-        now: () => clock, onEvent: e => calls.push(["event", e]) });
-    return { g, calls, flush: () => { const t = timers; timers = []; t.forEach(fn => fn()); }, tick: ms => { clock += ms; },
-        setOn: v => { on = v; }, setTriple: v => { triple = v; } };
-}
-
-test("double-tap replies to others, edits your own, and falls back to Discord's reaction", async () => {
-    const { createGestures } = await gesturesApi();
-    const f = gestureFixture(createGestures);
-    let reacted = 0;
-    const original = () => { reacted++; return "reacted"; };
-    const other = { id: "1", author: { id: "you" }, state: "SENT" }, mine = { id: "2", author: { id: "me" }, state: "SENT" }, channel = { id: "c" };
-    f.g.doubleTap(original, null, [other, channel]);
-    f.g.doubleTap(original, null, [mine, channel]);
-    assert.deepEqual(plain(f.calls.filter(c => c[0] === "reply" || c[0] === "edit")), [["reply", "1", "message_swipe"], ["edit", "2", "message_swipe"]]);
-    assert.equal(reacted, 0);
-    const blocked = gestureFixture(createGestures, { canReply: false });
-    blocked.g.doubleTap(original, null, [other, channel]);
-    assert.equal(reacted, 1, "where replying is not allowed, Discord's own reaction runs");
-    f.setOn(false);
-    assert.equal(f.g.doubleTap(original, null, [other, channel]), "reacted", "disabled: Discord's reaction");
-});
-
-test("triple-tap delete is opt-in, waits for a third tap, and only deletes your own deletable messages", async () => {
-    const { createGestures } = await gesturesApi();
-    const original = () => "reacted";
-    const mine = { id: "2", author: { id: "me" }, state: "SENT", type: 0 }, channel = { id: "c" };
-    const off = gestureFixture(createGestures);
-    off.g.doubleTap(original, null, [mine, channel]);
-    assert.ok(off.calls.some(c => c[0] === "edit"), "without triple delete the edit happens at once");
-    const f = gestureFixture(createGestures, { triple: true });
-    f.g.doubleTap(original, null, [mine, channel]);
-    assert.ok(!f.calls.some(c => c[0] === "edit"), "waits for a possible third tap");
-    f.tick(500);
-    assert.equal(f.g.tap({ nativeEvent: { messageId: "2" } }), true);
-    assert.deepEqual(plain(f.calls.filter(c => c[0] === "delete")), [["delete", "c", "2"]]);
-    f.flush();
-    assert.ok(!f.calls.some(c => c[0] === "edit"), "no edit after the delete");
-    const late = gestureFixture(createGestures, { triple: true });
-    late.g.doubleTap(original, null, [mine, channel]);
-    late.flush();
-    assert.ok(late.calls.some(c => c[0] === "edit"), "no third tap: edit after the wait");
-    const other = gestureFixture(createGestures, { triple: true });
-    other.g.doubleTap(original, null, [{ id: "1", author: { id: "you" }, state: "SENT" }, channel]);
-    assert.ok(other.calls.some(c => c[0] === "reply"), "someone else's message never waits or deletes");
-    const kept = gestureFixture(createGestures, { triple: true });
-    kept.g.doubleTap(original, null, [{ ...mine, type: 7 }, channel]);
-    assert.ok(!kept.calls.some(c => c[0] === "delete") && kept.calls.some(c => c[0] === "edit"), "undeletable types are edited, never deleted");
-});
-
-test("wrapped MessagesHandlers keeps instances, prototype and taps, and only real double-taps are taken over", async () => {
-    const { createGestures } = await gesturesApi();
-    const f = gestureFixture(createGestures);
-    function Handlers(params) {
-        this.params = params;
-        this.handleTapMessage = () => "tap";
-        this.handleDoubleTapMessage = event => event.run();
-    }
-    Handlers.prototype.kind = "handlers";
-    Handlers.STATIC = 1;
-    const Wrapped = f.g.wrapHandlers(Handlers);
-    const instance = new Wrapped({ selectedChannelId: "c", chatInputRef: "ref" });
-    assert.ok(instance instanceof Handlers);
-    assert.equal(instance.kind, "handlers");
-    assert.equal(Wrapped.STATIC, 1);
-    assert.equal(instance.handleTapMessage({ nativeEvent: { messageId: "9" } }), "tap");
-    let reacted = 0;
-    const original = () => { reacted++; };
-    const other = { id: "1", author: { id: "you" } }, channel = { id: "c" };
-    f.g.doubleTap(original, null, [other, channel]);
-    assert.equal(reacted, 0, "before the wrapped handler has been seen, every call is taken as a double-tap");
-    instance.handleDoubleTapMessage({ run: () => f.g.doubleTap(original, null, [other, channel]) });
-    assert.equal(reacted, 0);
-    f.g.doubleTap(original, null, [other, channel]);
-    assert.equal(reacted, 1, "once it has been seen, a call outside a real double-tap (TalkBack) keeps Discord's behaviour");
-    assert.equal(f.calls.filter(c => c[0] === "reply").length, 2);
-    assert.equal(f.g.wrapHandlers(() => ({})), null, "an arrow function can't be constructed: nothing is replaced");
-    class Sub extends Wrapped {}
-    assert.ok(new Sub({}) instanceof Sub, "new.target is kept for subclasses");
-    function Locked() { Object.defineProperty(this, "handleTapMessage", { value: () => "locked", writable: false }); }
-    const lockedInstance = new (f.g.wrapHandlers(Locked))();
-    assert.equal(lockedInstance.handleTapMessage(), "locked", "a read-only handler keeps Discord's instance");
-});
-
-test("full-quality images return the uploaded file for normal pictures and larger avatars, only while enabled", async () => {
-    const { build } = await import("esbuild");
-    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/fullImages";',
-        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
-    const host = { module: { exports: {} } };
-    vm.runInNewContext(out[0].text, host);
-    const { installFullImages, fullImageUrl, fullAvatarUrl } = host.module.exports;
-    const src = "https://media.discordapp.net/attachments/1/2/a.png?ex=1&is=2&hm=3&width=200&height=100&format=webp";
-    assert.equal(fullImageUrl(src, 400, 200), "https://media.discordapp.net/attachments/1/2/a.png?ex=1&is=2&hm=3");
-    assert.equal(fullImageUrl(src.replace("a.png", "a.gif"), 400, 200), null, "GIFs keep Discord's copy");
-    assert.equal(fullImageUrl(src, 5000, 200), null, "too big for a phone");
-    assert.equal(fullImageUrl("https://example.com/attachments/a.png", 1, 1), null);
-    assert.equal(fullAvatarUrl("https://cdn.discordapp.com/avatars/1/a.webp?size=64", false), "https://cdn.discordapp.com/avatars/1/a.webp?size=512");
-    assert.equal(fullAvatarUrl("https://cdn.discordapp.com/banners/1/a.webp?size=2048", true), "https://cdn.discordapp.com/banners/1/a.webp?size=2048");
-    let on = false;
-    const resized = (s, w, h) => `resized:${s}`;
-    const images = { getMobileOptimizedSrc: resized, default: { getMobileOptimizedSrc: resized } };
-    const avatar = () => "https://cdn.discordapp.com/avatars/1/a.webp?size=64";
-    const avatars = { getUserAvatarURL: avatar, getUserAvatarSource: () => ({ uri: avatar() }), default: { getUserAvatarURL: avatar } };
-    assert.ok(installFullImages(images, avatars, () => on) >= 4);
-    assert.equal(images.getMobileOptimizedSrc(src, 400, 200), `resized:${src}`, "off: Discord's copy");
-    on = true;
-    assert.equal(images.default.getMobileOptimizedSrc(src, 400, 200), "https://media.discordapp.net/attachments/1/2/a.png?ex=1&is=2&hm=3");
-    assert.equal(avatars.getUserAvatarURL(), "https://cdn.discordapp.com/avatars/1/a.webp?size=512");
-    assert.equal(avatars.getUserAvatarSource().uri, "https://cdn.discordapp.com/avatars/1/a.webp?size=512");
-    assert.equal(installFullImages(Object.freeze({ getMobileOptimizedSrc: resized }), {}, () => true), 0);
-});
-
-test("read all adds its row to the server bar's separator only, and marks servers and DMs read through Discord's actions", async () => {
-    const { build } = await import("esbuild");
-    const { outputFiles: out } = await build({ stdin: { contents: 'export * from "./features/venus/readAll";',
-        resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
-    const host = { module: { exports: {} } };
-    vm.runInNewContext(out[0].text, host);
-    const { createReadAll, markAsRead } = host.module.exports;
-    const calls = [];
-    const store = methods => Object.assign(Object.create({}), methods);
-    const modules = {
-        6846: { default: store({ hasUnread: id => id === "g1", getMentionCount: id => id === "g2" ? 1 : 0, getGuildHasUnreadIgnoreMuted: id => id === "g3" }) },
-        6733: { default: store({ getFlattenedGuildIds: () => ["g1", "g2", "g3", "g4"] }) },
-        4936: { default: store({ lurkingGuildIds: () => ["g1"] }) },
-        4877: { default: store({ getGuildIds: () => ["g4"] }) },
-        6803: { default: store({ hasUnread: () => false, hasUnreadOrMentions: id => id !== "d3", lastMessageId: id => id === "d2" ? null : `m-${id}` }) },
-        6737: { CHANNEL: 0, GUILD_EVENT: 1 },
-        15243: { default: (ids, section) => calls.push(["guilds", [...ids], section]) },
-        1087: { AnalyticsSections: { GUILD_LIST: "guild list" } },
-        15096: { default: store({ getUnreadPrivateChannelIds: () => ["d1", "d2"] }) },
-        7354: { default: store({ getPrivateChannelIds: () => ["d1", "d3", "d4"] }) },
-        6844: { filterOutMessageRequestsAndSpamById: ids => ids.filter(id => id !== "d4") },
-        7238: { bulkAck: acks => calls.push(["dms", acks.map(a => `${a.channelId}:${a.messageId}:${a.readStateType}`)]) },
-    };
-    const get = id => modules[id];
-    assert.deepEqual(plain(markAsRead("guilds", get)), { guilds: 3, dms: 0, failed: false });
-    assert.deepEqual(plain(calls), [["guilds", ["g1", "g2", "g3"], "guild list"]], "muted servers with unread channels are included");
-    calls.length = 0;
-    assert.deepEqual(plain(markAsRead("dms", get)), { guilds: 0, dms: 1, failed: false });
-    assert.deepEqual(plain(calls), [["dms", ["d1:m-d1:0"]]], "no last message, read, or request: not acknowledged");
-    assert.equal(markAsRead("both", () => undefined).failed, true, "stores not loaded");
-    for (const filter of [undefined, () => { throw new Error("unavailable"); }, () => null,
-        () => ["request-channel"], () => [42]]) {
-        calls.length = 0;
-        const unavailableFilter = id => id === 6844 ? { filterOutMessageRequestsAndSpamById: filter } : get(id);
-        assert.deepEqual(plain(markAsRead("dms", unavailableFilter)), { guilds: 0, dms: 0, failed: true });
-        assert.equal(calls.length, 0, "an unavailable or incompatible filter must never acknowledge DMs");
-    }
-
-    let on = true, events = [];
-    const react = { createElement: (type, props, ...children) => ({ type, props, children }), useState: v => [v, () => {}], useEffect() {} };
-    const readAll = createReadAll({ enabled: () => on, react, native: () => ({ View: "View", Text: "Text", Pressable: "Pressable" }),
-        alert: () => null, module: get, separator: () => 6, onEvent: e => events.push(e) });
-    const listDataProps = { itemSize: section => section === 6 ? 10 : 48, renderItem: section => `row${section}`, sections: [1] };
-    const result = { listProps: { a: 1 }, listDataProps };
-    const exports = { default: () => result, OTHER: 1 };
-    assert.equal(readAll.install(exports), true);
-    const view = exports.default();
-    assert.notEqual(view, result);
-    assert.equal(view.listProps, result.listProps);
-    assert.equal(exports.default(), view, "the same result gives the same props");
-    assert.equal(view.listDataProps.itemSize(6), 50);
-    assert.equal(view.listDataProps.itemSize(1), 48);
-    assert.equal(view.listDataProps.renderItem(1), "row1");
-    const row = view.listDataProps.renderItem(6);
-    assert.equal(row.type, "View");
-    assert.equal(row.children[1], "row6", "Discord's separator stays below the button");
-    on = false;
-    assert.equal(view.listDataProps.itemSize(6), 10, "off: Discord's size");
-    assert.equal(exports.default(), result, "off: Discord's props");
-    assert.equal(readAll.run("guilds"), false, "off: nothing is marked");
-    on = true;
-    assert.equal(readAll.run("guilds"), true);
-    assert.deepEqual(events, ["installed", "cleared"]);
-    assert.equal(readAll.install(Object.freeze({ default: () => result })), false);
-    assert.equal(readAll.install({}), false);
-});

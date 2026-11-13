@@ -7,7 +7,10 @@ export type Platform = typeof PLATFORMS[number];
 const STATUS_COLORS: Readonly<Record<string, string>> = Object.freeze({
     online: "#23A55A", idle: "#F0B232", dnd: "#F23F43", streaming: "#593695",
 });
+/** Text only as a last resort, when Discord's icon module cannot be loaded. */
 const LABELS: Readonly<Record<Platform, string>> = Object.freeze({ desktop: "PC", mobile: "M", web: "W", vr: "VR" });
+const INLINE_ICON_SIZE = 16;
+const AVATAR_ICON_SIZE = 12;
 
 export interface PlatformState { readonly platform: Platform; readonly color: string; }
 
@@ -96,14 +99,17 @@ export function createPlatformAvatar(deps: AvatarDependencies): unknown {
         if (platforms.length) once("badge");
         const { View, Text } = native;
         const icons = platforms.length ? deps.icons() : {};
+        // Next to a name the icons stand alone, like Discord's own status icons; over an avatar a dark backing keeps them legible.
+        const size = deps.inline ? INLINE_ICON_SIZE : AVATAR_ICON_SIZE;
         const badge = platforms.length === 0 ? null : h(View, {
             pointerEvents: "none", accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants",
-            style: { ...(deps.inline ? {} : { position: "absolute", top: -4, right: -4 }), flexDirection: "row", alignItems: "center",
-                backgroundColor: "#1E1F22", borderRadius: 7, paddingHorizontal: 2, paddingVertical: 1 },
+            style: deps.inline ? { flexDirection: "row", alignItems: "center", gap: 2 }
+                : { position: "absolute", top: -4, right: -4, flexDirection: "row", alignItems: "center", gap: 1,
+                    backgroundColor: "#1E1F22", borderRadius: 8, paddingHorizontal: 2, paddingVertical: 2 },
         }, ...platforms.map(({ platform, color }) => {
             const Icon = icons[platform];
-            return Icon ? h(Icon, { key: platform, color, style: { width: 10, height: 10, marginHorizontal: 1 } })
-                : h(Text, { key: platform, style: { color, fontSize: 8, fontWeight: "700", marginHorizontal: 1 } }, LABELS[platform]);
+            return Icon ? h(Icon, { key: platform, color, size: "custom", style: { width: size, height: size } })
+                : h(Text, { key: platform, style: { color, fontSize: deps.inline ? 12 : 8, fontWeight: "700" } }, LABELS[platform]);
         }));
         return deps.inline ? badge : h(View, { style: { position: "relative" }, pointerEvents: "box-none" }, originalElement, badge);
     }

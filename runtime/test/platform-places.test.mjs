@@ -4,7 +4,7 @@ import { build } from "esbuild";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 const { outputFiles } = await build({ stdin: { contents: [
-    'export * from "./features/venus/platformPlacements";', 'export * from "./core/settings";',
+    'export * from "./features/platformPlacements";', 'export * from "./core/settings";',
     'export * from "./core/settings-controller";'].join(" "),
     resolveDir: fileURLToPath(new URL("../src/", import.meta.url)), loader: "ts" }, bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
 const host = { module: { exports: {} }, Promise }; vm.runInNewContext(outputFiles[0].text, host);
@@ -110,16 +110,74 @@ test("profile transforms the captured DisplayName child without directly invokin
     const name = next.props.children.type(next.props.children.props); assert.equal(childCalls, 1); assert.equal(name.type, "Provider");
 });
 
-test("native message labels affect rendered usernames only, stay idempotent and retain voice CTA", () => {
+test("native message rows show each platform as an icon in a free tag chip, stay idempotent and keep other fields", () => {
     const { runtime, on } = setup();
-    const source = { rowType: 1, message: { content: "unchanged" } }, cta = { callback: "cadence-voice-download" };
+    const source = { rowType: 1, message: { content: "unchanged" } }, cta = { callback: "voice" };
     const result = { message: { username: "name", authorId: "u", content: "original", ctaButton: cta }, rowType: 1 };
     const next = runtime.messageRow(result, source);
-    assert.equal(next.message.username, "name · PC/M"); assert.equal(next.message.ctaButton, cta);
-    assert.equal(result.message.username, "name"); assert.equal(source.message.content, "unchanged");
+    assert.equal(next.message.username, "name", "the name itself is left as it is");
+    assert.equal(next.message.ctaButton, cta);
+    assert.equal(next.message.clanTag, "\u200b");
+    assert.equal(next.message.clanTagGuildId, "0");
+    assert.match(next.message.clanBadgeUrl, /^data:image\/png;base64,iVBORw0KGgo/);
+    assert.match(next.message.lobbyTagIconUrl, /^data:image\/png;base64,/);
+    assert.notEqual(next.message.clanBadgeUrl, next.message.lobbyTagIconUrl, "desktop and mobile are different icons");
+    assert.equal(result.message.clanTag, undefined); assert.equal(source.message.content, "unchanged");
     assert.equal(runtime.messageRow(next, source), next);
+    const tagged = { message: { ...result.message, clanTag: "TAG", clanBadgeUrl: "https://badge", clanTagGuildId: "9" }, rowType: 1 };
+    const kept = runtime.messageRow(tagged, source).message;
+    assert.deepEqual([kept.clanTag, kept.clanBadgeUrl, kept.clanTagGuildId], ["TAG", "https://badge", "9"], "a real server tag is kept");
+    assert.equal(kept.lobbyTagIconUrl, next.message.clanBadgeUrl, "the first platform moves to the lobby chip");
+    const lobby = { message: { ...tagged.message, lobbyAdditionalName: "game", lobbyTagIconUrl: "https://app" }, rowType: 1 };
+    assert.equal(runtime.messageRow(lobby, source), lobby, "no free chip leaves the row unchanged");
     on(false); assert.equal(runtime.messageRow(result, source), result);
     assert.equal(runtime.messageRow(result, { rowType: 2 }), result);
+});
+
+test("generated chip icons are valid 48x48 PNGs in the presence color with a real shape", async () => {
+    const { inflateSync } = await import("node:zlib");
+    const { runtime } = setup();
+    const uri = runtime.messageRow({ message: { username: "n", authorId: "u" }, rowType: 1 }, { rowType: 1 }).message.clanBadgeUrl;
+    const png = Buffer.from(uri.slice("data:image/png;base64,".length), "base64");
+    assert.deepEqual([...png.subarray(0, 8)], [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+    assert.equal(png.readUInt32BE(16), 48); assert.equal(png.readUInt32BE(20), 48);
+    const idat = png.indexOf("IDAT"), length = png.readUInt32BE(idat - 4);
+    const raw = inflateSync(png.subarray(idat + 4, idat + 4 + length));
+    assert.equal(raw.length, 48 * (1 + 48 * 4));
+    const alphas = [];
+    for (let y = 0; y < 48; y++) for (let x = 0; x < 48; x++) {
+        const at = y * (1 + 48 * 4) + 1 + x * 4;
+        alphas.push(raw[at + 3]);
+        if (raw[at + 3]) assert.deepEqual([...raw.subarray(at, at + 3)], [0x23, 0xA5, 0x5A], "online desktop is green");
+    }
+    const opaque = alphas.filter(a => a > 128).length;
+    assert.ok(opaque > 200 && opaque < 48 * 48 / 2, "an icon shape, neither empty nor a filled square");
+});
+
+test("taps on Cadence's icon chips do nothing, while real server tags and other handlers keep working", () => {
+    const { runtime } = setup();
+    const opened = [];
+    function MessagesHandlers(name) {
+        this.name = name;
+        this.handleTapClanTagChiplet = event => { opened.push(event.guildId); return "opened"; };
+        this.handleTapAvatar = () => "avatar";
+    }
+    MessagesHandlers.prototype.shared = function () { return this.name; };
+    MessagesHandlers.staticValue = 7;
+    const exports = { MessagesHandlers };
+    assert.equal(runtime.installChipTaps(exports, () => event => event), true);
+    const handlers = new exports.MessagesHandlers("chat");
+    assert.ok(handlers instanceof MessagesHandlers);
+    assert.equal(handlers.shared(), "chat");
+    assert.equal(exports.MessagesHandlers.staticValue, 7);
+    assert.equal(handlers.handleTapClanTagChiplet({ guildId: "0" }), undefined);
+    assert.equal(handlers.handleTapClanTagChiplet({ guildId: 0 }), undefined);
+    assert.equal(handlers.handleTapClanTagChiplet({ guildId: "123" }), "opened");
+    assert.deepEqual(opened, ["123"]);
+    assert.equal(handlers.handleTapAvatar(), "avatar");
+    const broken = new (Object.assign({}, { MessagesHandlers }, (() => { const e = { MessagesHandlers }; runtime.installChipTaps(e, () => () => { throw new Error("x"); }); return e; })()).MessagesHandlers)("x");
+    assert.equal(broken.handleTapClanTagChiplet({ guildId: "5" }), "opened", "an unreadable event falls back to Discord");
+    assert.equal(runtime.installChipTaps({ MessagesHandlers: 1 }, () => undefined), false);
 });
 
 test("unknown, offline or throwing presence and unsupported message shapes are untouched", () => {

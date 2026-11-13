@@ -195,8 +195,8 @@ DISK_KEYSTORE_PASSWORD=... bash tools/build_test_apk.sh smoke
 
 ビルダーはインストール/削除を行わない。normalでは`CADENCE_UI_SMOKE=0`を強制し、Gradleもフラグを入力に含める。Kotlinは実際の選択feature配列を埋める（Phase 3は`[]`）。鍵・APK・テスト出力はgitignore対象。
 
-`run_ui_smoke.sh SERIAL ACTION [EXPECTED] [FEATURE]`はCadence自身の固定labelだけを操作する。actionは`open-cadence`、`toggle-compact`、`check-compact true|false`、`check-saved`、`show-logs`、`close-cadence`。元Discordのアカウント/メッセージ画面のdumpや座標操作はしない。runnerはAndroid13の旧UIAutomator用にandroid.test.runner/base jarも渡し、成功文字列だけでなくFailure/aborted/shortMsgも検査する。
+`run_ui_smoke.sh SERIAL ACTION [EXPECTED] [FEATURE]`はCadence自身の画面だけを操作する。actionは`open-cadence`、`check-saved`、`show-logs`、`close-cadence`、`toggle-feature`、`check-feature`、`toggle-platform`、`check-platform`。設定画面はDiscordのTableRow部品で描くため、行は表示中のラベル（`Fake Nitro`、`DM一覧の行`など）で探す。元Discordのアカウント/メッセージ画面のdumpや座標操作はしない。runnerはAndroid13の旧UIAutomator用にandroid.test.runner/base jarも渡し、成功文字列だけでなくFailure/aborted/shortMsgも検査する。
 
-追加機能は`toggle-feature CURRENT FEATURE`、場所別設定は`toggle-platform CURRENT PLACE`で操作する。CURRENTは操作前のtrue/false。初期状態とクリック後の変化を検査し、対象を画面中央側へ寄せて端での空振りを避ける。`check-feature EXPECTED FEATURE`はSwitchのcheckedを読む。本文が変わらない説明ラベルの更新待ちに依存しない。`check-saved`は実際に設定を変更した後の保存・読み戻し確認に使う。起動直後の読み込みだけでは保存完了表示は出ない。試験後は元の値へ戻す。
+機能は`toggle-feature CURRENT FEATURE`（`fakeNitro`・`platformIndicator`）、場所別設定は`toggle-platform CURRENT PLACE`で操作する。CURRENTは操作前のtrue/false。`check-*`はSwitch行のcheckedを読む。ただしXIG07では、DiscordのTableSwitchRowを切り替えた後もアクセシビリティ上のcheckedが更新されない様子が見えたため、checkedによる判定は実機で確かめるまで信用しない。`check-saved`は設定を変更した後の「保存しました」表示を確認する。mobile-mcpなど別のUIAutomation利用者が端末を掴んでいると、`UiAutomationService already registered`で失敗する。試験後は元の値へ戻す。
 
 検証後は同署名・データ保持でnormalへ戻す。最新版の実機結果と接続待ちは[Phase 3記録](../docs/PHASE3.md)を参照。

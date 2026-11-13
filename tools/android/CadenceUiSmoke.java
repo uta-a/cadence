@@ -5,18 +5,38 @@ import com.android.uiautomator.core.UiObject;
 import com.android.uiautomator.core.UiScrollable;
 import com.android.uiautomator.core.UiSelector;
 import com.android.uiautomator.testrunner.UiAutomatorTestCase;
+import java.util.HashMap;
+import java.util.Map;
 
-/** Test only cadence-owned controls. Never dump account/chat UI or take screenshots. */
+/**
+ * Test only Cadence-owned controls. Never dump account/chat UI or take screenshots.
+ * The page is drawn with Discord's TableRow components, so rows are found by their visible labels:
+ * a switch row's description is "label, sub label".
+ */
 public class CadenceUiSmoke extends UiAutomatorTestCase {
-    private UiObject control(String label) {
-        return new UiObject(new UiSelector().packageName("com.discord").description(label).enabled(true));
+    private static final Map<String, String> LABELS = new HashMap<String, String>();
+    static {
+        LABELS.put("fakeNitro", "Fake Nitro");
+        LABELS.put("platformIndicator", "Platform Indicator");
+        LABELS.put("avatars", "その他のアバター");
+        LABELS.put("dmList", "DM一覧の行");
+        LABELS.put("dmHeader", "DMヘッダー");
+        LABELS.put("memberList", "メンバー一覧");
+        LABELS.put("profile", "プロフィール名");
+        LABELS.put("messages", "メッセージの名前");
     }
-    /** The Cadence page grows with each feature; scroll the named control into view before using it. */
-    private UiObject scrolled(String label) throws Exception {
-        return scrolled(new UiSelector().packageName("com.discord").description(label));
+    private UiSelector discord() {
+        return new UiSelector().packageName("com.discord");
     }
+    private UiObject row(String label) {
+        return new UiObject(discord().descriptionStartsWith(label + ",").enabled(true));
+    }
+    private UiObject pageHeader() {
+        return new UiObject(discord().text("メッセージ"));
+    }
+    /** The page grows with each category; scroll the named row into view before using it. */
     private UiObject scrolled(UiSelector selector) throws Exception {
-        UiScrollable page = new UiScrollable(new UiSelector().packageName("com.discord").scrollable(true));
+        UiScrollable page = new UiScrollable(discord().scrollable(true));
         if (page.exists() && !new UiObject(selector).exists()) {
             page.scrollToBeginning(10);
             page.scrollIntoView(selector);
@@ -37,103 +57,51 @@ public class CadenceUiSmoke extends UiAutomatorTestCase {
         }
         return target;
     }
+    private String label(String name) {
+        String value = LABELS.get(name);
+        assertNotNull("CADENCE_UI invalid feature or place", value);
+        return value;
+    }
     public void testNamedAction() throws Exception {
         String action = getParams().getString("action", "open-cadence");
+        String expected = getParams().getString("expected", "false");
+        assertTrue("CADENCE_UI invalid expected value", expected.equals("true") || expected.equals("false"));
         if (action.equals("open-cadence")) {
-            UiObject entry = control("Cadence");
+            UiObject entry = new UiObject(discord().descriptionStartsWith("Cadence").enabled(true));
             assertTrue("CADENCE_UI Cadence entry missing", entry.waitForExists(15000));
             entry.click();
-            assertTrue("CADENCE_UI page missing", new UiObject(new UiSelector().packageName("com.discord").text("Cadence 設定")).waitForExists(5000));
+            assertTrue("CADENCE_UI page missing", pageHeader().waitForExists(5000));
             System.out.println("CADENCE_UI Cadence page visible");
-        } else if (action.equals("toggle-compact")) {
-            UiObject toggle = control("cadence:compact");
-            assertTrue("CADENCE_UI compact control missing", toggle.waitForExists(5000));
-            toggle.click();
-            getUiDevice().waitForIdle();
-            System.out.println("CADENCE_UI compact toggled");
         } else if (action.equals("show-logs")) {
-            assertTrue("CADENCE_UI feature info missing", control("cadence:features").waitForExists(5000));
-            assertEquals("組み込み機能: なし", control("cadence:features").getText());
-            UiObject logs = control("cadence:logs");
-            assertTrue("CADENCE_UI log toggle missing", logs.exists());
+            UiObject logs = scrolled(discord().descriptionStartsWith("診断ログを表示"));
+            assertTrue("CADENCE_UI log row missing", logs.waitForExists(5000));
             logs.click();
-            assertTrue("CADENCE_UI memory logs missing", control("cadence:log-content").waitForExists(5000));
-            System.out.println("CADENCE_UI memory logs and empty build manifest visible");
+            assertTrue("CADENCE_UI logs did not open", new UiObject(discord().descriptionStartsWith("診断ログを閉じる")).waitForExists(5000));
+            System.out.println("CADENCE_UI memory logs visible");
         } else if (action.equals("check-saved")) {
-            assertTrue("CADENCE_UI save acknowledgement missing", scrolled("cadence:saved").waitForExists(10000));
+            assertTrue("CADENCE_UI save acknowledgement missing", scrolled(discord().text("保存しました")).waitForExists(10000));
             System.out.println("CADENCE_UI native save and read-back acknowledged");
         } else if (action.equals("close-cadence")) {
-            assertTrue("CADENCE_UI Cadence page missing", new UiObject(new UiSelector().packageName("com.discord").text("Cadence 設定")).exists());
+            assertTrue("CADENCE_UI page missing", pageHeader().exists());
             getUiDevice().pressBack();
             getUiDevice().waitForIdle();
-            assertTrue("CADENCE_UI overview entry missing after back", control("Cadence").waitForExists(5000));
+            assertTrue("CADENCE_UI overview entry missing after back",
+                new UiObject(discord().descriptionStartsWith("Cadence")).waitForExists(5000));
             System.out.println("CADENCE_UI hardware back preserved overview");
-        } else if (action.equals("open-history")) {
-            UiObject entry = scrolled("cadence:history:open");
-            assertTrue("CADENCE_UI history entry missing", entry.waitForExists(5000)); entry.click();
-            assertTrue("CADENCE_UI history panel missing", control("cadence:history:count").waitForExists(5000));
-            System.out.println("CADENCE_UI history panel visible");
-        } else if (action.equals("check-history")) {
-            String expected = getParams().getString("expected", "false");
-            assertTrue("CADENCE_UI invalid expected value", expected.equals("true") || expected.equals("false"));
-            UiObject count = control("cadence:history:count"); assertTrue("CADENCE_UI history count missing", count.waitForExists(5000));
-            assertEquals("CADENCE_UI history count mismatch", expected.equals("false"), count.getText().equals("保持件数: 0"));
-            System.out.println("CADENCE_UI history count matches expected");
-        } else if (action.equals("clear-history")) {
-            control("cadence:history:clear").click();
-            assertTrue("CADENCE_UI history did not clear", control("cadence:history:empty").waitForExists(5000));
-            System.out.println("CADENCE_UI history cleared");
-        } else if (action.equals("close-history")) {
-            control("cadence:history:back").click();
-            assertTrue("CADENCE_UI settings missing after history", new UiObject(new UiSelector().packageName("com.discord").text("Cadence 設定")).waitForExists(5000));
-            System.out.println("CADENCE_UI history closed");
-        } else if (action.equals("toggle-platform") || action.equals("check-platform")) {
-            String place = getParams().getString("feature", "");
-            assertTrue("CADENCE_UI invalid platform location", place.equals("avatars") || place.equals("dmList") || place.equals("dmHeader")
-                || place.equals("memberList") || place.equals("profile") || place.equals("messages"));
-            if (action.equals("toggle-platform")) {
-                String current = getParams().getString("expected", "false");
-                assertTrue("CADENCE_UI invalid current value", current.equals("true") || current.equals("false"));
-                assertTrue("CADENCE_UI initial platform state mismatch", scrolled("cadence:platform:" + place + ":" + current).waitForExists(5000));
-                UiObject toggle = control("cadence:platform:" + place);
-                assertTrue("CADENCE_UI platform control missing", toggle.waitForExists(5000));
-                toggle.click(); getUiDevice().waitForIdle();
-                assertTrue("CADENCE_UI platform click did not change state", control("cadence:platform:" + place + ":" + !Boolean.parseBoolean(current)).waitForExists(5000));
-                System.out.println("CADENCE_UI platform location toggled");
-            } else {
-                String expected = getParams().getString("expected", "false");
-                assertTrue("CADENCE_UI invalid expected value", expected.equals("true") || expected.equals("false"));
-                assertTrue("CADENCE_UI platform state mismatch", scrolled("cadence:platform:" + place + ":" + expected).waitForExists(5000));
-                System.out.println("CADENCE_UI platform location matches expected");
-            }
-        } else if (action.equals("toggle-feature") || action.equals("check-feature")) {
-            String feature = getParams().getString("feature", "");
-            boolean extra = feature.equals("quickDelete") || feature.equals("noConfirmPin") || feature.equals("alwaysTrust") || feature.equals("jumpToTop") || feature.equals("gestures") || feature.equals("gestureTripleDelete") || feature.equals("fullImages") || feature.equals("readAll") || feature.equals("quietReplies") || feature.equals("voiceDownload") || feature.equals("serverInfo") || feature.equals("hiddenChannels") || feature.equals("messageHistory");
-            assertTrue("CADENCE_UI invalid feature", extra || feature.equals("fakeNitro") || feature.equals("platformIndicator"));
-            String prefix = extra ? "cadence:extra:" : "cadence:feature:";
-            if (action.equals("toggle-feature")) {
-                String current = getParams().getString("expected", "false");
-                assertTrue("CADENCE_UI invalid current value", current.equals("true") || current.equals("false"));
-                assertTrue("CADENCE_UI feature row missing", scrolled(new UiSelector().packageName("com.discord").descriptionStartsWith(prefix + feature + ":")).waitForExists(5000));
-                UiObject toggle = control(prefix + feature);
-                assertTrue("CADENCE_UI feature control missing", toggle.waitForExists(5000));
-                assertEquals("CADENCE_UI initial feature state mismatch", Boolean.parseBoolean(current), toggle.isChecked());
-                toggle.click();
-                getUiDevice().waitForIdle();
-                assertEquals("CADENCE_UI feature click did not change state", !Boolean.parseBoolean(current), control(prefix + feature).isChecked());
-                System.out.println("CADENCE_UI feature toggled");
-            } else {
-                String expected = getParams().getString("expected", "false");
-                assertTrue("CADENCE_UI invalid expected value", expected.equals("true") || expected.equals("false"));
-                assertTrue("CADENCE_UI feature row missing", scrolled(new UiSelector().packageName("com.discord").descriptionStartsWith(prefix + feature + ":")).waitForExists(5000));
-                assertEquals("CADENCE_UI feature state mismatch", Boolean.parseBoolean(expected), control(prefix + feature).isChecked());
-                System.out.println("CADENCE_UI feature matches expected");
-            }
-        } else if (action.equals("check-compact")) {
-            String expected = getParams().getString("expected", "false");
-            assertTrue("CADENCE_UI invalid expected value", expected.equals("true") || expected.equals("false"));
-            assertTrue("CADENCE_UI persisted compact state mismatch", control("cadence:compact:" + expected).waitForExists(5000));
-            System.out.println("CADENCE_UI compact matches expected");
+        } else if (action.equals("toggle-feature") || action.equals("toggle-platform")) {
+            String name = label(getParams().getString("feature", ""));
+            UiObject toggle = scrolled(discord().descriptionStartsWith(name + ","));
+            assertTrue("CADENCE_UI row missing", toggle.waitForExists(5000));
+            assertEquals("CADENCE_UI initial state mismatch", Boolean.parseBoolean(expected), toggle.isChecked());
+            toggle.click();
+            getUiDevice().waitForIdle();
+            assertEquals("CADENCE_UI click did not change state", !Boolean.parseBoolean(expected), row(name).isChecked());
+            System.out.println("CADENCE_UI row toggled");
+        } else if (action.equals("check-feature") || action.equals("check-platform")) {
+            String name = label(getParams().getString("feature", ""));
+            assertTrue("CADENCE_UI row missing", scrolled(discord().descriptionStartsWith(name + ",")).waitForExists(5000));
+            assertEquals("CADENCE_UI state mismatch", Boolean.parseBoolean(expected), row(name).isChecked());
+            System.out.println("CADENCE_UI row matches expected");
         } else {
             fail("CADENCE_UI unsupported action");
         }

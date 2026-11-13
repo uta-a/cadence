@@ -1,10 +1,11 @@
 // Ported from Venus Patches (https://github.com/VenusIsJaded/Venus-Patches, GPL-3.0),
 // bootstrap.js platformName/platformHeader/platformDmRow/placePlatformTree, commit
 // 987b7a22d96d41a0ba80c060b485291e1c7bcc4b. Adapted to 352.17 and Cadence's badges/settings.
-import type { AvatarReact } from "../platformIndicator";
-import { platformsOf } from "../platformIndicator";
-import type { PlatformPlace } from "../../core/settings";
-import { wrapExport } from "./gestures";
+import type { AvatarReact } from "./platformIndicator";
+import { platformsOf } from "./platformIndicator";
+import { platformIcon } from "./platformImage";
+import type { PlatformPlace } from "../core/settings";
+import { wrapExport } from "../core/exports";
 
 type Fn = (...args: unknown[]) => unknown;
 type Place = Exclude<PlatformPlace, "avatars" | "messages">;
@@ -20,8 +21,11 @@ export interface PlatformPlacementDeps {
     provider: unknown;
     onEvent?(place: PlatformPlace): void;
 }
+/** A zero-width space: the chip needs some text to be drawn, but only the icon should show. */
+const CHIP_TEXT = "\u200b";
+/** The server tag chip is drawn only with a guild ID; tapping it opens nothing for an unknown guild. */
+const CHIP_GUILD = "0";
 const ROW_STYLE = { flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1 };
-const LABELS: Record<string, string> = { desktop: "PC", mobile: "M", web: "W", vr: "VR" };
 function object(value: unknown): value is Record<string, unknown> { return !!value && typeof value === "object"; }
 function data(value: unknown, key: string): unknown {
     if (!value || (typeof value !== "object" && typeof value !== "function")) return undefined;
@@ -187,11 +191,53 @@ export function createPlatformPlacements(deps: PlatformPlacementDeps) {
             if (typeof message.username !== "string" || message.username.length > 256 || typeof message.authorId !== "string") return result;
             const states = platformsOf(deps.status(message.authorId));
             if (!states.length) return result;
-            const suffix = states.map(state => LABELS[state.platform]).join("/");
-            const next = { ...result, message: { ...message, username: message.username + " · " + suffix } };
+            // The native row only draws images in its two tag chips: the server tag (clan) and the lobby tag. Each free chip
+            // shows one platform icon with no text; a chip the author really uses keeps their own tag.
+            const icons: Record<string, unknown> = {};
+            let index = 0;
+            if (!(typeof message.clanTag === "string" && message.clanTag)) {
+                const icon = platformIcon(states[index++]);
+                if (icon) Object.assign(icons, { clanTag: CHIP_TEXT, clanBadgeUrl: icon, clanTagGuildId: CHIP_GUILD });
+            }
+            if (states[index] && !(typeof message.lobbyAdditionalName === "string" && message.lobbyAdditionalName)) {
+                const icon = platformIcon(states[index]);
+                if (icon) Object.assign(icons, { lobbyAdditionalName: CHIP_TEXT, lobbyTagIconUrl: icon });
+            }
+            if (!Object.keys(icons).length) return result;
+            const next = { ...result, message: { ...message, ...icons } };
             transformed.add(next); report("messages");
             return next;
         } catch (_) { return result; }
+    }
+    /**
+     * The server tag chip opens the guild's profile on tap. Discord builds MessagesHandlers per chat and defines the
+     * handler on each instance, so wrap the constructor and let only taps on Cadence's own chips (guild "0") do nothing.
+     */
+    function installChipTaps(exports: unknown, eventData: () => unknown): boolean {
+        try {
+            return wrapExport(exports, "MessagesHandlers", original => {
+                const Original = original as unknown as new (...args: unknown[]) => Record<string, unknown>;
+                function CadenceMessagesHandlers(this: unknown, ...args: unknown[]): unknown {
+                    const instance = Reflect.construct(Original, args, new.target ?? CadenceMessagesHandlers) as Record<string, unknown>;
+                    const tap = instance && instance.handleTapClanTagChiplet;
+                    if (typeof tap === "function") instance.handleTapClanTagChiplet = function (this: unknown, ...tapArgs: unknown[]) {
+                        try {
+                            const read = eventData();
+                            const data = typeof read === "function" ? read(tapArgs[0]) : undefined;
+                            if (object(data) && String(data.guildId) === CHIP_GUILD) return undefined;
+                        } catch (_) { /* Unknown event shape: Discord's own handler decides. */ }
+                        return Reflect.apply(tap, this, tapArgs);
+                    };
+                    return instance;
+                }
+                CadenceMessagesHandlers.prototype = Original.prototype;
+                for (const key of Object.getOwnPropertyNames(Original)) {
+                    if (key === "prototype" || key === "length" || key === "name" || key in CadenceMessagesHandlers) continue;
+                    try { Object.defineProperty(CadenceMessagesHandlers, key, Object.getOwnPropertyDescriptor(Original, key)!); } catch (_) { /* Optional static. */ }
+                }
+                return CadenceMessagesHandlers;
+            });
+        } catch (_) { return false; }
     }
     function installMessages(exports: unknown): boolean {
         try {
@@ -202,5 +248,5 @@ export function createPlatformPlacements(deps: PlatformPlacementDeps) {
             });
         } catch (_) { return false; }
     }
-    return { install, installScope, installProfile, installMessages, messageRow, placeTree };
+    return { install, installScope, installProfile, installMessages, installChipTaps, messageRow, placeTree };
 }

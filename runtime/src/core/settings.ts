@@ -4,27 +4,16 @@
 export const FEATURE_KEYS = Object.freeze(["fakeNitro", "platformIndicator"] as const);
 export type FeatureKey = typeof FEATURE_KEYS[number];
 export type SettingsSnapshot = Readonly<Record<FeatureKey, boolean>>;
-export const PREFERENCE_KEYS = Object.freeze(["compact"] as const);
-export type PreferenceKey = typeof PREFERENCE_KEYS[number];
-export type PreferencesSnapshot = Readonly<Record<PreferenceKey, boolean>>;
 export const EMOJI_SIZES = Object.freeze([48, 64, 96, 128] as const);
 export type EmojiSize = typeof EMOJI_SIZES[number];
 /** Fake Nitro options. Optional in schema 2: older builds only read allowlisted keys and ignore this object. */
-export interface NitroOptions { readonly emojiSize: EmojiSize; readonly maskedLinks: boolean; }
-export const DEFAULT_NITRO: NitroOptions = Object.freeze({ emojiSize: 48, maskedLinks: false });
+export interface NitroOptions { readonly emojiSize: EmojiSize; }
+export const DEFAULT_NITRO: NitroOptions = Object.freeze({ emojiSize: 48 });
 export const PLATFORM_PLACES = Object.freeze(["avatars", "dmList", "dmHeader", "memberList", "profile", "messages"] as const);
 export type PlatformPlace = typeof PLATFORM_PLACES[number];
 export type PlatformOptions = Readonly<Record<PlatformPlace, boolean>>;
 export const DEFAULT_PLATFORM: PlatformOptions = Object.freeze({ avatars: true, dmList: true, dmHeader: true,
     memberList: true, profile: true, messages: true });
-/**
- * Features ported from Venus Patches (docs/VENUS-PORT.md). Stored as the optional `extras` array of enabled IDs,
- * omitted while none is on, so older builds and older settings files are unaffected. Unknown IDs are ignored.
- */
-export const EXTRA_KEYS = Object.freeze(["quickDelete", "noConfirmPin", "alwaysTrust", "jumpToTop", "gestures", "gestureTripleDelete", "fullImages", "readAll", "quietReplies", "voiceDownload", "serverInfo", "hiddenChannels", "messageHistory"] as const);
-export type ExtraKey = typeof EXTRA_KEYS[number];
-export type ExtrasSnapshot = readonly ExtraKey[];
-
 export interface SettingsStorage {
     read(): Promise<string | null>;
     write(text: string): Promise<void>;
@@ -32,19 +21,15 @@ export interface SettingsStorage {
 
 export function createSettingsStore(storage: SettingsStorage, onError: (error: unknown) => void = () => {}) {
     let values: SettingsSnapshot = Object.freeze({ fakeNitro: false, platformIndicator: false });
-    let preferences: PreferencesSnapshot = Object.freeze({ compact: false });
     let nitro: NitroOptions = DEFAULT_NITRO;
     let platform: PlatformOptions = DEFAULT_PLATFORM;
-    let extras: ExtrasSnapshot = Object.freeze([]);
     let initialized = false;
     let loading: Promise<void> | null = null;
     let revision = 0;
     let saveQueue = Promise.resolve();
     const listeners = new Set<(value: SettingsSnapshot) => void>();
-    const preferenceListeners = new Set<(value: PreferencesSnapshot) => void>();
     const nitroListeners = new Set<(value: NitroOptions) => void>();
     const platformListeners = new Set<(value: PlatformOptions) => void>();
-    const extrasListeners = new Set<(value: ExtrasSnapshot) => void>();
 
     function report(error: unknown): void {
         try { onError(error); } catch (_) { /* Diagnostics cannot break the client. */ }
@@ -69,13 +54,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         const size = hasOwn(value, "emojiSize") ? value.emojiSize : undefined;
         return Object.freeze({
             emojiSize: EMOJI_SIZES.includes(size as EmojiSize) ? size as EmojiSize : DEFAULT_NITRO.emojiSize,
-            maskedLinks: hasOwn(value, "maskedLinks") && value.maskedLinks === true,
         });
-    }
-
-    function parseExtras(value: unknown): ExtrasSnapshot {
-        if (!Array.isArray(value)) return Object.freeze([]);
-        return Object.freeze(EXTRA_KEYS.filter(key => value.includes(key)));
     }
 
     function parsePlatform(value: unknown): PlatformOptions {
@@ -86,7 +65,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         return Object.freeze(result);
     }
 
-    function parse(text: string): { features: SettingsSnapshot; preferences: PreferencesSnapshot; nitro: NitroOptions; platform: PlatformOptions; extras: ExtrasSnapshot } {
+    function parse(text: string): { features: SettingsSnapshot; nitro: NitroOptions; platform: PlatformOptions } {
         const data: unknown = JSON.parse(text);
         if (!isRecord(data)) throw new Error("Invalid Cadence settings");
         if (!hasOwn(data, "version") || !hasOwn(data, "features") ||
@@ -95,24 +74,21 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         if (data.version === 2 && (!hasOwn(data, "preferences") || !isRecord(data.preferences)))
             throw new Error("Unsupported Cadence settings schema");
         const features = data.features;
-        const savedPreferences = data.version === 2 ? data.preferences as Record<string, unknown> : {};
         return {
             features: Object.freeze({
                 fakeNitro: hasOwn(features, "fakeNitro") && features.fakeNitro === true,
                 platformIndicator: hasOwn(features, "platformIndicator") && features.platformIndicator === true,
             }),
-            preferences: Object.freeze({ compact: hasOwn(savedPreferences, "compact") && savedPreferences.compact === true }),
             nitro: data.version === 2 && hasOwn(data, "nitro") ? parseNitro(data.nitro) : DEFAULT_NITRO,
             platform: data.version === 2 && hasOwn(data, "platform") ? parsePlatform(data.platform) : DEFAULT_PLATFORM,
-            extras: data.version === 2 && hasOwn(data, "extras") ? parseExtras(data.extras) : Object.freeze([]),
         };
     }
 
     function save(): Promise<void> {
         revision++;
         // Persist even an unchanged choice: the previous write may have failed, or disk may still hold an old value.
-        const snapshot = JSON.stringify({ version: 2, features: values, preferences, nitro,
-            ...(extras.length ? { extras } : {}),
+        // Schema 2 keeps an empty `preferences` object; older files may still carry compact or maskedLinks and are read leniently.
+        const snapshot = JSON.stringify({ version: 2, features: values, preferences: {}, nitro,
             ...(PLATFORM_PLACES.some(key => platform[key] !== DEFAULT_PLATFORM[key]) ? { platform } : {}) });
         // Queue before notifying: a listener may synchronously change a feature or preference.
         const pending = saveQueue.then(() => storage.write(snapshot));
@@ -123,10 +99,8 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
     return {
         get ready() { return initialized; },
         get(): SettingsSnapshot { return values; },
-        getPreferences(): PreferencesSnapshot { return preferences; },
         getNitro(): NitroOptions { return nitro; },
         getPlatform(): PlatformOptions { return platform; },
-        getExtras(): ExtrasSnapshot { return extras; },
         /** Load once; failures keep the all-off defaults and are reported. A concurrent local change wins over disk. */
         load(): Promise<void> {
             if (initialized) return Promise.resolve();
@@ -138,13 +112,9 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
                     if (text !== null && revision === 0) {
                         const loaded = parse(text);
                         values = loaded.features;
-                        preferences = loaded.preferences;
                         nitro = loaded.nitro;
                         platform = loaded.platform;
-                        extras = loaded.extras;
                         notify(listeners, () => values);
-                        notify(extrasListeners, () => extras);
-                        notify(preferenceListeners, () => preferences);
                         notify(nitroListeners, () => nitro);
                         notify(platformListeners, () => platform);
                     }
@@ -163,25 +133,15 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
             if (changed) notify(listeners, () => values);
             return pending;
         },
-        setPreference(key: PreferenceKey, enabled: boolean): Promise<void> {
-            if (!PREFERENCE_KEYS.includes(key) || typeof enabled !== "boolean")
-                return Promise.reject(new TypeError("Invalid Cadence preference setting"));
-            const changed = preferences[key] !== enabled;
-            preferences = Object.freeze({ ...preferences, [key]: enabled });
-            const pending = save();
-            if (changed) notify(preferenceListeners, () => preferences);
-            return pending;
-        },
-        /** Only a known size and a strict boolean are accepted; the other option keeps its value. */
+        /** Only a known emoji size is accepted. */
         setNitro(change: Partial<NitroOptions>): Promise<void> {
             if (!change || typeof change !== "object") return Promise.reject(new TypeError("Invalid Fake Nitro option"));
             const keys = Object.keys(change);
-            if (keys.length === 0 || keys.some(key => key !== "emojiSize" && key !== "maskedLinks") ||
-                ("emojiSize" in change && !EMOJI_SIZES.includes(change.emojiSize as EmojiSize)) ||
-                ("maskedLinks" in change && typeof change.maskedLinks !== "boolean"))
+            if (keys.length === 0 || keys.some(key => key !== "emojiSize") ||
+                ("emojiSize" in change && !EMOJI_SIZES.includes(change.emojiSize as EmojiSize)))
                 return Promise.reject(new TypeError("Invalid Fake Nitro option"));
             const next = Object.freeze({ ...nitro, ...change }) as NitroOptions;
-            const changed = next.emojiSize !== nitro.emojiSize || next.maskedLinks !== nitro.maskedLinks;
+            const changed = next.emojiSize !== nitro.emojiSize;
             nitro = next;
             const pending = save();
             if (changed) notify(nitroListeners, () => nitro);
@@ -200,21 +160,6 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
             platformListeners.add(listener);
             return () => { platformListeners.delete(listener); };
         },
-        setExtra(key: ExtraKey, enabled: boolean): Promise<void> {
-            if (!EXTRA_KEYS.includes(key) || typeof enabled !== "boolean")
-                return Promise.reject(new TypeError("Invalid Cadence extra feature"));
-            const changed = extras.includes(key) !== enabled;
-            const next = new Set<ExtraKey>(extras);
-            if (enabled) next.add(key); else next.delete(key);
-            extras = Object.freeze(EXTRA_KEYS.filter(item => next.has(item)));
-            const pending = save();
-            if (changed) notify(extrasListeners, () => extras);
-            return pending;
-        },
-        subscribeExtras(listener: (value: ExtrasSnapshot) => void): () => void {
-            extrasListeners.add(listener);
-            return () => { extrasListeners.delete(listener); };
-        },
         subscribeNitro(listener: (value: NitroOptions) => void): () => void {
             nitroListeners.add(listener);
             return () => { nitroListeners.delete(listener); };
@@ -222,10 +167,6 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         subscribe(listener: (value: SettingsSnapshot) => void): () => void {
             listeners.add(listener);
             return () => { listeners.delete(listener); };
-        },
-        subscribePreferences(listener: (value: PreferencesSnapshot) => void): () => void {
-            preferenceListeners.add(listener);
-            return () => { preferenceListeners.delete(listener); };
         },
     };
 }

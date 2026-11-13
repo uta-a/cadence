@@ -1,5 +1,7 @@
 # Venus Patches からの移植
 
+> 2026-11-13: 端末表示の配置処理を除き、ここに記録したVenus由来の機能は削除した（[変更履歴](../CHANGELOG.md)）。以下は0.1.0時点の記録として残す。
+
 ## 方針（2026-11-11、ユーザーの指示）
 
 [Venus Patches](https://github.com/VenusIsJaded/Venus-Patches)（GPL-3.0、Discord 351.11対象）を参考にし、コードを流用して機能を実装する。それまでの「Venusは設計の参考のみ」という方針は、ユーザーの指示でこの時点から変更した。Cadence も GPL-3.0 なので、著作権表示を保って流用できる。
