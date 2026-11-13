@@ -1,4 +1,4 @@
-rootProject.name = "disk"
+rootProject.name = "cadence"
 
 pluginManagement {
     repositories {

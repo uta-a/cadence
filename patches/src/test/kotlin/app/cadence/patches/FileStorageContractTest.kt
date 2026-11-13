@@ -1,4 +1,4 @@
-package app.disk.patches
+package app.cadence.patches
 
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.Opcodes
@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 
 /** Static evidence only. No native module, file method, or Discord factory is executed. */
 class FileStorageContractTest {
-    private val root = File(System.getProperty("disk.root") ?: ".")
+    private val root = File(System.getProperty("cadence.root") ?: ".")
 
     @Test
     fun `35217 native spec exposes the expected promise methods`() = withDex { classes ->

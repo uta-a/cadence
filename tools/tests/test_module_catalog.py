@@ -59,12 +59,12 @@ class CatalogTests(unittest.TestCase):
         self.assertFalse(set(receipt['modules']) & set(receipt['notObserved']))
 
 
-@unittest.skipUnless(os.environ.get('DISK_BUNDLE'), 'set DISK_BUNDLE to check catalog evidence against original HBC')
+@unittest.skipUnless(os.environ.get('CADENCE_BUNDLE'), 'set CADENCE_BUNDLE to check catalog evidence against original HBC')
 class CatalogBundleTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.data = catalog()
-        cls.hbc = HbcFile(os.environ['DISK_BUNDLE'])
+        cls.hbc = HbcFile(os.environ['CADENCE_BUNDLE'])
         cls.entries = {k: v for k, v in cls.data.items() if not k.startswith('_')}
 
     def test_input_and_module_registrations(self):

@@ -10,13 +10,13 @@ import { fileURLToPath } from "node:url";
 // Compile the core in isolation as well as checking the production entry. Do not invoke any module or native API.
 test("isolated core modules compile together to HBC98 without executing them", async () => {
     const root = dirname(dirname(fileURLToPath(import.meta.url)));
-    const scratch = mkdtempSync(join(tmpdir(), "disk-core-hbc-"));
+    const scratch = mkdtempSync(join(tmpdir(), "cadence-core-hbc-"));
     try {
         const source = join(scratch, "core.js"), hbc = join(scratch, "core.hbc");
         await build({
             stdin: { contents: 'export { createMetroLoader } from "./core/loader"; export { createSettingsStore } from "./core/settings"; export { createNativeSettingsStorage } from "./core/storage";',
                 resolveDir: join(root, "src"), loader: "ts" },
-            bundle: true, outfile: source, format: "iife", globalName: "DiskIsolatedCore",
+            bundle: true, outfile: source, format: "iife", globalName: "CadenceIsolatedCore",
             platform: "neutral", target: "es2019", supported: { class: false }, charset: "ascii", legalComments: "none",
         });
         const platform = { darwin: "osx-bin/hermesc", linux: "linux64-bin/hermesc", win32: "win64-bin/hermesc.exe" }[process.platform];

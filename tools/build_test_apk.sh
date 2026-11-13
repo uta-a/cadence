@@ -12,7 +12,7 @@ test -f work/install-35217/disk-local-test.jks
 test -f work/install-35217/discord-352.17-source.apkm
 export GITHUB_ACTOR="${GITHUB_ACTOR:-uta-a}"
 export GITHUB_TOKEN="${GITHUB_TOKEN:-$(gh auth token)}"
-export DISK_UI_SMOKE="$SMOKE"
+export CADENCE_UI_SMOKE="$SMOKE"
 if ! ./gradlew :patches:test :patches:generatePatchesList :patches:buildAndroid --no-daemon -q > "$OUT/build.log" 2>&1; then tail -35 "$OUT/build.log"; exit 1; fi
 MPP=(patches/build/libs/patches-*[0-9].mpp)
 test "${#MPP[@]}" -eq 1
@@ -33,5 +33,5 @@ if not r.get("success") or r.get("failedPatches") or set(r.get("appliedPatches",
   --ks-pass env:DISK_KEYSTORE_PASSWORD --key-pass env:DISK_KEYSTORE_PASSWORD --out "$OUT/signed.apk" "$OUT/aligned.apk"
 "$SDK/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$OUT/signed.apk" > "$OUT/signature-verification.txt"
 "$SDK/build-tools/36.0.0/zipalign" -c -P 16 4 "$OUT/signed.apk"
-grep -E '^ℹ|^disk runtime' "$OUT/build.log" | tail -10
+grep -E '^ℹ|^Cadence runtime' "$OUT/build.log" | tail -10
 shasum -a 256 "$OUT/signed.apk"

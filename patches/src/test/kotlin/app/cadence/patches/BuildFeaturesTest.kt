@@ -1,4 +1,4 @@
-package app.disk.patches
+package app.cadence.patches
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -8,12 +8,12 @@ import kotlin.test.assertTrue
 class BuildFeaturesTest {
     @Test
     fun `no selected feature patches means an empty embedded manifest`() {
-        assertEquals("parseBuildFeatures([])", BuildFeatures.render("parseBuildFeatures(\"/*__DISK_FEATURES__*/\")"))
+        assertEquals("parseBuildFeatures([])", BuildFeatures.render("parseBuildFeatures(\"/*__CADENCE_FEATURES__*/\")"))
     }
 
     @Test
     fun `selection is deterministic and each APK is independent`() {
-        val runtime = "parseBuildFeatures('/*__DISK_FEATURES__*/')"
+        val runtime = "parseBuildFeatures('/*__CADENCE_FEATURES__*/')"
         assertEquals(
             "parseBuildFeatures([\"fakeNitro\", \"disableAnalytics\"])",
             BuildFeatures.render(runtime, setOf("disableAnalytics", "fakeNitro")),
@@ -23,9 +23,9 @@ class BuildFeaturesTest {
 
     @Test
     fun `unknown IDs and missing or duplicate markers fail closed`() {
-        assertFailsWith<IllegalArgumentException> { BuildFeatures.render("'/*__DISK_FEATURES__*/'", setOf("unknown")) }
+        assertFailsWith<IllegalArgumentException> { BuildFeatures.render("'/*__CADENCE_FEATURES__*/'", setOf("unknown")) }
         assertFailsWith<IllegalStateException> { BuildFeatures.render("nothing") }
-        assertFailsWith<IllegalStateException> { BuildFeatures.render("'/*__DISK_FEATURES__*/' + \"/*__DISK_FEATURES__*/\"") }
+        assertFailsWith<IllegalStateException> { BuildFeatures.render("'/*__CADENCE_FEATURES__*/' + \"/*__CADENCE_FEATURES__*/\"") }
     }
 
     @Test
@@ -47,7 +47,7 @@ class BuildFeaturesTest {
     fun `runtime feature patches depend on the runtime and are selected by default`() {
         for (patch in listOf(fakeNitro, platformIndicator, disableAnalytics, skipDeleteConfirmation, skipPinConfirmation, alwaysTrustLinksAndFiles, jumpToFirstMessage, doubleTapToReply, loadFullQualityImages, readAll, replyWithoutPinging, downloadVoiceMessages, serverInformation, showHiddenChannels, keepDeletedMessages)) {
             assertTrue(patch.default)
-            assertTrue(patch.dependencies.contains(diskRuntime))
+            assertTrue(patch.dependencies.contains(cadenceRuntime))
             assertEquals("com.discord", patch.compatibility!!.single().packageName)
         }
     }

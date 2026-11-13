@@ -20,7 +20,7 @@ await build({
     entryPoints: [join(root, "src", "index.ts")],
     outfile: out,
     bundle: true,
-    define: { __DISK_UI_SMOKE__: process.env.DISK_UI_SMOKE === "1" ? "true" : "false" },
+    define: { __CADENCE_UI_SMOKE__: process.env.CADENCE_UI_SMOKE === "1" ? "true" : "false" },
     format: "iife",
     platform: "neutral",
     // Discord's Hermes evals this source on the phone. Classes are kept out: Hermes runs them through a slow path
@@ -39,7 +39,7 @@ await build({
 const hermesc = join(root, "node_modules", "hermes-compiler", "hermesc", {
     darwin: "osx-bin/hermesc", linux: "linux64-bin/hermesc", win32: "win64-bin/hermesc.exe",
 }[process.platform] ?? "");
-const scratch = mkdtempSync(join(tmpdir(), "disk-hbc-"));
+const scratch = mkdtempSync(join(tmpdir(), "cadence-hbc-"));
 try {
     const hbc = join(scratch, "runtime.hbc");
     execFileSync(hermesc, ["-emit-binary", "-out", hbc, out], { stdio: "inherit" });
@@ -54,5 +54,5 @@ try {
 }
 // Packaged alongside runtime.js. Release preparation rejects missing metadata and UI-smoke bundles.
 writeFileSync(join(dirname(out), "build-info.json"), JSON.stringify({ schema: 1, hbcVersion: HBC_VERSION,
-    uiSmoke: process.env.DISK_UI_SMOKE === "1" }) + "\n");
-console.log(`disk runtime -> ${out} (HBC${HBC_VERSION} ok)`);
+    uiSmoke: process.env.CADENCE_UI_SMOKE === "1" }) + "\n");
+console.log(`Cadence runtime -> ${out} (HBC${HBC_VERSION} ok)`);

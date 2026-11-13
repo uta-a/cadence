@@ -1,6 +1,6 @@
-package app.disk.patches.dex
+package app.cadence.patches.dex
 
-import app.disk.patches.DISCORD_VERSION
+import app.cadence.patches.DISCORD_VERSION
 import app.morphe.patcher.patch.BytecodePatchContext
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod

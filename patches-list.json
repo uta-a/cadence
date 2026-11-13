@@ -4,7 +4,34 @@
   "patches": [
     {
       "name": "Always trust links and files",
-      "description": "Open links and files without Discord's warnings (based on AlwaysTrust by zt and Trwy). Off until enabled in the disk settings.",
+      "description": "Open links and files without Discord's warnings (based on AlwaysTrust by zt and Trwy). Off until enabled in the Cadence settings.",
+      "default": true,
+      "category": null,
+      "compatiblePackages": [
+        {
+          "packageName": "com.discord",
+          "name": "Discord",
+          "description": null,
+          "apkFileType": "APKM",
+          "appIconColor": "#5865F2",
+          "signatures": null,
+          "formFactor": "MOBILE",
+          "targets": [
+            {
+              "version": "352.17 - Stable",
+              "versionCodes": null,
+              "isExperimental": false,
+              "minSdk": null,
+              "description": null
+            }
+          ]
+        }
+      ],
+      "options": []
+    },
+    {
+      "name": "Cadence",
+      "description": "Inject the Cadence runtime and its settings screen into the APK bundle.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -166,7 +193,7 @@
     },
     {
       "name": "Double-tap to reply",
-      "description": "Double-tap to reply, or to edit your own message; optional triple-tap to delete (a port of Geastures+ by kmmiio99o). Off until enabled in the disk settings.",
+      "description": "Double-tap to reply, or to edit your own message; optional triple-tap to delete (a port of Geastures+ by kmmiio99o). Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -193,7 +220,7 @@
     },
     {
       "name": "Download voice messages",
-      "description": "Add a save button to voice messages using Android's downloader (based on VoiceDownload). Off until enabled in the disk settings.",
+      "description": "Add a save button to voice messages using Android's downloader (based on VoiceDownload). Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -220,7 +247,7 @@
     },
     {
       "name": "Fake Nitro",
-      "description": "Send emojis that need Nitro as image links. Off until enabled in the disk settings.",
+      "description": "Send emojis that need Nitro as image links. Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -247,7 +274,7 @@
     },
     {
       "name": "Jump to first message",
-      "description": "A button to jump to the start of any chat. Off until enabled in the disk settings.",
+      "description": "A button to jump to the start of any chat. Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -274,7 +301,7 @@
     },
     {
       "name": "Keep deleted messages",
-      "description": "Keep bounded, session-only snapshots of loaded deleted/edited text in disk's history viewer. Normal Discord deletions still happen. Off until enabled; disabling or logout clears history.",
+      "description": "Keep bounded, session-only snapshots of loaded deleted/edited text in Cadence's history viewer. Normal Discord deletions still happen. Off until enabled; disabling or logout clears history.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -301,7 +328,7 @@
     },
     {
       "name": "Load full-quality images",
-      "description": "Load uploaded pictures and profile pictures in full quality (based on Uncompressed Discord Images by Knewest and HighResProfileImages by Kawtious). Off until enabled in the disk settings.",
+      "description": "Load uploaded pictures and profile pictures in full quality (based on Uncompressed Discord Images by Knewest and HighResProfileImages by Kawtious). Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -328,7 +355,7 @@
     },
     {
       "name": "Platform Indicator",
-      "description": "Show which devices a user is connected from next to their avatar. Off until enabled in the disk settings.",
+      "description": "Show which devices a user is connected from next to their avatar. Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -355,7 +382,7 @@
     },
     {
       "name": "Read all",
-      "description": "Add a button to the server list that marks servers (or, when held, DMs) as read. Off until enabled in the disk settings.",
+      "description": "Add a button to the server list that marks servers (or, when held, DMs) as read. Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -382,7 +409,7 @@
     },
     {
       "name": "Reply without pinging",
-      "description": "Start server and group DM replies without a mention; Discord's per-reply toggle stays available. Off until enabled in the disk settings.",
+      "description": "Start server and group DM replies without a mention; Discord's per-reply toggle stays available. Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -409,7 +436,7 @@
     },
     {
       "name": "Server info",
-      "description": "Show loaded server metadata from the server icon's hold menu. No extra member requests. Off until enabled in the disk settings.",
+      "description": "Show loaded server metadata from the server icon's hold menu. No extra member requests. Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -436,7 +463,7 @@
     },
     {
       "name": "Show hidden channels",
-      "description": "Inspect cached hidden-channel metadata from the server icon's hold menu. Read-only; permissions, navigation and message fetches remain unchanged. Off until enabled in the disk settings.",
+      "description": "Inspect cached hidden-channel metadata from the server icon's hold menu. Read-only; permissions, navigation and message fetches remain unchanged. Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -463,7 +490,7 @@
     },
     {
       "name": "Skip delete confirmation",
-      "description": "Delete messages without the \"Are you sure?\" alert. Off until enabled in the disk settings.",
+      "description": "Delete messages without the \"Are you sure?\" alert. Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -490,7 +517,7 @@
     },
     {
       "name": "Skip pin confirmation",
-      "description": "Pin and unpin without a confirmation (based on NoConfirmPin by Skamt). Off until enabled in the disk settings.",
+      "description": "Pin and unpin without a confirmation (based on NoConfirmPin by Skamt). Off until enabled in the Cadence settings.",
       "default": true,
       "category": null,
       "compatiblePackages": [
@@ -518,33 +545,6 @@
     {
       "name": "bundle pin",
       "description": "Always load the bundle packaged in the APK instead of a downloaded or cached OTA bundle.",
-      "default": true,
-      "category": null,
-      "compatiblePackages": [
-        {
-          "packageName": "com.discord",
-          "name": "Discord",
-          "description": null,
-          "apkFileType": "APKM",
-          "appIconColor": "#5865F2",
-          "signatures": null,
-          "formFactor": "MOBILE",
-          "targets": [
-            {
-              "version": "352.17 - Stable",
-              "versionCodes": null,
-              "isExperimental": false,
-              "minSdk": null,
-              "description": null
-            }
-          ]
-        }
-      ],
-      "options": []
-    },
-    {
-      "name": "disk",
-      "description": "Inject the disk runtime and its settings screen into the APK bundle.",
       "default": true,
       "category": null,
       "compatiblePackages": [

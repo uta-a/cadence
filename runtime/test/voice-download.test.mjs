@@ -10,7 +10,7 @@ const { voiceAttachment, createVoiceDownload } = host.module.exports;
 const url = "https://cdn.discordapp.com/attachments/1/2/voice-message.ogg?ex=signature";
 const message = { flags: 8192, attachments: [{ url, content_type: "audio/ogg" }] };
 const row = { rowType: 1, message };
-const event = { nativeEvent: { callback: "disk-voice-download", channelId: "c", messageId: "m" } };
+const event = { nativeEvent: { callback: "cadence-voice-download", channelId: "c", messageId: "m" } };
 const flush = () => new Promise(resolve => setImmediate(resolve));
 function setup(overrides = {}) {
     let enabled = false;
@@ -32,7 +32,7 @@ test("row wrapper preserves existing CTA, unrelated rows and original generator 
     enable(true);
     const changed = feature.rowResult(result, row);
     assert.notEqual(changed, result); assert.equal(result.message.ctaButton, undefined);
-    assert.equal(changed.message.ctaButton.callback, "disk-voice-download");
+    assert.equal(changed.message.ctaButton.callback, "cadence-voice-download");
     assert.equal(changed.other, 1);
     const existing = { message: { ctaButton: { callback: "discord" } } };
     assert.equal(feature.rowResult(existing, row), existing);
@@ -41,7 +41,7 @@ test("row wrapper preserves existing CTA, unrelated rows and original generator 
     class Generator { generate(input, tail) { assert.equal(this.marker, 7); assert.equal(input, row); assert.equal(tail, "tail"); calls++; return result; } }
     assert.equal(feature.installRows({ default: Generator }), true);
     const generator = new Generator(); generator.marker = 7;
-    assert.equal(generator.generate(row, "tail").message.ctaButton.callback, "disk-voice-download");
+    assert.equal(generator.generate(row, "tail").message.ctaButton.callback, "cadence-voice-download");
     assert.equal(calls, 1);
     assert.equal(feature.installRows({}), false);
     assert.equal(feature.installRows(Object.freeze({ default: () => {} })), false);
@@ -88,5 +88,5 @@ test("missing messages and synchronous native failures never leak to Discord or 
     const unsafe = { nativeEvent: { get callback() { throw new Error("accessor"); } } };
     assert.equal(broken.feature.tap(unsafe), false, "unknown malformed CTA falls through without re-reading its getter");
     const failingStore = setup({ message() { throw new Error("store"); } }); failingStore.enable(true);
-    assert.equal(failingStore.feature.tap(event), true, "recognized disk CTA stays consumed even if its store fails");
+    assert.equal(failingStore.feature.tap(event), true, "recognized Cadence CTA stays consumed even if its store fails");
 });

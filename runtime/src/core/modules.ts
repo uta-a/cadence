@@ -308,7 +308,7 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     function hideWhileGestures(exports: unknown, key: string): boolean {
         const react = reactApi(["createElement"]) as { createElement(type: unknown, props: unknown): unknown } | undefined;
         if (!react) return false;
-        return wrapExport(exports, key, original => function DiskHiddenWhileGestures(props: unknown) {
+        return wrapExport(exports, key, original => function CadenceHiddenWhileGestures(props: unknown) {
             return gestureOn() ? null : react.createElement(original, props);
         });
     }

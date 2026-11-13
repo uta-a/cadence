@@ -39,7 +39,7 @@ export interface ReactApi {
 }
 export interface NativeUi { View: unknown; Text: unknown; Pressable: unknown; ScrollView: unknown; Switch: unknown; Modal: unknown; }
 
-/** Wrap only Overview. Keep its element mounted; the disk page lives in an independent native Modal. */
+/** Wrap only Overview. Keep its element mounted; the Cadence page lives in an independent native Modal. */
 export function createSettingsOverview(react: ReactApi, resolveNative: () => NativeUi | null, original: unknown,
     controller: SettingsController, onStatus: (status: string) => void = () => {}, navigationReady: () => boolean = () => true,
     features: readonly BuildFeature[] = [], history?: HistorySource) {
@@ -47,7 +47,7 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
     const h = (type: unknown, props: unknown, ...children: unknown[]) => react.createElement(type, props, ...children);
     function report(value: string): void { try { onStatus(value); } catch (_) { /* Diagnostics only. */ } }
     const HistoryPanel = history ? createHistoryPanel(react, resolveNative, history) : null;
-    return function DiskSettingsOverview(props: Record<string, unknown>) {
+    return function CadenceSettingsOverview(props: Record<string, unknown>) {
         const [open, setOpen] = react.useState(false);
         const [showLogs, setShowLogs] = react.useState(false);
         const [showHistory, setShowHistory] = react.useState(false);
@@ -90,16 +90,16 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
             state.save === "saved" ? "保存しました" : "設定はこの端末内に保存されます";
         const page = h(native.View, { style: { flex: 1, backgroundColor: colors.background } },
             h(native.View, { style: { flexDirection: "row", alignItems: "center", backgroundColor: colors.surface } },
-                button("戻る", () => setOpen(false), "disk:back"), text("disk 設定", { accessibilityRole: "header", style: { color: colors.text, fontSize: 20, fontWeight: "600" } })),
+                button("戻る", () => setOpen(false), "cadence:back"), text("Cadence 設定", { accessibilityRole: "header", style: { color: colors.text, fontSize: 20, fontWeight: "600" } })),
             h(native.ScrollView, { contentContainerStyle: { padding: spacing }, style: { flex: 1 } },
                 text("表示", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginBottom: spacing } }),
                 h(native.View, { style: { backgroundColor: colors.surface, padding: spacing, borderRadius: 12, flexDirection: "row", alignItems: "center" } },
                     h(native.View, { style: { flex: 1 } }, text("コンパクト表示"),
-                        text(compact ? "オン" : "オフ", { accessibilityLabel: `disk:compact:${compact}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
-                    h(native.Switch, { accessibilityLabel: "disk:compact", value: compact,
+                        text(compact ? "オン" : "オフ", { accessibilityLabel: `cadence:compact:${compact}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
+                    h(native.Switch, { accessibilityLabel: "cadence:compact", value: compact,
                         disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
                         onValueChange: (value: boolean) => { void controller.setCompact(value).catch(() => {}); } })),
-                text(status, { accessibilityLabel: state.save === "saved" ? "disk:saved" : "disk:status", accessibilityLiveRegion: "polite",
+                text(status, { accessibilityLabel: state.save === "saved" ? "cadence:saved" : "cadence:status", accessibilityLiveRegion: "polite",
                     style: { color: state.phase === "error" || state.save === "error" ? colors.warning : colors.secondary, fontSize: 14, marginTop: spacing } }),
                 state.phase === "error" ? button("読み込みを再試行", () => { void controller.retryLoad(); }) : null,
                 state.save === "error" ? button("保存を再試行", () => { void controller.setCompact(compact).catch(() => {}); }) : null,
@@ -111,8 +111,8 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                         flexDirection: "row", alignItems: "center", marginTop: spacing } },
                         h(native.View, { style: { flex: 1 } }, text(row.title),
                             text(built ? row.description : "このビルドには含まれていません",
-                                { accessibilityLabel: `disk:feature:${row.id}:${on}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
-                        built ? h(native.Switch, { accessibilityLabel: `disk:feature:${row.id}`, value: on,
+                                { accessibilityLabel: `cadence:feature:${row.id}:${on}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
+                        built ? h(native.Switch, { accessibilityLabel: `cadence:feature:${row.id}`, value: on,
                             disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
                             onValueChange: (value: boolean) => { void controller.setFeature(row.id, value).catch(() => {}); } }) : null);
                 }),
@@ -125,9 +125,9 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                         const on = (state.platform ?? DEFAULT_PLATFORM)[place];
                         return h(native.View, { key: place, style: { flexDirection: "row", alignItems: "center", marginTop: spacing } },
                             h(native.View, { style: { flex: 1 } }, text(PLATFORM_LABELS[place]),
-                                text(on ? "オン" : "オフ", { accessibilityLabel: `disk:platform:${place}:${on}`,
+                                text(on ? "オン" : "オフ", { accessibilityLabel: `cadence:platform:${place}:${on}`,
                                     style: { color: colors.secondary, fontSize: 13 } })),
-                            h(native.Switch, { accessibilityLabel: `disk:platform:${place}`, value: on,
+                            h(native.Switch, { accessibilityLabel: `cadence:platform:${place}`, value: on,
                                 disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
                                 onValueChange: (value: boolean) => { void controller.setPlatform(place, value).catch(() => {}); } }));
                     })) : null,
@@ -138,7 +138,7 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                         ...EMOJI_SIZES.map(size => {
                             const selected = state.nitro.emojiSize === size;
                             return h(native.Pressable, { key: String(size), accessibilityRole: "button",
-                                accessibilityLabel: `disk:nitro-size:${size}`, accessibilityState: { selected },
+                                accessibilityLabel: `cadence:nitro-size:${size}`, accessibilityState: { selected },
                                 disabled: state.phase !== "ready" || state.save === "saving",
                                 onPress: () => { void controller.setNitro({ emojiSize: size }).catch(() => {}); },
                                 style: { paddingHorizontal: 14, minHeight: 40, justifyContent: "center", marginRight: 8, marginTop: 4,
@@ -148,8 +148,8 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                     h(native.View, { style: { flexDirection: "row", alignItems: "center", marginTop: spacing } },
                         h(native.View, { style: { flex: 1 } }, text("名前付きリンク"),
                             text(state.nitro.maskedLinks ? "[name](URL) の形で送信" : "URL をそのまま送信",
-                                { accessibilityLabel: `disk:nitro-masked:${state.nitro.maskedLinks}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
-                        h(native.Switch, { accessibilityLabel: "disk:nitro-masked", value: state.nitro.maskedLinks,
+                                { accessibilityLabel: `cadence:nitro-masked:${state.nitro.maskedLinks}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
+                        h(native.Switch, { accessibilityLabel: "cadence:nitro-masked", value: state.nitro.maskedLinks,
                             disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
                             onValueChange: (value: boolean) => { void controller.setNitro({ maskedLinks: value }).catch(() => {}); } }))) : null,
                 EXTRA_ROWS.some(row => (features as readonly string[]).includes(row.requires ?? row.id)) ? text("Venus から移植した機能",
@@ -159,26 +159,26 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                     return h(native.View, { key: row.id, style: { backgroundColor: colors.surface, padding: spacing, borderRadius: 12,
                         flexDirection: "row", alignItems: "center", marginTop: spacing } },
                         h(native.View, { style: { flex: 1 } }, text(row.title),
-                            text(row.description, { accessibilityLabel: `disk:extra:${row.id}:${on}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
-                        h(native.Switch, { accessibilityLabel: `disk:extra:${row.id}`, value: on,
+                            text(row.description, { accessibilityLabel: `cadence:extra:${row.id}:${on}`, style: { color: colors.secondary, fontSize: 14, marginTop: 4 } })),
+                        h(native.Switch, { accessibilityLabel: `cadence:extra:${row.id}`, value: on,
                             disabled: state.phase !== "ready" || state.save === "saving", trackColor: { false: "#4E5058", true: colors.accent },
                             onValueChange: (value: boolean) => { void controller.setExtra(row.id, value).catch(() => {}); } }));
                 }),
-                history ? button("メッセージ履歴を表示", () => setShowHistory(true), "disk:history:open") : null,
+                history ? button("メッセージ履歴を表示", () => setShowHistory(true), "cadence:history:open") : null,
                 text(features.includes("disableAnalytics") ? "Analytics：JS の track 送信を停止しています（Morphe で選択）" : "Analytics：このビルドでは停止していません",
-                    { accessibilityLabel: "disk:feature:disableAnalytics", style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
+                    { accessibilityLabel: "cadence:feature:disableAnalytics", style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
                 text("情報", { accessibilityRole: "header", style: { color: colors.text, fontSize: 18, fontWeight: "600", marginTop: spacing * 2 } }),
-                text(`disk ${REVISION} / Discord 352.17`, { style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
-                text(`組み込み機能: ${features.length ? features.join(", ") : "なし"}`, { accessibilityLabel: "disk:features", style: { color: colors.secondary, fontSize: 14, marginTop: 8 } }),
+                text(`Cadence ${REVISION} / Discord 352.17`, { style: { color: colors.secondary, fontSize: 14, marginTop: spacing } }),
+                text(`組み込み機能: ${features.length ? features.join(", ") : "なし"}`, { accessibilityLabel: "cadence:features", style: { color: colors.secondary, fontSize: 14, marginTop: 8 } }),
                 text(history ? "設定は端末内に保存します。履歴機能がオンの間だけ本文をメモリに保持し、ファイルには保存しません。" : "アカウント情報やメッセージは保存しません。", { style: { color: colors.secondary, fontSize: 14, marginTop: 8 } }),
-                button(showLogs ? "診断ログを閉じる" : "診断ログを表示", () => setShowLogs(value => !value), "disk:logs"),
-                showLogs ? text(getLogs().join("\n") || "ログはありません", { accessibilityLabel: "disk:log-content", selectable: true,
+                button(showLogs ? "診断ログを閉じる" : "診断ログを表示", () => setShowLogs(value => !value), "cadence:logs"),
+                showLogs ? text(getLogs().join("\n") || "ログはありません", { accessibilityLabel: "cadence:log-content", selectable: true,
                     style: { color: colors.secondary, fontSize: 12, fontFamily: "monospace" } }) : null));
         return h(react.Fragment, null, originalElement,
-            h(native.View, { key: "disk-entry", style: { display: open ? "none" : "flex", backgroundColor: colors.surface, borderTopWidth: 1, borderColor: "#3F4147" } },
-                button("disk", () => setOpen(true))),
-            h(native.Modal, { key: "disk-modal", visible: open, animationType: "slide", onRequestClose: () => setOpen(false) }, page),
-            HistoryPanel ? h(native.Modal, { key: "disk-history-modal", visible: open && showHistory, animationType: "slide",
+            h(native.View, { key: "cadence-entry", style: { display: open ? "none" : "flex", backgroundColor: colors.surface, borderTopWidth: 1, borderColor: "#3F4147" } },
+                button("Cadence", () => setOpen(true))),
+            h(native.Modal, { key: "cadence-modal", visible: open, animationType: "slide", onRequestClose: () => setOpen(false) }, page),
+            HistoryPanel ? h(native.Modal, { key: "cadence-history-modal", visible: open && showHistory, animationType: "slide",
                 onRequestClose: () => setShowHistory(false) }, h(HistoryPanel, { onClose: () => setShowHistory(false) })) : null);
     };
 }

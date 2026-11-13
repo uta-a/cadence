@@ -1,4 +1,4 @@
-"""stdlib self-tests; HERMESC / DISK_BUNDLE enable external integration checks."""
+"""stdlib self-tests; HERMESC / CADENCE_BUNDLE enable external integration checks."""
 import contextlib
 import hashlib
 import io
@@ -319,11 +319,11 @@ class HermescTests(unittest.TestCase):
                         db.close()
 
 
-@unittest.skipUnless(os.environ.get('DISK_BUNDLE'), 'set DISK_BUNDLE for real Discord integration')
+@unittest.skipUnless(os.environ.get('CADENCE_BUNDLE'), 'set CADENCE_BUNDLE for real Discord integration')
 class Discord35217Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.h = HbcFile(os.environ['DISK_BUNDLE'])
+        cls.h = HbcFile(os.environ['CADENCE_BUNDLE'])
 
     def test_all_instruction_widths_and_id_ranges(self):
         h = self.h

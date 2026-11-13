@@ -1,5 +1,5 @@
 // In-memory settings and serialization only. The persistence adapter is supplied after the native FileModule
-// contract and a disk-owned path have been verified. Nothing here reads Discord tokens or account storage.
+// contract and a cadence-owned path have been verified. Nothing here reads Discord tokens or account storage.
 
 export const FEATURE_KEYS = Object.freeze(["fakeNitro", "platformIndicator"] as const);
 export type FeatureKey = typeof FEATURE_KEYS[number];
@@ -88,12 +88,12 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
 
     function parse(text: string): { features: SettingsSnapshot; preferences: PreferencesSnapshot; nitro: NitroOptions; platform: PlatformOptions; extras: ExtrasSnapshot } {
         const data: unknown = JSON.parse(text);
-        if (!isRecord(data)) throw new Error("Invalid disk settings");
+        if (!isRecord(data)) throw new Error("Invalid Cadence settings");
         if (!hasOwn(data, "version") || !hasOwn(data, "features") ||
             (data.version !== 1 && data.version !== 2) || !isRecord(data.features))
-            throw new Error("Unsupported disk settings schema");
+            throw new Error("Unsupported Cadence settings schema");
         if (data.version === 2 && (!hasOwn(data, "preferences") || !isRecord(data.preferences)))
-            throw new Error("Unsupported disk settings schema");
+            throw new Error("Unsupported Cadence settings schema");
         const features = data.features;
         const savedPreferences = data.version === 2 ? data.preferences as Record<string, unknown> : {};
         return {
@@ -156,7 +156,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         /** Only known feature keys and booleans may be saved; every feature defaults to off. */
         set(key: FeatureKey, enabled: boolean): Promise<void> {
             if (!FEATURE_KEYS.includes(key) || typeof enabled !== "boolean")
-                return Promise.reject(new TypeError("Invalid disk feature setting"));
+                return Promise.reject(new TypeError("Invalid Cadence feature setting"));
             const changed = values[key] !== enabled;
             values = Object.freeze({ ...values, [key]: enabled });
             const pending = save();
@@ -165,7 +165,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         },
         setPreference(key: PreferenceKey, enabled: boolean): Promise<void> {
             if (!PREFERENCE_KEYS.includes(key) || typeof enabled !== "boolean")
-                return Promise.reject(new TypeError("Invalid disk preference setting"));
+                return Promise.reject(new TypeError("Invalid Cadence preference setting"));
             const changed = preferences[key] !== enabled;
             preferences = Object.freeze({ ...preferences, [key]: enabled });
             const pending = save();
@@ -202,7 +202,7 @@ export function createSettingsStore(storage: SettingsStorage, onError: (error: u
         },
         setExtra(key: ExtraKey, enabled: boolean): Promise<void> {
             if (!EXTRA_KEYS.includes(key) || typeof enabled !== "boolean")
-                return Promise.reject(new TypeError("Invalid disk extra feature"));
+                return Promise.reject(new TypeError("Invalid Cadence extra feature"));
             const changed = extras.includes(key) !== enabled;
             const next = new Set<ExtraKey>(extras);
             if (enabled) next.add(key); else next.delete(key);

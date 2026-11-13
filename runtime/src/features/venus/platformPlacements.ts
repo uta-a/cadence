@@ -1,6 +1,6 @@
 // Ported from Venus Patches (https://github.com/VenusIsJaded/Venus-Patches, GPL-3.0),
 // bootstrap.js platformName/platformHeader/platformDmRow/placePlatformTree, commit
-// 987b7a22d96d41a0ba80c060b485291e1c7bcc4b. Adapted to 352.17 and disk's badges/settings.
+// 987b7a22d96d41a0ba80c060b485291e1c7bcc4b. Adapted to 352.17 and Cadence's badges/settings.
 import type { AvatarReact } from "../platformIndicator";
 import { platformsOf } from "../platformIndicator";
 import type { PlatformPlace } from "../../core/settings";
@@ -46,7 +46,7 @@ export function createPlatformPlacements(deps: PlatformPlacementDeps) {
         return undefined;
     }
     function badgeRow(node: unknown, id: string, place: Place, View: unknown): unknown {
-        return h(View, { key: "disk-platform-name", style: ROW_STYLE }, node, h(deps.badge(place), { userId: id }));
+        return h(View, { key: "cadence-platform-name", style: ROW_STYLE }, node, h(deps.badge(place), { userId: id }));
     }
     /** Bounded immutable traversal. Never calls a child component or inserts a View inside an RN Text. */
     function placeTree(tree: unknown, props: Record<string, unknown>, place: Place, direct: boolean): unknown {
@@ -98,7 +98,7 @@ export function createPlatformPlacements(deps: PlatformPlacementDeps) {
         return wrapped;
     }
     function renderer(original: Fn, place: Place, direct = false): Fn {
-        return function DiskPlatformPlacement(this: unknown, ...args: unknown[]): unknown {
+        return function CadencePlatformPlacement(this: unknown, ...args: unknown[]): unknown {
             // Always run the original with all of its hooks, receiver and arguments.
             const tree = Reflect.apply(original, this, args);
             const [, redraw] = deps.react.useState(0);
@@ -148,8 +148,8 @@ export function createPlatformPlacements(deps: PlatformPlacementDeps) {
             if (!descriptor || !("value" in descriptor) || (!descriptor.writable && !descriptor.configurable)) return false;
             const original = descriptor.value;
             if (typeof original !== "function" && (!object(original) || (!data(original, "type") && !data(original, "render")))) return false;
-            function DiskPlatformScope(props: unknown): unknown { return h(deps.provider, { value: true }, h(original, props)); }
-            Object.defineProperty(exports, key, { ...descriptor, value: DiskPlatformScope });
+            function CadencePlatformScope(props: unknown): unknown { return h(deps.provider, { value: true }, h(original, props)); }
+            Object.defineProperty(exports, key, { ...descriptor, value: CadencePlatformScope });
             return true;
         } catch (_) { return false; }
     }

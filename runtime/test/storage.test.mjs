@@ -34,7 +34,7 @@ test("adapter does no I/O on creation; missing file reads as null", async () => 
     assert.deepEqual(calls, [["constants"], ["exists", target]]);
 });
 
-test("write uses only the fixed disk path and verifies UTF-8 text with the original receiver", async () => {
+test("write uses only the fixed Cadence path and verifies UTF-8 text with the original receiver", async () => {
     const { native, calls } = fixture();
     const storage = create(native);
     const content = '{"version":1,"メモ":"設定"}';

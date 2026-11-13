@@ -39,7 +39,7 @@ test("settings controller defers load, refuses premature writes, and persists sc
     assert.deepEqual(events, ["ready", "saved"]);
 });
 
-test("failed initial read disables writes; retry is explicit and succeeds without resetting disk", async () => {
+test("failed initial read disables writes; retry is explicit and succeeds without resetting Cadence", async () => {
     const m = memory(), { createSettingsController } = api();
     m.setText('{"version":2,"features":{},"preferences":{"compact":true}}');
     m.readFail(true);
@@ -127,7 +127,7 @@ test("late readiness after the fast polling window still enables UI without earl
     f.timers.shift()();
     const tree = f.harness.render(exports.default);
     assert.equal(f.lazyReads, 6);
-    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "disk"));
+    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "Cadence"));
     assert.equal(f.timers.length, 0);
     f.harness.unmount();
 });
@@ -190,7 +190,7 @@ test("UI resynchronizes changes between initial render and effect subscription",
     harness.unmount();
 });
 
-test("disk overview entry renders original as an element, opens settings, saves compact, and handles back", async () => {
+test("Cadence overview entry renders original as an element, opens settings, saves compact, and handles back", async () => {
     const { createSettingsOverview, createSettingsController } = api(), m = memory();
     const c = createSettingsController(() => {}, () => m.storage);
     await c.attach({});
@@ -201,9 +201,9 @@ test("disk overview entry renders original as an element, opens settings, saves 
     const props = { original: "preserved" };
     let tree = harness.render(component, props);
     assert.equal(nodes(tree).find(node => node.type === original).props.original, props.original);
-    nodes(tree).find(node => node.props.accessibilityLabel === "disk").props.onPress();
+    nodes(tree).find(node => node.props.accessibilityLabel === "Cadence").props.onPress();
     tree = harness.render(component);
-    assert.ok(nodes(tree).some(node => node.children?.includes("disk 設定")));
+    assert.ok(nodes(tree).some(node => node.children?.includes("Cadence 設定")));
     let toggle = nodes(tree).find(node => node.type === "Switch");
     assert.equal(toggle.props.value, false);
     toggle.props.onValueChange(true);
@@ -211,11 +211,11 @@ test("disk overview entry renders original as an element, opens settings, saves 
     tree = harness.render(component);
     toggle = nodes(tree).find(node => node.type === "Switch");
     assert.equal(toggle.props.value, true);
-    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "disk:saved"));
-    nodes(tree).find(node => node.props.accessibilityLabel === "disk:logs").props.onPress();
+    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "cadence:saved"));
+    nodes(tree).find(node => node.props.accessibilityLabel === "cadence:logs").props.onPress();
     tree = harness.render(component);
-    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "disk:log-content"));
-    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "disk:features"));
+    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "cadence:log-content"));
+    assert.ok(nodes(tree).some(node => node.props.accessibilityLabel === "cadence:features"));
     assert.equal(m.writes.at(-1).preferences.compact, true);
     assert.ok(nodes(tree).some(node => node.type === original), "original stays mounted behind modal");
     nodes(tree).find(node => node.type === "Modal").props.onRequestClose();

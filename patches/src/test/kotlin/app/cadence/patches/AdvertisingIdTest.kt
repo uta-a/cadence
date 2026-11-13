@@ -1,7 +1,7 @@
-package app.disk.patches
+package app.cadence.patches
 
-import app.disk.patches.dex.AdvertisingId
-import app.disk.patches.dex.BundlePin
+import app.cadence.patches.dex.AdvertisingId
+import app.cadence.patches.dex.BundlePin
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.DexFileFactory
@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 
 /** Discord 352.17 layout checks for [disableAdvertisingId]. Skipped with a reason when the DEX is not extracted. */
 class AdvertisingIdTest {
-    private val root = File(System.getProperty("disk.root") ?: ".")
+    private val root = File(System.getProperty("cadence.root") ?: ".")
     private val disabled = listOf(
         "invoke-direct count=2 {v4, v5, v0, v0, v0} Lcom/discord/ads/AdsModule;->resolveWithNullId(Lcom/facebook/react/bridge/Promise;)V",
         "return-void",
@@ -64,7 +64,7 @@ class AdvertisingIdTest {
             owner.directMethods.map(ImmutableMethod::of),
             owner.virtualMethods.map { if (it.name == method.name && it.parameterTypes == method.parameterTypes) ImmutableMethod.of(method) else ImmutableMethod.of(it) },
         )
-        val file = Files.createTempFile("disk-adid-", ".dex").toFile().apply { deleteOnExit() }
+        val file = Files.createTempFile("cadence-adid-", ".dex").toFile().apply { deleteOnExit() }
         val spec = ImmutableClassDef.of(dex.classOf("Lcom/discord/codegen/NativeAdsModuleSpec;")!!)
         DexPool.writeTo(file.path, ImmutableDexFile(Opcodes.getDefault(), listOf(spec, rewritten)))
         val reloaded = DexFileFactory.loadDexFile(file, Opcodes.getDefault())

@@ -1,10 +1,10 @@
-package app.disk.patches
+package app.cadence.patches
 
-import app.disk.patches.dex.BundlePin
+import app.cadence.patches.dex.BundlePin
 import app.morphe.patcher.patch.bytecodePatch
 
 /**
- * Pins React Native to the bundle shipped in the APK (DESIGN.md §4.4). The disk runtime is injected into
+ * Pins React Native to the bundle shipped in the APK (DESIGN.md §4.4). The Cadence runtime is injected into
  * `assets/index.android.bundle`, so a downloaded OTA bundle would silently replace it.
  */
 @Suppress("unused")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage a checked disk bundle locally. Never create a tag, push, upload or publish."""
+"""Stage a checked Cadence bundle locally. Never create a tag, push, upload or publish."""
 import argparse
 from datetime import datetime, timezone
 from email.parser import Parser
@@ -20,22 +20,22 @@ def validate_bundle(mpp: Path, version: str):
         names = archive.namelist()
         if len(names) != len(set(names)):
             raise ValueError("Duplicate bundle entries")
-        for required in ("classes.dex", "disk/runtime.js", "disk/build-info.json", "META-INF/MANIFEST.MF", "disk/legal/license.txt", "disk/legal/notice.txt"):
+        for required in ("classes.dex", "cadence/runtime.js", "cadence/build-info.json", "META-INF/MANIFEST.MF", "cadence/legal/license.txt", "cadence/legal/notice.txt"):
             if required not in names:
                 raise ValueError("Required bundle entry missing: " + required)
-        if not archive.read("disk/legal/license.txt").strip() or not archive.read("disk/legal/notice.txt").strip():
+        if not archive.read("cadence/legal/license.txt").strip() or not archive.read("cadence/legal/notice.txt").strip():
             raise ValueError("Empty license or attribution notice")
         if not archive.read("classes.dex").startswith(b"dex\n"):
             raise ValueError("Invalid classes.dex")
-        info = json.loads(archive.read("disk/build-info.json"))
+        info = json.loads(archive.read("cadence/build-info.json"))
         if not isinstance(info, dict) or info.get("schema") != 1 or info.get("hbcVersion") != 98 or info.get("uiSmoke") is not False:
-            raise ValueError("Not a normal HBC98 bundle; rebuild with DISK_UI_SMOKE=0")
+            raise ValueError("Not a normal HBC98 bundle; rebuild with CADENCE_UI_SMOKE=0")
         # The JAR manifest wraps continuation lines at 72 bytes.
         manifest = archive.read("META-INF/MANIFEST.MF").decode("utf-8").replace("\r\n", "\n").replace("\n ", "")
         fields = Parser().parsestr(manifest)
-        if fields.get("Name") != "disk" or fields.get("Version") != version:
+        if fields.get("Name") != "Cadence" or fields.get("Version") != version:
             raise ValueError("Bundle name/version does not match the release")
-        if not archive.read("disk/runtime.js").strip():
+        if not archive.read("cadence/runtime.js").strip():
             raise ValueError("Empty runtime")
 
 
@@ -74,7 +74,7 @@ def main():
     parser.add_argument("--mpp", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--version", required=True)
-    parser.add_argument("--repository", default="uta-a/disk")
+    parser.add_argument("--repository", default="uta-a/cadence")
     parser.add_argument("--notes", type=Path, required=True, help="UTF-8 release notes (no upload)")
     args = parser.parse_args()
     try:

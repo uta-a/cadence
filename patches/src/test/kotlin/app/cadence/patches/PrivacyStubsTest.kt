@@ -1,8 +1,8 @@
-package app.disk.patches
+package app.cadence.patches
 
-import app.disk.patches.dex.BundlePin
-import app.disk.patches.dex.MethodStub
-import app.disk.patches.dex.PrivacyStubs
+import app.cadence.patches.dex.BundlePin
+import app.cadence.patches.dex.MethodStub
+import app.cadence.patches.dex.PrivacyStubs
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import com.android.tools.smali.dexlib2.DexFileFactory
@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
 
 /** Discord 352.17 checks for the Sentry, AppsFlyer and telemetry stubs. Skipped with a reason when the DEX is not extracted. */
 class PrivacyStubsTest {
-    private val root = File(System.getProperty("disk.root") ?: ".")
+    private val root = File(System.getProperty("cadence.root") ?: ".")
     private val all = PrivacyStubs.sentry + PrivacyStubs.appsFlyer + PrivacyStubs.telemetry
 
     @Test
@@ -69,7 +69,7 @@ class PrivacyStubsTest {
             }
             val rewritten = ImmutableClassDef(owner.type, owner.accessFlags, owner.superclass, owner.interfaces, owner.sourceFile,
                 owner.annotations, owner.staticFields, owner.instanceFields, replace(owner.directMethods), replace(owner.virtualMethods))
-            val file = Files.createTempFile("disk-stub-", ".dex").toFile().apply { deleteOnExit() }
+            val file = Files.createTempFile("cadence-stub-", ".dex").toFile().apply { deleteOnExit() }
             DexPool.writeTo(file.path, ImmutableDexFile(Opcodes.getDefault(), listOf(rewritten)))
             val reloaded = DexFileFactory.loadDexFile(file, Opcodes.getDefault())
             val again = target.find { type -> reloaded.classes.firstOrNull { it.type == type } }
@@ -89,7 +89,7 @@ class PrivacyStubsTest {
         fun replace(list: Iterable<com.android.tools.smali.dexlib2.iface.Method>) = list.map {
             if (it.name == original.name && it.parameterTypes == original.parameterTypes) ImmutableMethod.of(changed) else ImmutableMethod.of(it)
         }
-        val file = Files.createTempFile("disk-stub-bad-", ".dex").toFile().apply { deleteOnExit() }
+        val file = Files.createTempFile("cadence-stub-bad-", ".dex").toFile().apply { deleteOnExit() }
         DexPool.writeTo(file.path, ImmutableDexFile(Opcodes.getDefault(), listOf(ImmutableClassDef(owner.type, owner.accessFlags,
             owner.superclass, owner.interfaces, owner.sourceFile, owner.annotations, owner.staticFields, owner.instanceFields,
             replace(owner.directMethods), replace(owner.virtualMethods)))))

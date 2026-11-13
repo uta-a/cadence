@@ -267,23 +267,23 @@ test("settings page shows switches only for built features and states which are 
         useEffect() {} };
     const tree = createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, ["fakeNitro", "disableAnalytics"])({});
     const all = flat(tree);
-    const fake = all.find(node => node.props.accessibilityLabel === "disk:feature:fakeNitro");
+    const fake = all.find(node => node.props.accessibilityLabel === "cadence:feature:fakeNitro");
     assert.equal(fake.type, "Switch");
     assert.equal(fake.props.value, true);
     fake.props.onValueChange(false);
     assert.deepEqual(changes, [["fakeNitro", false]]);
-    assert.ok(all.some(node => node.props.accessibilityLabel === "disk:feature:platformIndicator:false"));
-    assert.equal(all.find(node => node.props.accessibilityLabel === "disk:feature:platformIndicator"), undefined);
+    assert.ok(all.some(node => node.props.accessibilityLabel === "cadence:feature:platformIndicator:false"));
+    assert.equal(all.find(node => node.props.accessibilityLabel === "cadence:feature:platformIndicator"), undefined);
     assert.ok(all.some(node => node.children?.includes("このビルドには含まれていません")));
     assert.ok(all.some(node => String(node.children?.[0]).startsWith("Analytics：JS の track 送信を停止しています")));
-    const size64 = all.find(node => node.props.accessibilityLabel === "disk:nitro-size:64");
+    const size64 = all.find(node => node.props.accessibilityLabel === "cadence:nitro-size:64");
     assert.equal(size64.props.accessibilityState.selected, true);
-    all.find(node => node.props.accessibilityLabel === "disk:nitro-size:128").props.onPress();
-    all.find(node => node.props.accessibilityLabel === "disk:nitro-masked").props.onValueChange(false);
+    all.find(node => node.props.accessibilityLabel === "cadence:nitro-size:128").props.onPress();
+    all.find(node => node.props.accessibilityLabel === "cadence:nitro-masked").props.onValueChange(false);
     assert.deepEqual(plain(changes.slice(1)), [["nitro", { emojiSize: 128 }], ["nitro", { maskedLinks: false }]]);
-    assert.ok(all.some(node => node.props.accessibilityLabel === "disk:nitro-masked:true"));
+    assert.ok(all.some(node => node.props.accessibilityLabel === "cadence:nitro-masked:true"));
     const without = flat(createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, ["platformIndicator"])({}));
-    assert.equal(without.find(node => node.props.accessibilityLabel === "disk:nitro-size:48"), undefined, "no options unless Fake Nitro is built");
+    assert.equal(without.find(node => node.props.accessibilityLabel === "cadence:nitro-size:48"), undefined, "no options unless Fake Nitro is built");
 });
 
 test("conversion follows the chosen size and masked-link option", () => {
@@ -540,11 +540,11 @@ test("ported feature switches appear only for the features built into this APK",
         useEffect() {} };
     const render = built => flat(createSettingsOverview(react, () => native, () => {}, controller, () => {}, () => true, built)({}));
     const none = render([]);
-    assert.equal(none.find(node => node.props.accessibilityLabel === "disk:extra:quickDelete"), undefined);
+    assert.equal(none.find(node => node.props.accessibilityLabel === "cadence:extra:quickDelete"), undefined);
     assert.ok(!none.some(node => node.children?.includes("Venus から移植した機能")));
     const one = render(["quickDelete"]);
-    assert.equal(one.find(node => node.props.accessibilityLabel === "disk:extra:quickDelete").props.value, true);
-    assert.equal(one.find(node => node.props.accessibilityLabel === "disk:extra:noConfirmPin"), undefined);
+    assert.equal(one.find(node => node.props.accessibilityLabel === "cadence:extra:quickDelete").props.value, true);
+    assert.equal(one.find(node => node.props.accessibilityLabel === "cadence:extra:noConfirmPin"), undefined);
 });
 
 test("always trust answers trusted and not suspicious only while enabled, without touching the store class", async () => {
