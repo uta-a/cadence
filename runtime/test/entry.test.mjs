@@ -12,12 +12,12 @@ function run(host) { return vm.runInContext(compiled, host); }
 test("entry logs through the native host before console exists and keeps the receiver", () => {
     const calls = [];
     const host = context({ nativeLoggingHook(message, level) {
-        calls.push([message, level, this.__disk === host.__disk]);
+        calls.push([message, level, this.__cadence === host.__cadence]);
     } });
     run(host);
-    assert.deepEqual(calls, [["[disk] loaded 0.1.0 (native)", 1, true], ["[disk] observer installed (native)", 1, true]]);
-    assert.equal(host.__disk.revision, "0.1.0");
-    assert.ok(Object.isFrozen(host.__disk));
+    assert.deepEqual(calls, [["[cadence] loaded 0.1.0 (native)", 1, true], ["[cadence] observer installed (native)", 1, true]]);
+    assert.equal(host.__cadence.revision, "0.1.0");
+    assert.ok(Object.isFrozen(host.__cadence));
 });
 
 test("entry uses console only as fallback and does not announce twice", () => {
@@ -25,10 +25,10 @@ test("entry uses console only as fallback and does not announce twice", () => {
     const console = { log(message) { assert.equal(this, console); calls.push(message); } };
     const host = context({ console });
     run(host);
-    const marker = host.__disk;
+    const marker = host.__cadence;
     run(host);
-    assert.equal(host.__disk, marker);
-    assert.deepEqual(calls, ["[disk] loaded 0.1.0 (console)", "[disk] observer installed (console)"]);
+    assert.equal(host.__cadence, marker);
+    assert.deepEqual(calls, ["[cadence] loaded 0.1.0 (console)", "[cadence] observer installed (console)"]);
 });
 
 test("throwing native logging falls back to console without losing the marker", () => {
@@ -36,15 +36,15 @@ test("throwing native logging falls back to console without losing the marker", 
     const host = context({ nativeLoggingHook() { throw new Error("host unavailable"); },
         console: { log(message) { calls.push(message); } } });
     assert.doesNotThrow(() => run(host));
-    assert.deepEqual(calls, ["[disk] loaded 0.1.0 (console)", "[disk] observer installed (console)"]);
-    assert.equal(host.__disk.revision, "0.1.0");
+    assert.deepEqual(calls, ["[cadence] loaded 0.1.0 (console)", "[cadence] observer installed (console)"]);
+    assert.equal(host.__cadence.revision, "0.1.0");
 });
 
 test("missing loggers or failures in both diagnostics never abort the entry", () => {
     for (const host of [context(), context({ nativeLoggingHook: false, console: { log: null } }),
         context({ nativeLoggingHook() { throw new Error("native"); }, console: { log() { throw new Error("console"); } } })]) {
         assert.doesNotThrow(() => run(host));
-        assert.equal(host.__disk.revision, "0.1.0");
+        assert.equal(host.__cadence.revision, "0.1.0");
     }
 });
 
@@ -56,7 +56,7 @@ test("native logger is preferred without touching a potentially broken console g
     assert.equal(calls, 2);
 });
 
-test("entry captures the natural FileModule and defers disk settings loading without boot writes", async () => {
+test("entry captures the natural FileModule and defers Cadence settings loading without boot writes", async () => {
     const logs = [], calls = [], registered = new Map();
     const host = context({ nativeLoggingHook(message) { logs.push(message); },
         __d(factory, id) { registered.set(id, factory); } });
@@ -74,7 +74,7 @@ test("entry captures the natural FileModule and defers disk settings loading wit
     assert.deepEqual(calls, []);
     await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(calls, ["constants", "exists"]);
-    assert.ok(logs.includes("[disk] settings ready (native)"));
+    assert.ok(logs.includes("[cadence] settings ready (native)"));
     assert.equal(logs.some(line => line.includes("/data/")), false);
 });
 
@@ -90,17 +90,17 @@ test("an accessor native export reports settings unavailable without evaluating 
     assert.equal(registered.get(1164)(null, null, null, null, { exports }), 77);
     assert.equal(getterCalls, 0);
     await new Promise(resolve => setImmediate(resolve));
-    assert.ok(logs.includes("[disk] settings load-error (native)"));
+    assert.ok(logs.includes("[cadence] settings load-error (native)"));
 });
 
-test("a throwing native getter is isolated and existing disk markers are preserved", () => {
+test("a throwing native getter is isolated and existing Cadence markers are preserved", () => {
     const calls = [];
     const host = context({ console: { log(message) { calls.push(message); } } });
     Object.defineProperty(host, "nativeLoggingHook", { get() { throw new Error("getter"); } });
     assert.doesNotThrow(() => run(host));
     assert.equal(calls.length, 2);
     const prior = Object.freeze({ revision: "existing" });
-    const existing = context({ __disk: prior, nativeLoggingHook() { assert.fail("must not announce twice"); } });
+    const existing = context({ __cadence: prior, nativeLoggingHook() { assert.fail("must not announce twice"); } });
     run(existing);
-    assert.equal(existing.__disk, prior);
+    assert.equal(existing.__cadence, prior);
 });

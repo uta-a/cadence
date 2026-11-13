@@ -6,7 +6,7 @@ import vm from "node:vm";
 const { outputFiles } = await build({ entryPoints: [new URL("../src/core/storage.ts", import.meta.url).pathname],
     bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
 const root = "/data/user/0/com.discord/files";
-const relative = "disk/settings-v1.json";
+const relative = "cadence/settings-v1.json";
 const target = `${root}/${relative}`;
 function create(native) {
     const sandbox = { module: { exports: {} }, TypeError, Error };
@@ -34,7 +34,7 @@ test("adapter does no I/O on creation; missing file reads as null", async () => 
     assert.deepEqual(calls, [["constants"], ["exists", target]]);
 });
 
-test("write uses only the fixed disk path and verifies UTF-8 text with the original receiver", async () => {
+test("write uses only the fixed Cadence path and verifies UTF-8 text with the original receiver", async () => {
     const { native, calls } = fixture();
     const storage = create(native);
     const content = '{"version":1,"メモ":"設定"}';

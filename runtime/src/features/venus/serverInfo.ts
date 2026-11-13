@@ -1,6 +1,6 @@
 // Ported from Venus Patches (https://github.com/VenusIsJaded/Venus-Patches, GPL-3.0),
 // bootstrap.js "Server info", commit 987b7a22d96d41a0ba80c060b485291e1c7bcc4b.
-// The menu hook is ported; disk uses a compact native dialog with loaded metadata only.
+// The menu hook is ported; Cadence uses a compact native dialog with loaded metadata only.
 import { wrapExport } from "./gestures";
 
 export interface ServerInfoDeps {

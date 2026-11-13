@@ -99,6 +99,6 @@ test("history viewer shows plain text, clears through its own control and keeps 
     function render() { cursor = 0; hooks = 0; const tree = panel({ onClose() {} }); assert.equal(hooks, 3); return tree; }
     function nodes(tree) { return tree && typeof tree === "object" ? [tree, ...(tree.children ?? []).flatMap(nodes)] : []; }
     let all = nodes(render()); assert.ok(all.some(node => node.children?.includes("<plain text>")));
-    all.find(node => node.props.accessibilityLabel === "disk:history:clear").props.onPress();
-    all = nodes(render()); assert.ok(all.some(node => node.props.accessibilityLabel === "disk:history:empty"));
+    all.find(node => node.props.accessibilityLabel === "cadence:history:clear").props.onPress();
+    all = nodes(render()); assert.ok(all.some(node => node.props.accessibilityLabel === "cadence:history:empty"));
 });

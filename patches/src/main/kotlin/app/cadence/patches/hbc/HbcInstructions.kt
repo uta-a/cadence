@@ -1,4 +1,4 @@
-package app.disk.patches.hbc
+package app.cadence.patches.hbc
 
 /** Instruction widths from Hermes v250829098.0.19 BytecodeList.def, including short/long jumps. */
 internal object HbcInstructions {

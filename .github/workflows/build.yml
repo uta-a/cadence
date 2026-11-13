@@ -38,7 +38,7 @@ jobs:
       - name: Build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DISK_UI_SMOKE: '0'
+          CADENCE_UI_SMOKE: '0'
         run: ./gradlew :patches:test :patches:generatePatchesList :patches:buildAndroid --no-daemon
 
       - name: Test analysis tools
@@ -52,7 +52,7 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v7
         with:
-          name: disk-mpp
+          name: cadence-mpp
           path: |
             patches/build/libs/patches-*[0-9].mpp
             patches-list.json

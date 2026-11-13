@@ -112,7 +112,7 @@ test("profile transforms the captured DisplayName child without directly invokin
 
 test("native message labels affect rendered usernames only, stay idempotent and retain voice CTA", () => {
     const { runtime, on } = setup();
-    const source = { rowType: 1, message: { content: "unchanged" } }, cta = { callback: "disk-voice-download" };
+    const source = { rowType: 1, message: { content: "unchanged" } }, cta = { callback: "cadence-voice-download" };
     const result = { message: { username: "name", authorId: "u", content: "original", ctaButton: cta }, rowType: 1 };
     const next = runtime.messageRow(result, source);
     assert.equal(next.message.username, "name · PC/M"); assert.equal(next.message.ctaButton, cta);

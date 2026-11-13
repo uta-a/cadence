@@ -1,32 +1,32 @@
-package app.disk.patches
+package app.cadence.patches
 
-import app.disk.patches.dex.AdvertisingId
-import app.disk.patches.dex.MethodStub
-import app.disk.patches.dex.PrivacyStubs
+import app.cadence.patches.dex.AdvertisingId
+import app.cadence.patches.dex.MethodStub
+import app.cadence.patches.dex.PrivacyStubs
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.patch.rawResourcePatch
 
-// Runtime features are only embedded here; each one stays off until enabled in Discord's disk settings.
+// Runtime features are only embedded here; each one stays off until enabled in Discord's Cadence settings.
 
 @Suppress("unused")
 val fakeNitro = rawResourcePatch(
     name = "Fake Nitro",
-    description = "Send emojis that need Nitro as image links. Off until enabled in the disk settings.",
+    description = "Send emojis that need Nitro as image links. Off until enabled in the Cadence settings.",
     default = true,
 ) {
     compatibleWith(discord)
-    dependsOn(diskRuntime)
+    dependsOn(cadenceRuntime)
     execute { BuildFeatures.select(this, "fakeNitro") }
 }
 
 @Suppress("unused")
 val platformIndicator = rawResourcePatch(
     name = "Platform Indicator",
-    description = "Show which devices a user is connected from next to their avatar. Off until enabled in the disk settings.",
+    description = "Show which devices a user is connected from next to their avatar. Off until enabled in the Cadence settings.",
     default = true,
 ) {
     compatibleWith(discord)
-    dependsOn(diskRuntime)
+    dependsOn(cadenceRuntime)
     execute { BuildFeatures.select(this, "platformIndicator") }
 }
 
@@ -37,7 +37,7 @@ val disableAnalytics = rawResourcePatch(
     default = true,
 ) {
     compatibleWith(discord)
-    dependsOn(diskRuntime)
+    dependsOn(cadenceRuntime)
     execute { BuildFeatures.select(this, "disableAnalytics") }
 }
 

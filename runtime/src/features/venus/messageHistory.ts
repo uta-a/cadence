@@ -1,6 +1,6 @@
 // Adapted from Venus Patches (https://github.com/VenusIsJaded/Venus-Patches, GPL-3.0),
 // bootstrap.js rememberEdit/rememberDeleted/dispatchEvent, commit
-// 987b7a22d96d41a0ba80c060b485291e1c7bcc4b. disk keeps bounded, session-only text snapshots
+// 987b7a22d96d41a0ba80c060b485291e1c7bcc4b. Cadence keeps bounded, session-only text snapshots
 // in its own viewer. It never suppresses Discord's deletion/update actions or restores messages to its stores.
 export interface HistoryEntry {
     readonly kind: "deleted" | "edited";

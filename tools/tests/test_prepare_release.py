@@ -21,24 +21,24 @@ class ReleasePreparationTests(unittest.TestCase):
         self.addCleanup(self.patch_root.stop)
         for name in ('LICENSE', 'NOTICE', 'CHANGELOG.md'):
             (self.root / name).write_text('fixture\n')
-        (self.root / 'patches-list.json').write_text(json.dumps({'version': '0.0.1', 'patches': [{'name': 'disk'}]}))
+        (self.root / 'patches-list.json').write_text(json.dumps({'version': '0.0.1', 'patches': [{'name': 'Cadence'}]}))
         self.mpp = self.root / 'input.mpp'
         self.out = self.root / 'staged'
 
     def bundle(self, *, smoke=False, dex=True, info=True, notices=True, notice_text='fixture attribution', version='0.0.1'):
         with zipfile.ZipFile(self.mpp, 'w') as archive:
-            archive.writestr('META-INF/MANIFEST.MF', f'Name: disk\r\nVersion: {version}\r\n')
-            archive.writestr('disk/runtime.js', 'var disk = true;')
+            archive.writestr('META-INF/MANIFEST.MF', f'Name: Cadence\r\nVersion: {version}\r\n')
+            archive.writestr('cadence/runtime.js', 'var Cadence = true;')
             if notices:
-                archive.writestr('disk/legal/license.txt', 'fixture license')
-                archive.writestr('disk/legal/notice.txt', notice_text)
+                archive.writestr('cadence/legal/license.txt', 'fixture license')
+                archive.writestr('cadence/legal/notice.txt', notice_text)
             if dex:
                 archive.writestr('classes.dex', b'dex\n035\0fixture')
             if info:
-                archive.writestr('disk/build-info.json', json.dumps({'schema': 1, 'hbcVersion': 98, 'uiSmoke': smoke}))
+                archive.writestr('cadence/build-info.json', json.dumps({'schema': 1, 'hbcVersion': 98, 'uiSmoke': smoke}))
 
     def stage(self, **kwargs):
-        return release.stage(self.mpp, self.out, kwargs.pop('version', '0.0.1'), kwargs.pop('repository', 'uta-a/disk'),
+        return release.stage(self.mpp, self.out, kwargs.pop('version', '0.0.1'), kwargs.pop('repository', 'uta-a/cadence'),
                              'Unreleased test notes', created_at='2026-11-11T00:00:00', **kwargs)
 
     def test_normal_bundle_stages_metadata_and_checksums_without_signing_claim(self):
@@ -47,7 +47,7 @@ class ReleasePreparationTests(unittest.TestCase):
         self.assertEqual(metadata['version'], '0.0.1')
         self.assertEqual(metadata['public_key'], '')
         self.assertEqual(metadata['signature_download_url'], '')
-        self.assertEqual(metadata['download_url'], 'https://github.com/uta-a/disk/releases/download/v0.0.1/patches-0.0.1.mpp')
+        self.assertEqual(metadata['download_url'], 'https://github.com/uta-a/cadence/releases/download/v0.0.1/patches-0.0.1.mpp')
         self.assertEqual(self.mpp.read_bytes(), (self.out / 'patches-0.0.1.mpp').read_bytes())
         for line in (self.out / 'SHA256SUMS').read_text().splitlines():
             digest, name = line.split('  ')
@@ -70,7 +70,7 @@ class ReleasePreparationTests(unittest.TestCase):
 
     def test_invalid_version_repository_or_stale_output_are_rejected(self):
         self.bundle()
-        for options in ({'version': '../bad'}, {'version': '01.0.0'}, {'repository': '../disk'}, {'repository': 'https://github.com/uta-a/disk'}):
+        for options in ({'version': '../bad'}, {'version': '01.0.0'}, {'repository': '../cadence'}, {'repository': 'https://github.com/uta-a/cadence'}):
             with self.subTest(options=options), self.assertRaises(ValueError):
                 self.stage(**options)
         self.stage()

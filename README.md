@@ -1,6 +1,6 @@
-# disk
+# Cadence
 
-Discord Android向けのMorphe patchバンドルです。Fake Nitro、端末表示、Privacy、メッセージ操作を追加します。
+Discord Android向けのMorphe patchバンドルです。Fake Nitro、端末表示、Privacy、メッセージ操作を追加します。旧名は **disk** で、0.1.0はその名前で公開しています。
 
 **最新版は0.1.0です。対応はDiscord 352.17 Stableのみです。** 実機で確認できていない経路が一部残っています（[既知の未確認点](CHANGELOG.md#既知の未確認点)）。v0.1の機能範囲とVenusとの差は[移植記録](docs/VENUS-PORT.md#v01の範囲2026-11-12確定)を参照してください。
 
@@ -25,19 +25,19 @@ Discord Android向けのMorphe patchバンドルです。Fake Nitro、端末表�
 | 非表示チャンネル情報 | 長押しメニューから読み込み済みメタデータだけを表示。実際の閲覧拒否チャンネルで実機確認。通常一覧への混在表示や権限の迂回はしない |
 | 削除・編集履歴 | 読み込み済み本文を起動中だけ専用画面に保持。最大200件。相手からの削除の記録、消去と再起動時の破棄を実機確認。チャットの削除は通常どおり進む |
 
-Morpheで組み込むpatchを選び、Discordの設定画面下部にある **disk** から有効にします。アプリ内機能は初期オフです。PrivacyのDEX patchは適用時から有効で、アプリ内の切替はありません。
+Morpheで組み込むpatchを選び、Discordの設定画面下部にある **Cadence** から有効にします。アプリ内機能は初期オフです。PrivacyのDEX patchは適用時から有効で、アプリ内の切替はありません。
 
 Venus由来のコード、元作者、実機の確認範囲は [移植記録](docs/VENUS-PORT.md) と [NOTICE](NOTICE) に記載しています。
 
 ## 使い方
 
-[Releases](https://github.com/uta-a/disk/releases)から`patches-0.1.0.mpp`を取得できます。自分でビルドすることもできます。Morphe Managerのリモートソース追加（Add to Morphe）は未確認のため、MPPをLocalソースとして読み込んでください。**patcher 2.3.0以降を内蔵したMorphe Managerが必要です。** Manager 2.5.0でローカルMPP（0.0.1、20 patch）を適用し、生成APKの導入・起動を確認しました。0.1.0は21 patchです。旧Manager 1.28.0の内蔵patcher 1.11.0では実行できません。
+[Releases](https://github.com/uta-a/cadence/releases)から`patches-0.1.0.mpp`を取得できます。自分でビルドすることもできます。Morphe Managerのリモートソース追加（Add to Morphe）は未確認のため、MPPをLocalソースとして読み込んでください。**patcher 2.3.0以降を内蔵したMorphe Managerが必要です。** Manager 2.5.0でローカルMPP（0.0.1、20 patch）を適用し、生成APKの導入・起動を確認しました。0.1.0は21 patchです。旧Manager 1.28.0の内蔵patcher 1.11.0では実行できません。
 
 1. 自分で用意したDiscord **352.17 Stable** の正規APKMを使います。別バージョンや改変済み入力は対象外です。
 2. Releasesの通常MPPを取得するか、以下の手順でビルドします。
 3. Morphe ManagerのSourcesからLocalを選び、生成した`.mpp`を読み込みます。
 4. DiscordのAPKMと必要なpatchを選び、パッチ後のAPKをインストールします。
-5. Discordのdisk設定で必要な機能を有効にします。
+5. DiscordのCadence設定で必要な機能を有効にします。
 
 公式版と署名が異なる場合は上書きできません。**既存アプリのデータ消去やアンインストールを安易に行わないでください。** 新規導入は別端末などで試すことを勧めます。パッチ済みAPKを更新するときは同じ署名を使います。
 
@@ -49,7 +49,7 @@ JDK 21、Node.js 22、GitHub Packagesのread権限があるトークンが必要
 export JAVA_HOME=/path/to/jdk-21
 export GITHUB_ACTOR=your-account
 export GITHUB_TOKEN="$(gh auth token)"
-export DISK_UI_SMOKE=0
+export CADENCE_UI_SMOKE=0
 ./gradlew :patches:test :patches:generatePatchesList :patches:buildAndroid --no-daemon
 # patches/build/libs/patches-0.1.0.mpp
 ```
@@ -80,7 +80,7 @@ python3 -I -m unittest discover -s tools/tests -v
 - 対応外のバンドルやDEXはパッチ時に拒否します。ランタイムではexportの形を確認し、未対応なら元の動作を優先します。
 - OTAの読み込み先は同梱バンドルに固定します。OTAのダウンロード自体を止めるpatchではありません。
 - モジュール表の`verified: false`は、IDの一致だけでフックを承認しないことを示します。実機の確認範囲は機能ごとに別途記録しています。
-- 外部コードの読み込みやdisk独自のサーバーは使いません。リンク送信、CDN画像取得、保存などではDiscord既存の通信が発生します。
+- 外部コードの読み込みやCadence独自のサーバーは使いません。リンク送信、CDN画像取得、保存などではDiscord既存の通信が発生します。
 - 履歴は起動中の本文だけで、ディスクへの永続保存やチャットへの復元はしません。非表示チャンネルは読み取り専用のメニュー方式です。サーバー情報は基本情報のみで、友達一覧などは含みません。通話中の端末表示は通話プレビューの参加者行が対象で、サイドバーの参加者行には出ません。
 
 ## 配布物の準備

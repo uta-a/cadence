@@ -1,13 +1,13 @@
-group = "app.disk"
+group = "app.cadence"
 
 patches {
     about {
-        name = "disk"
+        name = "Cadence"
         description = "Fake Nitro, platform indicators and privacy options for Discord on Android"
-        source = "https://github.com/uta-a/disk"
+        source = "https://github.com/uta-a/cadence"
         author = "uta-a"
-        contact = "https://github.com/uta-a/disk/issues"
-        website = "https://github.com/uta-a/disk"
+        contact = "https://github.com/uta-a/cadence/issues"
+        website = "https://github.com/uta-a/cadence"
         license = "GPLv3"
     }
 }
@@ -41,17 +41,17 @@ val testRuntime by tasks.registering(Exec::class) {
     commandLine("npm", "test")
 }
 
-// runtime/ (TypeScript) -> build/generated/runtime/disk/runtime.js, packaged as a resource.
+// runtime/ (TypeScript) -> build/generated/runtime/cadence/runtime.js, packaged as a resource.
 val buildRuntime by tasks.registering(Exec::class) {
-    description = "Build the disk JS runtime and check that it compiles to HBC98."
+    description = "Build the Cadence JS runtime and check that it compiles to HBC98."
     group = "build"
     workingDir = runtimeDir.asFile
     inputs.dir(runtimeDir.dir("src"))
-    inputs.property("uiSmoke", providers.environmentVariable("DISK_UI_SMOKE").orElse("0"))
+    inputs.property("uiSmoke", providers.environmentVariable("CADENCE_UI_SMOKE").orElse("0"))
     inputs.files(runtimeDir.file("package.json"), runtimeDir.file("build.mjs"), runtimeDir.file("tsconfig.json"))
     outputs.dir(runtimeOut)
     dependsOn(testRuntime)
-    commandLine("node", "build.mjs", "--out", runtimeOut.get().file("disk/runtime.js").asFile.absolutePath)
+    commandLine("node", "build.mjs", "--out", runtimeOut.get().file("cadence/runtime.js").asFile.absolutePath)
 }
 
 // Passing the task (not the folder) makes every task that reads resources depend on it.
@@ -60,14 +60,14 @@ sourceSets["main"].resources.srcDir(buildRuntime)
 tasks {
     processResources {
         from(listOf(rootProject.file("LICENSE"), rootProject.file("NOTICE"))) {
-            into("disk/legal")
+            into("cadence/legal")
             rename { name -> name.lowercase() + ".txt" }
         }
     }
     test {
         useJUnitPlatform()
         // Tests that need local tools (the Hermes VM, a Discord bundle) look for them here and skip without them.
-        systemProperty("disk.root", rootProject.projectDir.absolutePath)
+        systemProperty("cadence.root", rootProject.projectDir.absolutePath)
         testLogging { events("passed", "skipped", "failed"); showStandardStreams = true }
     }
 

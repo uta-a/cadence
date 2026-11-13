@@ -2,7 +2,7 @@
 
 ## 状態と入力
 
-以下は初回の静的調査。後続のPhase 3でUI4候補のdescriptorを実機観測し、Overview18400.defaultだけを初回consumer前にwrapした。元画面を保持したModalでdisk画面の表示・保存・再起動復元・戻りを検証済み。registryや共通memo rendererを変更する案は採用していない。機能フックの一括承認を示す`verified`は全件falseを維持する。[現在の検証範囲](PHASE3.md)を参照。
+以下は初回の静的調査。後続のPhase 3でUI4候補のdescriptorを実機観測し、Overview18400.defaultだけを初回consumer前にwrapした。元画面を保持したModalでCadence画面の表示・保存・再起動復元・戻りを検証済み。registryや共通memo rendererを変更する案は採用していない。機能フックの一括承認を示す`verified`は全件falseを維持する。[現在の検証範囲](PHASE3.md)を参照。
 対象は `work/352.17/assets/index.android.bundle`、SHA-256
 `09dcdd872df4fb7aa84b2a5ecc62946735de7a63447b848d549bd99d6f4505ee`。
 以下の `function:offset` は HBC 関数内の十進**バイト** offset。
@@ -37,7 +37,7 @@ compiler 側80704も:221で80703、:230でcreateList、:286..302で同じexport�
 ## 実装前に必要な判断
 
 1. **props 境界が第一候補。** `16013.SearchableSettingsList` に渡る `node.sections` を
-   複製して disk section を加える案。ただし export は **React.memo の戻り値**であり、
+   複製して Cadence section を加える案。ただし export は **React.memo の戻り値**であり、
    普通の関数として `.apply` してはいけない。元 component を element として描画する方式を検討する。
 2. **トップ画面限定の guard は未確定。** 汎用 renderer なので無条件挿入は不可。
    ACCOUNT / VOICE / LOGOUT 等の配置検査は候補でしかない。全 consumer、固有 marker、検索時の挙動を確認する。

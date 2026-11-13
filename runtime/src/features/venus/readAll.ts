@@ -175,7 +175,7 @@ export function createReadAll(deps: ReadAllDeps) {
         const after = (cleared: boolean) => { if (cleared) setDoneAt(Date.now()); };
         return h(ui.View, { style: OUTER_STYLE, collapsable: false },
             h(ui.Pressable, {
-                accessibilityRole: "button", accessibilityLabel: "disk:read-all", accessibilityHint: "長押しで対象を選択",
+                accessibilityRole: "button", accessibilityLabel: "cadence:read-all", accessibilityHint: "長押しで対象を選択",
                 hitSlop: 6, delayLongPress: 350, collapsable: false,
                 onPress: () => after(run("guilds")), onLongPress: () => choose(after),
                 style: ({ pressed }: { pressed?: boolean }) => pressed ? [PILL_STYLE, PILL_PRESSED] : PILL_STYLE,
@@ -204,7 +204,7 @@ export function createReadAll(deps: ReadAllDeps) {
                     const node = Reflect.apply(renderItem, this, args);
                     if (args[0] !== separator || !deps.enabled()) return node;
                     const ui = deps.native();
-                    return ui ? h(ui.View, { key: "disk-read-all", style: WRAP_STYLE, collapsable: false }, h(ReadAllButton, null), node) : node;
+                    return ui ? h(ui.View, { key: "cadence-read-all", style: WRAP_STYLE, collapsable: false }, h(ReadAllButton, null), node) : node;
                 },
             };
             data.set(listDataProps, wrapped);

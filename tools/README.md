@@ -14,7 +14,7 @@ Python 3.10+、標準ライブラリのみ。バンドルは**読み取り専用
 - Discord **352.17 - Stable**
 - `work/352.17/assets/index.android.bundle`
 - `work/352.17/apks/base.apk` と同ディレクトリの split APK
-- 比較先（読み取りのみ）: `patches/src/main/kotlin/app/disk/patches/hbc/HbcTarget.kt`
+- 比較先（読み取りのみ）: `patches/src/main/kotlin/app/cadence/patches/hbc/HbcTarget.kt`
 
 フォーマットの根拠は Meta Hermes の MIT ライセンスのソース:
 
@@ -24,10 +24,10 @@ Python 3.10+、標準ライブラリのみ。バンドルは**読み取り専用
 - 同コミットの `lib/BCGen/HBC/BytecodeStream.cpp`（配置・SHA-1）、
   `include/hermes/BCGen/HBC/{BytecodeList.def,StringKind.h}`、
   `include/hermes/BCGen/SerializedLiteralParser.h`（literal buffer）
-- ローカル参照: `/tmp/disk-ref/hfull`（上記 commit）、`/tmp/disk-ref/hsrc`
-- 固定コンパイラ: `/tmp/disk-ref/hc/package/hermesc/osx-bin/hermesc`
+- ローカル参照: `/tmp/cadence-ref/hfull`（上記 commit）、`/tmp/cadence-ref/hsrc`
+- 固定コンパイラ: `/tmp/cadence-ref/hc/package/hermesc/osx-bin/hermesc`
   （`-version`: release 250829098.0.19 / HBC98）
-- 参照ソースからビルドされた `/tmp/disk-ref/hfull/build/bin/hbcdump` でも配置を照合
+- 参照ソースからビルドされた `/tmp/cadence-ref/hfull/build/bin/hbcdump` でも配置を照合
 
 `opcodes98.json` は `BytecodeList.def` の命令順・型・ID注釈から作成した219命令の表。
 上流で ID 注釈が省略されている `DefineOwnById` の第4 operand、
@@ -55,7 +55,7 @@ python3 tools/hbc_inspect.py "$BUNDLE" func 0 --disasm > work/global.txt
 python3 tools/hbc_inspect.py "$BUNDLE" modules --id 5744
 
 python3 tools/gen_target.py "$BUNDLE" --version '352.17 - Stable' --write work/HbcTarget.kt
-cmp work/HbcTarget.kt patches/src/main/kotlin/app/disk/patches/hbc/HbcTarget.kt
+cmp work/HbcTarget.kt patches/src/main/kotlin/app/cadence/patches/hbc/HbcTarget.kt
 # extraction.json が assets/ の親にあれば --version を省略できる。
 # 両方ない場合はエラー（未知の入力を自動で 352.17 と名付けない）。
 
@@ -158,8 +158,8 @@ python3 -I -m unittest discover -s tools/tests -v
 # Linux では osx-bin を linux64-bin に変更する。
 HERMES_SOURCE=/path/to/hermes \
 HERMESC="$PWD/runtime/node_modules/hermes-compiler/hermesc/osx-bin/hermesc" \
-DISK_BUNDLE="$PWD/work/352.17/assets/index.android.bundle" \
-HBC_TARGET_REFERENCE="$PWD/patches/src/main/kotlin/app/disk/patches/hbc/HbcTarget.kt" \
+CADENCE_BUNDLE="$PWD/work/352.17/assets/index.android.bundle" \
+HBC_TARGET_REFERENCE="$PWD/patches/src/main/kotlin/app/cadence/patches/hbc/HbcTarget.kt" \
 python3 -I -m unittest discover -s tools/tests -v
 ```
 
@@ -193,9 +193,9 @@ DISK_KEYSTORE_PASSWORD=... bash tools/build_test_apk.sh normal
 DISK_KEYSTORE_PASSWORD=... bash tools/build_test_apk.sh smoke
 ```
 
-ビルダーはインストール/削除を行わない。normalでは`DISK_UI_SMOKE=0`を強制し、Gradleもフラグを入力に含める。Kotlinは実際の選択feature配列を埋める（Phase 3は`[]`）。鍵・APK・テスト出力はgitignore対象。
+ビルダーはインストール/削除を行わない。normalでは`CADENCE_UI_SMOKE=0`を強制し、Gradleもフラグを入力に含める。Kotlinは実際の選択feature配列を埋める（Phase 3は`[]`）。鍵・APK・テスト出力はgitignore対象。
 
-`run_ui_smoke.sh SERIAL ACTION [EXPECTED] [FEATURE]`はdisk自身の固定labelだけを操作する。actionは`open-disk`、`toggle-compact`、`check-compact true|false`、`check-saved`、`show-logs`、`close-disk`。元Discordのアカウント/メッセージ画面のdumpや座標操作はしない。runnerはAndroid13の旧UIAutomator用にandroid.test.runner/base jarも渡し、成功文字列だけでなくFailure/aborted/shortMsgも検査する。
+`run_ui_smoke.sh SERIAL ACTION [EXPECTED] [FEATURE]`はCadence自身の固定labelだけを操作する。actionは`open-cadence`、`toggle-compact`、`check-compact true|false`、`check-saved`、`show-logs`、`close-cadence`。元Discordのアカウント/メッセージ画面のdumpや座標操作はしない。runnerはAndroid13の旧UIAutomator用にandroid.test.runner/base jarも渡し、成功文字列だけでなくFailure/aborted/shortMsgも検査する。
 
 追加機能は`toggle-feature CURRENT FEATURE`、場所別設定は`toggle-platform CURRENT PLACE`で操作する。CURRENTは操作前のtrue/false。初期状態とクリック後の変化を検査し、対象を画面中央側へ寄せて端での空振りを避ける。`check-feature EXPECTED FEATURE`はSwitchのcheckedを読む。本文が変わらない説明ラベルの更新待ちに依存しない。`check-saved`は実際に設定を変更した後の保存・読み戻し確認に使う。起動直後の読み込みだけでは保存完了表示は出ない。試験後は元の値へ戻す。
 

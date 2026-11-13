@@ -1,7 +1,7 @@
 // Adapted from Venus Patches (https://github.com/VenusIsJaded/Venus-Patches, GPL-3.0),
 // bootstrap.js hiddenMetadata/hiddenDirectory/hiddenDetails, commit
 // 987b7a22d96d41a0ba80c060b485291e1c7bcc4b.
-// disk deliberately does NOT patch PermissionStore or the native channel directory. Loaded metadata
+// Cadence deliberately does NOT patch PermissionStore or the native channel directory. Loaded metadata
 // is shown in a read-only server-menu dialog, with no navigation or message/voice actions.
 import { wrapExport } from "./gestures";
 

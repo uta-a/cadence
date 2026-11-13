@@ -1,5 +1,5 @@
 {
-  "name": "disk-runtime",
+  "name": "cadence-runtime",
   "private": true,
   "type": "module",
   "scripts": {

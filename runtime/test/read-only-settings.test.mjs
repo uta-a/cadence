@@ -37,7 +37,7 @@ test("read-only attachment defers I/O until stack completion and never writes a 
     assert.equal("set" in store, false);
 });
 
-test("existing disk-only settings are allowlisted without retaining unknown fields", async () => {
+test("existing cadence-only settings are allowlisted without retaining unknown fields", async () => {
     const { module } = native({ fileExists: async () => true,
         readFile: async () => JSON.stringify({ version: 1, features: { fakeNitro: true, platformIndicator: false }, accountToken: "not retained" }) });
     const statuses = [], store = bootstrap(value => statuses.push(value));

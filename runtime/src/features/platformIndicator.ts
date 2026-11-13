@@ -63,7 +63,7 @@ export function createPlatformAvatar(deps: AvatarDependencies): unknown {
         reported.add(event);
         try { deps.onEvent?.(event); } catch (_) { /* Diagnostics only. */ }
     }
-    function DiskPlatformAvatar(props: Record<string, unknown>) {
+    function CadencePlatformAvatar(props: Record<string, unknown>) {
         const [, redraw] = react.useState(0);
         react.useEffect(() => {
             let revision = 0;
@@ -107,7 +107,7 @@ export function createPlatformAvatar(deps: AvatarDependencies): unknown {
         }));
         return deps.inline ? badge : h(View, { style: { position: "relative" }, pointerEvents: "box-none" }, originalElement, badge);
     }
-    const component = typeof react.memo === "function" ? react.memo(DiskPlatformAvatar) : DiskPlatformAvatar;
+    const component = typeof react.memo === "function" ? react.memo(CadencePlatformAvatar) : CadencePlatformAvatar;
     copyStatics(deps.original, component);
     return component;
 }

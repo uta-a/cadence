@@ -2,7 +2,7 @@ import type { SettingsStorage } from "./settings";
 
 // Static 352.17 contract: docs/STORAGE-RESEARCH.md. Not connected to index.ts or any Metro ID.
 // The caller must provide the naturally initialized NativeFileModule, never eagerly require it here.
-const RELATIVE_PATH = "disk/settings-v1.json";
+const RELATIVE_PATH = "cadence/settings-v1.json";
 const MAX_TEXT_LENGTH = 65536;
 type NativeMethod = (...args: unknown[]) => unknown;
 
@@ -35,7 +35,7 @@ export function createNativeSettingsStorage(native: unknown): SettingsStorage {
 
     function text(value: unknown): string {
         if (typeof value !== "string" || value.length > MAX_TEXT_LENGTH)
-            throw new TypeError("Invalid disk settings text");
+            throw new TypeError("Invalid Cadence settings text");
         return value;
     }
 
@@ -54,7 +54,7 @@ export function createNativeSettingsStorage(native: unknown): SettingsStorage {
             if (result !== target) throw new Error("Unexpected NativeFileModule write path");
             // 352.17 syncs a .tmp file but discards renameTo's boolean. A resolved promise is not proof of a save.
             if (text(await methods.readFile.call(native, target, "utf8")) !== content)
-                throw new Error("Disk settings read-back mismatch");
+                throw new Error("Cadence settings read-back mismatch");
         },
     };
 }

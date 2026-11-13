@@ -78,9 +78,9 @@ export function createJumpToTop(deps: JumpDependencies): (...args: unknown[]) =>
             const child = result && typeof result === "object" ? ((result as { props?: Record<string, unknown> }).props?.children as
                 { props?: Record<string, unknown> } | undefined) : undefined;
             if (child && typeof child === "object" && child.props && typeof child.props.onPress === "function") {
-                const top = react.cloneElement(child, { key: "disk-jump-top", onPress, accessibilityLabel: label });
+                const top = react.cloneElement(child, { key: "cadence-jump-top", onPress, accessibilityLabel: label });
                 return react.cloneElement(result, { children: h(native.View, { style: GROUP_STYLE },
-                    h(native.View, { key: "disk-jump-top-flip", style: FLIP_STYLE }, top), child) });
+                    h(native.View, { key: "cadence-jump-top-flip", style: FLIP_STYLE }, top), child) });
             }
             const pill = deps.pill(), icon = deps.icon();
             if (result || !pill || icon === undefined || icon === null) return result;

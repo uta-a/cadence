@@ -2,11 +2,11 @@
 
 ## 方針（2026-11-11、ユーザーの指示）
 
-[Venus Patches](https://github.com/VenusIsJaded/Venus-Patches)（GPL-3.0、Discord 351.11対象）を参考にし、コードを流用して機能を実装する。それまでの「Venusは設計の参考のみ」という方針は、ユーザーの指示でこの時点から変更した。disk も GPL-3.0 なので、著作権表示を保って流用できる。
+[Venus Patches](https://github.com/VenusIsJaded/Venus-Patches)（GPL-3.0、Discord 351.11対象）を参考にし、コードを流用して機能を実装する。それまでの「Venusは設計の参考のみ」という方針は、ユーザーの指示でこの時点から変更した。Cadence も GPL-3.0 なので、著作権表示を保って流用できる。
 
 - 移植は**機能ごと**に、今のランタイムの構造（`runtime/src/features/venus/`）へ移す。Venusの`bootstrap.js`をまとめて取り込むことはしない。
 - Venusはmodule IDを351.11で固定している。352.17のIDは、Venusの`scripts/hbc/port_check.py`（ソースパスとexport名で照合）で候補を出し、使う前に実バンドルの命令で確認して`runtime/modules/352.17.json`に記録する。候補だけでは使わない。
-- 移植した機能は、**Morpheのpatchを機能ごとに**用意する（ユーザーの指示、`patches/.../VenusPatches.kt`）。選んだ機能だけがランタイムに埋め込まれ、disk設定画面の「Venus から移植した機能」には埋め込まれた機能のスイッチだけが出る。アプリ内の初期値はオフ。設定はschema 2の任意の`extras`配列（オンの機能IDだけ、ひとつもなければ省略）に保存する。
+- 移植した機能は、**Morpheのpatchを機能ごとに**用意する（ユーザーの指示、`patches/.../VenusPatches.kt`）。選んだ機能だけがランタイムに埋め込まれ、Cadence設定画面の「Venus から移植した機能」には埋め込まれた機能のスイッチだけが出る。アプリ内の初期値はオフ。設定はschema 2の任意の`extras`配列（オンの機能IDだけ、ひとつもなければ省略）に保存する。
 - 実機確認はpipaで行い、送信・削除・ピン留めなどの操作は確認を取らずに進めてよい（ユーザーの指示、2026-11-11）。
 - 既存の安全策（exportの形の検査、失敗時は元の動作、固定文字列だけのログ）とテストを付ける。
 - アカウント・規約に関わる機能（アカウント切替、Platform spoof、Fake deafen、Questの自動完了など）も対象から外さない（ユーザーの判断）。
@@ -14,7 +14,7 @@
 
 ## ID対応
 
-`port_check.py`を352.17のバンドル（SHA-256 `09dcdd87…`）に対して実行し、Venusが使う449 moduleのうち448に候補が出た（`SearchField`のみ候補なし）。結果は`work/venus-port-352.17.txt`（gitignore対象）。privacy系の102 closureは別途対応する（diskは独自のprivacy patchを持つ）。
+`port_check.py`を352.17のバンドル（SHA-256 `09dcdd87…`）に対して実行し、Venusが使う449 moduleのうち448に候補が出た（`SearchField`のみ候補なし）。結果は`work/venus-port-352.17.txt`（gitignore対象）。privacy系の102 closureは別途対応する（Cadenceは独自のprivacy patchを持つ）。
 
 ## 対象（ユーザーが選んだグループ）
 
@@ -25,12 +25,12 @@
 
 ## v0.1の範囲（2026-11-12確定）
 
-ユーザーの判断で、v0.1ではPrivacyの不足分（telemetry・タップ記録）だけを追加し、それ以外の未移植項目はv0.2以降へ回す。選んだ4グループに含まれるVenusの機能と、diskでの扱いは次のとおり。
+ユーザーの判断で、v0.1ではPrivacyの不足分（telemetry・タップ記録）だけを追加し、それ以外の未移植項目はv0.2以降へ回す。選んだ4グループに含まれるVenusの機能と、Cadenceでの扱いは次のとおり。
 
-| グループ | Venusの機能 | disk v0.1 |
+| グループ | Venusの機能 | Cadence v0.1 |
 | --- | --- | --- |
 | 既存強化 | Show device indicators | 実装。場所別6設定とメッセージ名の文字表示。Venusの「モバイルを隠す」設定は未移植。通話中のMemberRowItem（通話プレビューの参加者行）は実機確認済み。サイドバーの通話参加者行は対象外 |
-| 既存強化 | Send Nitro stickers and emojis as links | 実装（disk独自のFake Nitro。サイズ・名前付きリンク設定あり） |
+| 既存強化 | Send Nitro stickers and emojis as links | 実装（Cadence独自のFake Nitro。サイズ・名前付きリンク設定あり） |
 | Privacy | Disable analytics | 実装（JSのtrack送信を破棄） |
 | Privacy | Disable crash reporting | 実装（Sentry SDKを起動しない） |
 | Privacy | Disable telemetry and touch logging | **一部**。タップ記録とTelemetryRingへの書き込みを停止。jank・フレーム計測・TTI・metric monitorは止めない（送信はJS analytics経由で、Disable analyticsで破棄） |
@@ -76,7 +76,7 @@
 ### Keep deleted messages（起動中の本文履歴）
 
 - `messageHistory.ts` はVenusの`rememberEdit`、`rememberDeleted`、`dispatchEvent`を参考にした移植。個別patch `Keep deleted messages` と初期オフの`messageHistory`設定。専用画面は`historyUi.ts`。
-- **削除済みの吹き出しをチャット内へ復元する機能ではない。** 削除・編集前の読み込み済み本文をdiskの履歴画面へ保持する。Dispatcher **584**のJS `addInterceptor`で処理前に読み取り、常にfalseを返してDiscordの元アクションをそのまま通す。MessageStoreの内容や削除・未読・通知処理を書き換えない。
+- **削除済みの吹き出しをチャット内へ復元する機能ではない。** 削除・編集前の読み込み済み本文をCadenceの履歴画面へ保持する。Dispatcher **584**のJS `addInterceptor`で処理前に読み取り、常にfalseを返してDiscordの元アクションをそのまま通す。MessageStoreの内容や削除・未読・通知処理を書き換えない。
 - メモリ内のみで最大200件、本文は各4,000文字、合計262,144 UTF-16単位まで。一括削除も200件までを記録。画像・音声・添付ファイルの実体は保持しない。編集は`edited_timestamp`があり、本文が変わったときだけ記録する。
 - 機能オフ、ログアウト、アカウント変更時は消去。プロセス再起動で復元しない。チャンネル削除と把握できているサーバーからの離脱でも対応する履歴を消す。保持件数の上限で古いものを捨てる。手動の全消去も可能。
 - pipaで自分の試験メッセージを送信・編集・削除し、ビューアで編集前`disk-history-before`、編集後・削除前`disk-history-beforeafter`を確認。履歴2件→一括消去→0件を確認。別の試験メッセージを削除して再び履歴ありを確認してから強制停止・起動し、0件になることも確認した。試験後は機能をオフへ戻した。
@@ -108,7 +108,7 @@
 - `runtime/src/features/venus/serverInfo.ts` はVenusの`serverInfoMenu`を移植。Morpheの個別patch `Server info` と初期オフの`serverInfo`設定を追加した。
 - メニューはVenus 17433 → 352.17 **17772 / factory17773**。`getGuildsBarGuildMenuItems.tsx`のdefault export offset153を実バンドルで確認。押したときだけGuildStore **4877**を解決する。
 - サーバーアイコンの長押しメニューに「サーバー情報」を追加し、読み込み済みの名前・ID・所有者ID・作成日時・メンバー数・ブースト情報・言語・認証レベルを表示。取得できていない値は省略。追加通信やメンバー取得要求は行わない。
-- Venusの友達一覧、所有者プロフィール遷移、コピーボタン、装飾付きシートは未移植。diskではAndroid標準ダイアログを使う。
+- Venusの友達一覧、所有者プロフィール遷移、コピーボタン、装飾付きシートは未移植。CadenceではAndroid標準ダイアログを使う。
 - pipaで初期オフ、設定保存、長押しメニューとダイアログを確認。`server-info opened`を記録し、FATAL/TypeError/ReferenceErrorなし。証跡は`work/phase4-device/server-info-dialog.png`。型検査、Node **122件**、Python **24件**、Gradleテストとsmoke APKビルド成功。
 
 ### Download voice messages（実機保存確認済み）
@@ -116,7 +116,7 @@
 - `runtime/src/features/venus/voiceDownload.ts` はVenusの同名機能（VoiceDownload由来）を移植。個別patch `Download voice messages`、初期オフの`voiceDownload`設定。
 - 352.17のRowGenerator **8165 / factory8166**（prototype.generate）、MessagesHandlers **11269**（handleTapCtaButton）を接続。保存操作時だけMessageStore **6042**、NativeMediaManager **1447**、イベント変換 **10105** を解決する。起動時の強制ロードはしない。
 - 音声フラグ8192とDiscordのCDN/media上のattachments URL、audio MIMEを検査。既存のCTAは上書きしない。署名付きURLをそのまま標準の`downloadMediaAssetWithContentType(url, 0, mime)`へ渡す。再エンコードなし。失敗・連打はbusy状態を解放して再試行可能。
-- 設定変更はチャンネルを開き直して反映する。オフにした直後に残っているdiskのCTAは何も保存せず消費し、Discordの別CTA処理へは渡さない。現状は暗色の中立ボタン配色。テーマ別調整は未対応。
+- 設定変更はチャンネルを開き直して反映する。オフにした直後に残っているCadenceのCTAは何も保存せず消費し、Discordの別CTA処理へは渡さない。現状は暗色の中立ボタン配色。テーマ別調整は未対応。
 - pipa: 短いテスト音声を送信→ボタン表示→押して保存、`voice-download started` / `saved`、`/sdcard/Download/voice-message.ogg`（5,679 bytes、Opus、1.72秒）を確認。保存処理はユーザー操作時のみ。テスト音声のローカルコピーはgitignore対象の`work/phase4-device/`内。
 - 型検査、Node **119件**、Python **20件**、Gradleテスト、smoke APKビルド成功。
 
@@ -127,7 +127,7 @@
 - サーバー／グループDMの返信開始時だけ`shouldMention:false`にする。引数は変更せず複製し、手動の`setPendingReplyShouldMention`（offset111）は包まない。未知の形・1対1DM・既にオフの返信は元のまま。
 - Venusのサーバー別／グループDM別設定と「自分へのメンションには通知する」例外設定は未移植。今回は単一スイッチ。
 - 実機で、設定オン→サーバー返信欄が`@ OFF`で開始、返信欄をタップ→`@ ON`、設定オフ→通常どおり`@ ON`で開始することを確認した。返信本文の送信や相手端末の通知受信は試していない。グループDMと浅い返信の経路はユニットテストのみ。浅い返信（`createShallowPendingReply`）の呼び出し元はmodule 17904（通知タブの`ForYouItemActionButtons`、フレンド承認などの「👋」）だけで、相手がいないと発火しない。
-- 以前の「返信欄が出ない」症状を、無patch・disk単独・disk+quietReplies・全機能で比較した。無patchとdisk単独は正常。quietRepliesのラッパーをループ内で作る形から、元関数を引数に受け取る関数ファクトリへ変えると、全機能ビルドでも解消した（引数の複製方式は元のまま）。Android Hermes eval上のループ内クロージャが、通常返信を浅い返信へ誤って渡していた可能性がある。手元のNode／Hermes CLIでは旧コードの小再現が成功せず、エンジン内部の原因までは断定しない。通常・浅い返信に異なる元関数を使うテストを追加した。
+- 以前の「返信欄が出ない」症状を、無patch・Cadence単独・Cadence+quietReplies・全機能で比較した。無patchとCadence単独は正常。quietRepliesのラッパーをループ内で作る形から、元関数を引数に受け取る関数ファクトリへ変えると、全機能ビルドでも解消した（引数の複製方式は元のまま）。Android Hermes eval上のループ内クロージャが、通常返信を浅い返信へ誤って渡していた可能性がある。手元のNode／Hermes CLIでは旧コードの小再現が成功せず、エンジン内部の原因までは断定しない。通常・浅い返信に異なる元関数を使うテストを追加した。
 - 実機証跡（ローカルのみ）: `reply-unpatched-control.png`、`quiet-replies-fixed-off.png`（設定オン時の`@ OFF`）、`quiet-replies-manual-on.png`、`quiet-replies-feature-disabled.png`、いずれも`work/phase4-device/`内。検証後はquietRepliesをオフに戻した。
 - 再開時の切り分け用にPendingReplyStore **7785 / factory7786** を静的確認し、自然ロード時のみ捕捉する診断を追加した。ユーザーの返信操作後に既存の`getPendingReply(channelId)`を読むだけで、モジュールの強制ロードや状態変更はしない。本文・ID・相手の情報は出さず、`quiet-replies state-quiet` / `state-mention` / `state-missing` / `state-unavailable`のいずれかだけを記録する。設定オフでも同じ操作を比較できる。浅い返信の状態は別マップなので、この診断の`missing`だけでは浅い返信の失敗を意味しない。
 - `changed`の記録を元アクションの正常return後へ移動。元アクションが同期例外を投げた場合は、変更済みと記録せず、再実行もしない。返り値・Promiseの同一性は維持する（非同期完了の保証ではない）。
@@ -144,9 +144,9 @@ Read all の安全性と確認範囲:
 
 - 矢印画像（351.11の12922）は、照合ツールの候補（1133）が誤りで、JumpToPresentButtonの依存にある13194（`registerAsset`）が正しかった。候補は必ず実バンドルで確かめる。
 - captureに加えたmoduleが観測対象（`MODULE_PROBES`）にないと、オブザーバー全体が起動せず、すべての機能が止まる。全機能を組み込んだときのcaptureがすべて観測対象にあることをテストで確かめるようにした。
-- Venusは、ユーザー操作のときに必要なmoduleを`__r(id)`で読み込む（`inspectedExport`）。diskは自然に読み込まれたmoduleだけを使っていたため、返信・編集に使うmoduleが未読み込みで、ダブルタップがDiscordのリアクションに戻っていた。ユーザー操作の時点に限り、navigationの準備ができていれば`requireModule`で読み込む`onDemand`を追加した（起動中には呼ばない）。
+- Venusは、ユーザー操作のときに必要なmoduleを`__r(id)`で読み込む（`inspectedExport`）。Cadenceは自然に読み込まれたmoduleだけを使っていたため、返信・編集に使うmoduleが未読み込みで、ダブルタップがDiscordのリアクションに戻っていた。ユーザー操作の時点に限り、navigationの準備ができていれば`requireModule`で読み込む`onDemand`を追加した（起動中には呼ばない）。
 - 352.17では、ネイティブのダブルタップがラップした`handleDoubleTapMessage`を通らずに`handleAddDefaultDoubleTapReaction`へ届く。Venusの「本物のダブルタップだけ」の判定は、ラップした処理が一度でも呼ばれたあとにだけ使う。
-- Venusは、ダブルタップ関連のバナーを非表示にするとき元のcomponentを関数として呼ぶため、表示中に切り替えるとhookの数が変わる。diskでは元のcomponentを要素として描くようにした。
+- Venusは、ダブルタップ関連のバナーを非表示にするとき元のcomponentを関数として呼ぶため、表示中に切り替えるとhookの数が変わる。Cadenceでは元のcomponentを要素として描くようにした。
 - トリプルタップ削除はVenusでは既定でオンだが、誤削除を避けるため別スイッチにして初期オフにした。
 - 独立レビュー（`ccf85da`時点）の指摘を反映した: Venus機能のために読み込むMessageActions（7598）に、Fake Nitroを組み込んでいないビルドでもsendMessageのフックが入っていた（回帰テストを追加）。MessagesHandlersがコンストラクタでなければ置き換えず、インスタンスへの差し替えに失敗してもDiscordのインスタンスを返す。確認の省略は、`onConfirm`の実行が始まったら失敗してもダイアログを重ねて出さない。トリプルタップ削除の「3秒間無視」は削除に成功したときだけ。チャット高さのmodule（9814）は最初の描画時に解決する。
 - トリプルタップ削除は、ネイティブのダブルタップのあとに`handleTapMessage`が自動では呼ばれないこと、`nativeEvent.messageId`があることを前提にしている（実機でダブルタップだけでは削除されず、3回目のタップで削除されたことを確認済み）。前提が崩れた場合は削除しない側に倒れる。650ms以内にダブルタップを2回続けた場合も削除になる。

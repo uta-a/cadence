@@ -1,6 +1,6 @@
-package app.disk.patches
+package app.cadence.patches
 
-import app.disk.patches.dex.BundlePin
+import app.cadence.patches.dex.BundlePin
 import app.morphe.patcher.patch.PatchException
 import com.android.tools.smali.dexlib2.DexFileFactory
 import com.android.tools.smali.dexlib2.Opcode
@@ -33,12 +33,12 @@ import org.junit.jupiter.api.Assumptions.assumeTrue
  * the tests are skipped with an explicit reason when the APK is not extracted locally (it is never committed).
  */
 class BundlePinTest {
-    private val root = File(System.getProperty("disk.root") ?: ".")
+    private val root = File(System.getProperty("cadence.root") ?: ".")
 
     @Test
     fun `the runtime patch depends on the bundle pin`() {
         assertTrue(bundlePin.default)
-        assertTrue(diskRuntime.dependencies.contains(bundlePin))
+        assertTrue(cadenceRuntime.dependencies.contains(bundlePin))
         assertEquals("com.discord", bundlePin.compatibility!!.single().packageName)
     }
 
@@ -87,7 +87,7 @@ class BundlePinTest {
         println("i original: debug min=0 max=62 codeEnd=63")
         BundlePin.rewrite(method)
         assertCleanDebug(method.implementation!!, "rewritten")
-        val file = Files.createTempFile("disk-pin-", ".dex").toFile().apply { deleteOnExit() }
+        val file = Files.createTempFile("cadence-pin-", ".dex").toFile().apply { deleteOnExit() }
         val classes = listOf("Ld6/a;", "Ldl/o;", "Lu5/b;", MANIFEST_OWNER)
             .map { ImmutableClassDef.of(dex.classOf(it)!!) } + rewrittenClass(dex, method)
         DexPool.writeTo(file.path, ImmutableDexFile(Opcodes.getDefault(), classes))
@@ -354,7 +354,7 @@ class BundlePinTest {
         if (extracted.isNotEmpty()) return extracted.sortedBy { it.name }
         val apk = File(root, "work/352.17/apks/base.apk")
         if (!apk.isFile) return emptyList()
-        val directory = Files.createTempDirectory("disk-dex-").toFile().apply { deleteOnExit() }
+        val directory = Files.createTempDirectory("cadence-dex-").toFile().apply { deleteOnExit() }
         return ZipFile(apk).use { zip ->
             zip.entries().asSequence()
                 .filter { it.name.matches(CLASSES_DEX) }

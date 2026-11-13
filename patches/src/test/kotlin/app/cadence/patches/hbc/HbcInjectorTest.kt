@@ -1,4 +1,4 @@
-package app.disk.patches.hbc
+package app.cadence.patches.hbc
 
 import java.io.File
 import java.nio.ByteBuffer
@@ -19,7 +19,7 @@ import org.junit.jupiter.api.io.TempDir
 class HbcInjectorTest {
     @TempDir lateinit var temporaryDirectory: File
 
-    private val root = File(System.getProperty("disk.root") ?: ".")
+    private val root = File(System.getProperty("cadence.root") ?: ".")
     private val hermesc = File(root, "runtime/node_modules/hermes-compiler/hermesc/" +
         if (System.getProperty("os.name").startsWith("Mac")) "osx-bin/hermesc" else "linux64-bin/hermesc")
     private val hermes = File(root, "work/hermes/hermes")
@@ -66,9 +66,9 @@ class HbcInjectorTest {
     @Test
     fun `runtime runs before the original global code`() {
         val bundle = sample("print('original', typeof marker);")
-        val result = HbcInjector.inject(bundle, "var marker = 1; print('[disk] loaded');", pinFor(bundle))
+        val result = HbcInjector.inject(bundle, "var marker = 1; print('[cadence] loaded');", pinFor(bundle))
         assertTrue(result.pieces > 0)
-        assertEquals("[disk] loaded\noriginal number\n", run(hermes.path, bundle.path))
+        assertEquals("[cadence] loaded\noriginal number\n", run(hermes.path, bundle.path))
         assertTrue(HbcFile(ByteBuffer.wrap(bundle.readBytes())).footerValid())
     }
 
@@ -129,10 +129,10 @@ class HbcInjectorTest {
             adequateFrame = false)
         val before = HbcFile(ByteBuffer.wrap(bundle.readBytes())).function(0)
         assertEquals(18, before.frameSize, "fixture must exercise the minimum supported frame")
-        HbcInjector.inject(bundle, "var marker = 1; print('[disk] loaded');", pinFor(bundle))
+        HbcInjector.inject(bundle, "var marker = 1; print('[cadence] loaded');", pinFor(bundle))
         val after = HbcFile(ByteBuffer.wrap(bundle.readBytes())).function(0)
         assertEquals(18, after.frameSize)
-        assertEquals("[disk] loaded\noriginal 6\n", run(hermes.path, bundle.path))
+        assertEquals("[cadence] loaded\noriginal 6\n", run(hermes.path, bundle.path))
     }
 
     @Test
@@ -161,9 +161,9 @@ class HbcInjectorTest {
         val bundle = sample("print('original');")
         // Each space is a one-character piece, so >65535 pieces force a second block. The trailing statement
         // only survives if the blocks are joined in order.
-        val result = HbcInjector.inject(bundle, " ".repeat(65535) + "print('[disk] blocks');", pinFor(bundle))
+        val result = HbcInjector.inject(bundle, " ".repeat(65535) + "print('[cadence] blocks');", pinFor(bundle))
         assertTrue(result.pieces > 65535, "fixture must span more than one array block")
-        assertEquals("[disk] blocks\noriginal\n", run(hermes.path, bundle.path))
+        assertEquals("[cadence] blocks\noriginal\n", run(hermes.path, bundle.path))
     }
 
     @Test
@@ -244,7 +244,7 @@ class HbcInjectorTest {
         assumeTrue(original.isFile, "Discord 352.17 bundle not extracted")
         val copy = Files.createTempFile(temporaryDirectory.toPath(), "discord-", ".bundle").toFile()
         original.copyTo(copy, overwrite = true)
-        val runtime = File(root, "patches/build/generated/runtime/disk/runtime.js").readText()
+        val runtime = File(root, "patches/build/generated/runtime/cadence/runtime.js").readText()
         val start = System.nanoTime()
         val result = HbcInjector.inject(copy, runtime)
         println("discord: ${result.pieces} pieces, prelude ${result.preludeSize} B, ${(System.nanoTime() - start) / 1_000_000} ms")
@@ -263,10 +263,10 @@ class HbcInjectorTest {
             try {
                 for (throws in listOf(false, true)) {
                     original.copyTo(marked, overwrite = true)
-                    HbcInjector.inject(marked, runtime + ";print('[disk] revision',globalThis.__disk.revision);" + if (throws) "throw 1;" else "")
+                    HbcInjector.inject(marked, runtime + ";print('[cadence] revision',globalThis.__cadence.revision);" + if (throws) "throw 1;" else "")
                     val (exit, output) = execute(hermes.path, "-b", marked.path)
                     assertEquals(1, exit)
-                    assertTrue(output.startsWith("[disk] loaded 0.1.0 (console)\n[disk] observer installed (console)\n[disk] revision 0.1.0\n"), output)
+                    assertTrue(output.startsWith("[cadence] loaded 0.1.0 (console)\n[cadence] observer installed (console)\n[cadence] revision 0.1.0\n"), output)
                     assertTrue(output.contains("__fbBatchedBridgeConfig is not set"), output)
                 }
             } finally { marked.delete() }

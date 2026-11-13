@@ -25,7 +25,7 @@ JDK 21、Node.js 22、Python 3.10以降、GitHub Packagesのread権限が必要�
 export JAVA_HOME=/path/to/jdk-21
 export GITHUB_ACTOR=your-account
 export GITHUB_TOKEN="$(gh auth token)"
-export DISK_UI_SMOKE=0
+export CADENCE_UI_SMOKE=0
 ./gradlew :patches:test :patches:generatePatchesList :patches:buildAndroid --no-daemon
 python3 -I -m unittest discover -s tools/tests -v
 ```
@@ -34,7 +34,7 @@ python3 -I -m unittest discover -s tools/tests -v
 
 Discordの実バンドルやDEX、Hermes VMがない環境では対応する検証はskipされます。公開前には、ローカルの実入力を使うテストも別途通してください。詳細は `tools/README.md` にあります。
 
-生成される `disk/build-info.json` の `uiSmoke` はfalseでなければなりません。smokeビルドは起動後に設定画面を開くテスト専用です。配布しません。
+生成される `cadence/build-info.json` の `uiSmoke` はfalseでなければなりません。smokeビルドは起動後に設定画面を開くテスト専用です。配布しません。
 
 ## ローカルで配布物をまとめる
 
@@ -42,12 +42,12 @@ Discordの実バンドルやDEX、Hermes VMがない環境では対応する検�
 python3 tools/prepare_release.py \
   --mpp patches/build/libs/patches-0.1.0.mpp \
   --version 0.1.0 \
-  --repository uta-a/disk \
+  --repository uta-a/cadence \
   --notes CHANGELOG.md \
   --out work/release-staging/0.1.0
 ```
 
-出力先は空のディレクトリにします。MPPのmanifestと`patches-list.json`のバージョンが指定値に一致しない場合、DEXやビルド情報、ライセンス・帰属表記がない場合、smoke版の場合は拒否します。MPP内にも`disk/legal/license.txt`と`notice.txt`を同梱します。
+出力先は空のディレクトリにします。MPPのmanifestと`patches-list.json`のバージョンが指定値に一致しない場合、DEXやビルド情報、ライセンス・帰属表記がない場合、smoke版の場合は拒否します。MPP内にも`cadence/legal/license.txt`と`notice.txt`を同梱します。
 
 出力:
 
@@ -86,15 +86,15 @@ python3 tools/prepare_release.py \
 - 通常MPPの配布準備を実行済み。生成メタデータ、DEX、ビルド情報、チェックサムを検査。公開操作なし。
 - `def4aa2`をgit archiveで新しい作業ディレクトリへ展開し、既存のnode_modulesやworkなしでビルドと配布準備に成功。Kotlin57件中48件、Python24件中6件は実入力なしのためskip。元の作業環境ではKotlin57件、Python24件がskipなしで成功した。
 - pipaに独立した仕事用プロファイルuser10を作り、通常APKの既存インストールをそのユーザーへ登録。アプリデータは新規で、ログイン前のようこそ画面と`loaded` / `observer installed` / `settings ready`を確認した。これはAPKのパッチ適用工程を試した結果ではない。
-- 同プロファイルへローカルMPPをMediaStore経由で渡し、Morphe ManagerのLocalソースとしてdisk 0.0.1を取り込めた。ただしManager 1.28.0にはpatcher 1.11.0しかなく、MPPの要求する2.3.0と不一致でpatch数0・更新要求となった。実行成功やインストールまで通ったとは扱わない。
-- ログイン前の新規プロファイルではdisk設定のUIと保存復元は未確認。既存のログイン済みuser0で新機能の初期オフ・オン・オフ・書込/read-backと上書き更新を確認した。
+- 同プロファイルへローカルMPPをMediaStore経由で渡し、Morphe ManagerのLocalソースとしてCadence 0.0.1を取り込めた。ただしManager 1.28.0にはpatcher 1.11.0しかなく、MPPの要求する2.3.0と不一致でpatch数0・更新要求となった。実行成功やインストールまで通ったとは扱わない。
+- ログイン前の新規プロファイルではCadence設定のUIと保存復元は未確認。既存のログイン済みuser0で新機能の初期オフ・オン・オフ・書込/read-backと上書き更新を確認した。
 - 初回試験のuser10は削除済み。その後のManager更新試験は下記のuser11で実施した。user0のDiscord・Managerのデータは消去していない。
 - 証跡は`work/phase4-device/fresh-profile-start.png`と`manager-disk-compatibility-detail.png`。公開用資料にはアカウント画面の画像を含めない。
 
 ### Manager 2.5.0での後続確認
 
 - 公式GitHub Releaseから2.5.0を取得し、端末の1.28.0と証明書SHA-256が一致することを確認してデータを残したまま更新した。現在の端末のManagerは2.5.0。
-- 一時仕事用プロファイルuser11でLocalソースへdisk 0.0.1を追加し、352.17 Stableの正規APKMを選択。20個のpatchが成功し、署名済みAPKを保存できた。旧版のpatcher互換性不足は解消した。
+- 一時仕事用プロファイルuser11でLocalソースへCadence 0.0.1を追加し、352.17 Stableの正規APKMを選択。20個のpatchが成功し、署名済みAPKを保存できた。旧版のpatcher互換性不足は解消した。
 - `9965e1d`の生成APKはv2署名検証に成功。`assets/index.android.bundle`は同時点のCLI通常版と完全一致し、SHA-256は`e4b4a8a98fc642722c74909ef7e5000b5353c56eb674aff3cc116c6f683a12e6`。
 - AndroidのAPK署名はユーザー間で共有される。user0のDiscordをアンインストールしないため、Manager出力のコードやリソースは変えず、署名だけを既存の開発用キーにそろえてuser11へ実インストールした。ようこそ画面と`loaded` / `settings ready`を確認。通常の新端末ではこの再署名手順は不要。
 - user11を削除してuser0のみへ戻し、CLI通常APKを再インストールした。ログイン済みデータと設定を維持し、起動を確認。証跡は`manager25-patch-result.png`と`manager25-built-fresh-start.png`。

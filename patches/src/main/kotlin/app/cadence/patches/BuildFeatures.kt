@@ -1,4 +1,4 @@
-package app.disk.patches
+package app.cadence.patches
 
 import java.util.WeakHashMap
 
@@ -8,13 +8,13 @@ import java.util.WeakHashMap
  * keyed by that context and weakly held, so one patching run can never see another run's selection.
  */
 internal object BuildFeatures {
-    private const val MARKER = "/*__DISK_FEATURES__*/"
+    private const val MARKER = "/*__CADENCE_FEATURES__*/"
     /** Runtime features, in manifest order. Ported Venus features follow the original three (docs/VENUS-PORT.md). */
     val known = listOf("fakeNitro", "platformIndicator", "disableAnalytics", "quickDelete", "noConfirmPin", "alwaysTrust", "jumpToTop", "gestures", "fullImages", "readAll", "quietReplies", "voiceDownload", "serverInfo", "hiddenChannels", "messageHistory")
     private val selections = WeakHashMap<Any, MutableSet<String>>()
 
     fun select(context: Any, id: String) {
-        require(id in known) { "Unknown disk build feature" }
+        require(id in known) { "Unknown Cadence build feature" }
         synchronized(selections) { selections.getOrPut(context) { linkedSetOf() }.add(id) }
     }
 
@@ -22,10 +22,10 @@ internal object BuildFeatures {
     fun take(context: Any): Set<String> = synchronized(selections) { selections.remove(context)?.toSet() ?: emptySet() }
 
     fun render(runtime: String, selected: Set<String> = emptySet()): String {
-        require(selected.all { it in known }) { "Unknown disk build feature" }
+        require(selected.all { it in known }) { "Unknown Cadence build feature" }
         val markers = listOf("\"$MARKER\"", "'$MARKER'")
         val matches = markers.sumOf { token -> Regex(Regex.escape(token)).findAll(runtime).count() }
-        check(matches == 1) { "Expected exactly one disk feature manifest marker" }
+        check(matches == 1) { "Expected exactly one Cadence feature manifest marker" }
         val manifest = known.filter { it in selected }.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
         return markers.fold(runtime) { text, token -> text.replace(token, manifest) }
     }

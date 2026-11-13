@@ -6,12 +6,12 @@ Phase 3完了時の`f8b1454`を起点に、Phase 4の静的解析を行った。
 bundleの実行・実機操作・送信は行っていない。以下は静的に読んだ呼び出し契約であり、実行時の承認ではない。
 各機能は、実行時のshape/descriptor検査と、失敗時に元の動作へ戻す設計を前提に実装する。
 
-調査はサブエージェントに委譲した。中間出力は`/tmp/disk-p4/`（リポジトリ外・一時）に置いた。証拠は`function:offset`、moduleは`module→factory`で示す。
+調査はサブエージェントに委譲した。中間出力は`/tmp/cadence-p4/`（リポジトリ外・一時）に置いた。証拠は`function:offset`、moduleは`module→factory`で示す。
 
 ## 共通: 機能選択の受け渡し
 
 - Morphe Patcher 2.3.0の`Patcher$invoke$2`を`javap -c`で読み、全patchの`execute`が終わった後に、`finalize`を`asReversed`の順で呼ぶことを確認した。
-- 方針: 各機能patch（`disk`に依存）は`execute`で自分の選択を記録し、`disk`は`finalize`で選択をまとめて`BuildFeatures.render`に渡してから注入する。選択はAPKごとの作業領域に置き、singletonのmutable stateは使わない。記録物は注入後に必ず消す。
+- 方針: 各機能patch（`Cadence`に依存）は`execute`で自分の選択を記録し、`Cadence`は`finalize`で選択をまとめて`BuildFeatures.render`に渡してから注入する。選択はAPKごとの作業領域に置き、singletonのmutable stateは使わない。記録物は注入後に必ず消す。
 - 実際のCLIで、選択した機能だけが埋め込まれることをビルドして確かめる。
 
 ## 4a Fake Nitro

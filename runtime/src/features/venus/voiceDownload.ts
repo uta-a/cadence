@@ -5,7 +5,7 @@
 import { wrapExport } from "./gestures";
 
 export type VoiceDownloadEvent = "row-installed" | "handlers-installed" | "button" | "started" | "saved" | "failed";
-const CALLBACK = "disk-voice-download";
+const CALLBACK = "cadence-voice-download";
 const BUTTON = Object.freeze({ text: "音声を保存", textColor: -2367775, backgroundColor: 352321535, callback: CALLBACK });
 interface Attachment { url: string; mime: string }
 export interface VoiceDownloadDeps {
@@ -48,7 +48,7 @@ export function createVoiceDownload(deps: VoiceDownloadDeps) {
             if (!object(data) || data.callback == null) data = deps.nativeData(event);
             if (!object(data) || data.callback !== CALLBACK) return false;
             owned = true;
-            // A stale disk CTA after the setting is disabled must not reach Discord's unrelated CTA handler.
+            // A stale Cadence CTA after the setting is disabled must not reach Discord's unrelated CTA handler.
             if (!deps.enabled()) return true;
             if (typeof data.channelId !== "string" || typeof data.messageId !== "string"
                 || !data.channelId || !data.messageId) { report("failed"); return true; }
