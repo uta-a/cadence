@@ -2,7 +2,7 @@
 
 Discord Android向けのMorphe patchバンドルです。Fake Nitro、端末表示、Privacyを追加します。旧名は **disk** で、0.1.0はその名前で公開しています。
 
-**最新版は0.1.0です。対応はDiscord 352.17 Stableのみです。** 0.1.0にあったVenus由来のメッセージ操作などは、次の版で削除します（[変更履歴](CHANGELOG.md)）。
+**最新版は0.2.0です。対応はDiscord 352.17 Stableのみです。** 0.1.0にあったVenus由来のメッセージ操作などは0.2.0で削除しました。設定の保存先が変わったため、0.1.0から更新すると全機能がオフに戻ります（[変更履歴](CHANGELOG.md)）。
 
 > Discord公式の製品ではありません。利用規約違反やアカウント停止の可能性があります。利用は自己責任です。APKや認証情報は配布しません。
 
@@ -20,7 +20,7 @@ Morpheで組み込むpatchを選び、Discordの設定画面下部にある **Ca
 
 ## 使い方
 
-[Releases](https://github.com/uta-a/cadence/releases)から`patches-0.1.0.mpp`を取得できます。自分でビルドすることもできます。Morphe Managerのリモートソース追加（Add to Morphe）は未確認のため、MPPをLocalソースとして読み込んでください。**patcher 2.3.0以降を内蔵したMorphe Managerが必要です。** Manager 2.5.0でローカルMPP（0.0.1、20 patch）を適用し、生成APKの導入・起動を確認しました。0.1.0は21 patchです。旧Manager 1.28.0の内蔵patcher 1.11.0では実行できません。
+[Releases](https://github.com/uta-a/cadence/releases)から`patches-0.2.0.mpp`を取得できます。自分でビルドすることもできます。Morphe Managerのリモートソース追加（Add to Morphe）は未確認のため、MPPをLocalソースとして読み込んでください。**patcher 2.3.0以降を内蔵したMorphe Managerが必要です。** Manager 2.5.0でローカルMPP（0.0.1、20 patch）を適用し、生成APKの導入・起動を確認しました。0.1.0は21 patch、0.2.0は9 patchです。旧Manager 1.28.0の内蔵patcher 1.11.0では実行できません。
 
 1. 自分で用意したDiscord **352.17 Stable** の正規APKMを使います。別バージョンや改変済み入力は対象外です。
 2. Releasesの通常MPPを取得するか、以下の手順でビルドします。
@@ -40,7 +40,7 @@ export GITHUB_ACTOR=your-account
 export GITHUB_TOKEN="$(gh auth token)"
 export CADENCE_UI_SMOKE=0
 ./gradlew :patches:test :patches:generatePatchesList :patches:buildAndroid --no-daemon
-# patches/build/libs/patches-0.1.0.mpp
+# patches/build/libs/patches-0.2.0.mpp
 ```
 
 `buildAndroid`を最後に実行します。`build`や`generatePatchesList`だけでは必要なDEXが入らないためです。smokeビルドはテスト専用で配布しません。
