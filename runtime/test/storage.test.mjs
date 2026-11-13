@@ -6,7 +6,7 @@ import vm from "node:vm";
 const { outputFiles } = await build({ entryPoints: [new URL("../src/core/storage.ts", import.meta.url).pathname],
     bundle: true, format: "cjs", platform: "neutral", target: "es2019", write: false });
 const root = "/data/user/0/com.discord/files";
-const relative = "disk/settings-v1.json";
+const relative = "cadence/settings-v1.json";
 const target = `${root}/${relative}`;
 function create(native) {
     const sandbox = { module: { exports: {} }, TypeError, Error };

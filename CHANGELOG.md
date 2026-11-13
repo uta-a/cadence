@@ -1,5 +1,12 @@
 # Changelog
 
+## 未リリース
+
+### 変更
+
+- プロジェクト名を disk から Cadence に変更。patch名、Discord内の設定画面の表示、ログのマーカー（`[cadence]`）も変わる。GitHubのリポジトリは`uta-a/cadence`。
+- 設定の保存先を`cadence/settings-v1.json`に変更。0.1.0の設定は引き継がず、更新後は全機能がオフに戻る。
+
 ## 0.1.0 — 2026-11-12
 
 最初の公開版です。対応はDiscord Android 352.17 Stableのみです。

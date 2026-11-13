@@ -2,7 +2,7 @@ import type { SettingsStorage } from "./settings";
 
 // Static 352.17 contract: docs/STORAGE-RESEARCH.md. Not connected to index.ts or any Metro ID.
 // The caller must provide the naturally initialized NativeFileModule, never eagerly require it here.
-const RELATIVE_PATH = "disk/settings-v1.json";
+const RELATIVE_PATH = "cadence/settings-v1.json";
 const MAX_TEXT_LENGTH = 65536;
 type NativeMethod = (...args: unknown[]) => unknown;
 
