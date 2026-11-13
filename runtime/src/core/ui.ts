@@ -123,7 +123,7 @@ export function createSettingsOverview(react: ReactApi, resolveNative: () => Nat
                 features.includes("fakeNitro") ? sizes() : null,
                 group("display", "表示", feature("platformIndicator")),
                 platformOn ? group("platform-places", "端末アイコンを出す場所", ...PLATFORM_PLACES.map(place => switchRow(place, PLATFORM_LABELS[place],
-                    place === "messages" ? "PC・M・W・VRの文字で表示します" : undefined, (state.platform ?? DEFAULT_PLATFORM)[place],
+                    place === "messages" ? "名前横のタグ枠にアイコンを2つまで表示します。変更後はチャンネルを開き直してください" : undefined, (state.platform ?? DEFAULT_PLATFORM)[place],
                     value => { void controller.setPlatform(place, value).catch(() => {}); }))) : null,
                 group("privacy", "プライバシー", infoRow("analytics", "Analytics の送信停止",
                     features.includes("disableAnalytics") ? "JS の track 送信を止めています（Morphe で選択）" : "このビルドには含まれていません")),

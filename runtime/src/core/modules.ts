@@ -225,7 +225,8 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
     const ids = [19, 17, 5183, 7522, 1164, 18400];
     if (features.includes("disableAnalytics")) ids.push(1267);
     if (features.includes("fakeNitro")) ids.push(7598, 7475, 4953, 1395);
-    if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, 4855, 10659, 11110, 14049, 17499, 9196, 8165, 17494, 8778,
+    // MessagesHandlers 11269 and its event data reader 10105 keep taps on the platform icon chips from opening a guild.
+    if (features.includes("platformIndicator")) ids.push(5744, 504, 15449, 4855, 10659, 11110, 14049, 17499, 9196, 8165, 17494, 8778, 11269, 10105,
         ...ICON_MODULES.map(icon => icon.id));
     const captures: ModuleCapture[] = Array.from(new Set(ids)).map(id => ({ id,
         onExports(exports, context) {
@@ -255,6 +256,10 @@ export function createCoreModules(onStatus: (status: string) => void, smoke = fa
                     ? "fake-nitro picker installed" : "fake-nitro picker unavailable");
             }
             if (id === 15449) installPlatformIndicator(exports);
+            if (features.includes("platformIndicator") && id === 11269) {
+                const ok = platformPlacements()?.installChipTaps(exports, () => dataProperty(onDemand(10105), "getNativeSyntheticEventData"));
+                report(ok ? "platform-indicator chip taps installed" : "platform-indicator chip taps unavailable");
+            }
             if (features.includes("platformIndicator") && [10659, 11110, 14049, 17499, 9196, 8165, 17494, 8778].includes(id)) {
                 try {
                     const runtime = platformPlacements();
