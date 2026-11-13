@@ -29,25 +29,19 @@ at commit 987b7a22d96d41a0ba80c060b485291e1c7bcc4b, which targets Discord 351.11
 code to run on Discord 352.17 (module IDs, export shapes and settings were changed). Ported files say
 so at the top and are listed in docs/VENUS-PORT.md with the Venus feature they come from.
 
-Features that Venus credits to community plugins keep those credits:
+Only the device indicator placements remain from the Venus feature set (the other ported features were removed):
 
-  Cadence file (runtime/src/features/venus/)  Venus feature                    Based on
-  quickConfirm.ts                           Skip delete confirmation         (Venus)
-  quickConfirm.ts                           Skip pin confirmation            NoConfirmPin by Skamt
-  alwaysTrust.ts                            Always trust links and files     AlwaysTrust by zt and Trwy
-  jumpToTop.ts                              Jump to first message            (Venus)
-  readAll.ts                                Read all                         ReadAllNotificationsButton
-  quietReplies.ts                           Reply without pinging            (Venus)
-  voiceDownload.ts                          Download voice messages          VoiceDownload
-  serverInfo.ts                             Server info                      (Venus)
-  platformPlacements.ts                     Show device indicators           PlatformIndicators
-  hiddenChannels.ts                         Show hidden channels             (Venus; read-only adaptation)
-  messageHistory.ts                         Keep deleted messages            (Venus; session-only adaptation)
-  historyUi.ts                              History viewer                   Cadence
-  gestures.ts                               Double-tap to reply              Geastures+ by kmmiio99o
-  fullImages.ts                             Load full-quality images         Uncompressed Discord Images by
-                                                                             Knewest; HighResProfileImages
-                                                                             by Kawtious
+  Cadence file                                    Venus feature                    Based on
+  runtime/src/features/platformPlacements.ts      Show device indicators           PlatformIndicators
+
+PlatformIndicators icons NOTICE
+===============================
+
+The platform icon shapes drawn in the tag chips next to message author names
+(runtime/src/features/platformImage.ts) are derived from the PlatformIndicators plugin icons in
+Martinz64/vendetta-plugins (https://github.com/Martinz64/vendetta-plugins, Unlicense), file
+plugins/PlatformIndicators/src/StatusIcon.tsx at commit 72c4e249fb922665642450fe9c0ec9c33c7ecafa,
+reduced to 48x48 alpha masks.
 
 The method list of the "Disable telemetry and touch logging" patch
 (patches/src/main/kotlin/app/cadence/patches/dex/MethodStub.kt, PrivacyStubs.telemetry) follows
